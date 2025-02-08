@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Login Gamificado',
+      title: 'Login',
       theme: ThemeData(
         primaryColor: Color(0xFF637700), // Cor primária
         scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206), // Cor de fundo

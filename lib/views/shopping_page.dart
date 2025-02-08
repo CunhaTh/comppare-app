@@ -1,4 +1,5 @@
 import 'package:application_progress/cadastro.dart';
+import 'package:application_progress/main.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -39,8 +40,10 @@ class _PlanosPage extends State<HomePage> {
       appBar: AppBar(
         title: Container(child: Row(
           children: [
+            GestureDetector(onTap: (){
+               Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage(title: 'HomePage',)));
+            },child: Image.asset('assets/logo_escura.png', width: 30),),
             
-            Image.asset('assets/logo_escura.png', width: 30),
           ],
         )),
         actions: [
