@@ -1,4 +1,5 @@
 import 'package:application_progress/cadastro.dart';
+import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -17,7 +18,9 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Meu Progresso'),
+      debugShowCheckedModeBanner: false
     );
+  
   }
 }
 
@@ -62,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: const EdgeInsets.all(16.0), // Adiciona espaçamento ao redor do botão
               child: FloatingActionButton(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => CadastroScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
                 },
                 tooltip: 'Click',
                 child: const Text('Assinar'),

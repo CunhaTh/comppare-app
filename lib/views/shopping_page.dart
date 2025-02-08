@@ -1,3 +1,4 @@
+import 'package:application_progress/cadastro.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -9,9 +10,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Nutrafix',
+      title: 'SelectPlan',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.green,
       ),
       home: HomePage(),
     );
@@ -36,14 +37,19 @@ class _PlanosPage extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset('imgs/NutraFix_Logo.webp', width: 200),
+        title: Container(child: Row(
+          children: [
+            
+            Image.asset('assets/logo_escura.png', width: 30),
+          ],
+        )),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Center(
               child: Text(
                 'Precisa de ajuda? contate-nos ',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.black54),
               ),
             ),
           ),
@@ -52,8 +58,8 @@ class _PlanosPage extends State<HomePage> {
               // Implementar ação para contato
             },
             child: Text(
-              'suporte@nutrafix.com.br',
-              style: TextStyle(color: Colors.white, decoration: TextDecoration.underline),
+              'comppare-app@comppare.com.br',
+              style: TextStyle(color: Color(0xFF637700)),
             ),
           ),
         ],
@@ -89,9 +95,9 @@ class _PlanosPage extends State<HomePage> {
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
               onPressed: () {
-                // Implementar ação para escolher o plano
+                Navigator.push(context, MaterialPageRoute(builder: (context) => CadastroScreen()));
               },
-              child: Text('Choose plan'),
+              child: Text('Assinar'),
             ),
           ),
         ],
@@ -105,7 +111,7 @@ class _PlanosPage extends State<HomePage> {
       child: Container(
         padding: EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: selectedPlan == index ? Colors.blue : Colors.grey[300],
+          color: selectedPlan == index ? Color(0xFF637700) : Colors.grey[300],
           borderRadius: BorderRadius.circular(8.0),
         ),
         child: Text(
