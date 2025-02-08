@@ -33,14 +33,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
   void _login() {
     // Aqui você deve implementar a lógica para autenticar o usuário
-    // por meio de uma requisição HTTP para o backend.
-    // Por exemplo:
-    // final response = await http.post('http://seu_backend/login', body: {
-    //   'username': _usernameController.text,
-    //   'password': _passwordController.text,
-    // });
-
-    // Se a autenticação for bem-sucedida, navegue para a tela de cards.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => HomeScreen()),
