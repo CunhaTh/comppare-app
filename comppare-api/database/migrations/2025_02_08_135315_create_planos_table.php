@@ -11,11 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('usuarios', function (Blueprint $table) {
+        Schema::create('planos', function (Blueprint $table) {
             $table->id();
             $table->string('nome');
-            $table->string('cpf')->unique();
-            $table->string('senha');
+            $table->string('descricao');
+            $table->float('valor');
+            $table->integer('tempoGratuidade')->default(15);
+
+
             $table->boolean('status')->default(true);
 
             $table->timestamps();
@@ -27,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('usuarios');
+        Schema::dropIfExists('planos');
     }
 };

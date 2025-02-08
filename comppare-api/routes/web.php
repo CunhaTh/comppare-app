@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UsuarioController;
+use App\Http\Controllers\Api\PlanoController;
 
 Route::middleware('api')->group(function () {
     Route::get('/api/test', function () {
@@ -14,4 +15,7 @@ Route::middleware('api')->group(function () {
     Route::post('/api/usuarios/cadastrar', [UsuarioController::class, 'cadastrarUsuario']);
     Route::get('/api/usuarios/listar', [UsuarioController::class, 'index']);
     Route::post('/api/usuarios/recuperar', [UsuarioController::class, 'getUser']);
+    Route::get('/api/planos/listar', [PlanoController::class, 'index']);
+    Route::post('/api/planos/recuperar', [PlanoController::class, 'getPlano']);
+    Route::post('/api/planos/cadastrar', [PlanoController::class, 'cadastrarPlano']);
 });
