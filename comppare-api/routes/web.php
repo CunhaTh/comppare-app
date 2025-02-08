@@ -10,6 +10,8 @@ Route::middleware('api')->group(function () {
         return response()->json(['message' => 'API works on version:' . $apiVersion]);
     });
 
-    Route::post('/api/autenticar', [UsuarioController::class, 'autenticar']);
-    Route::post('/api/cadastrar', [UsuarioController::class, 'cadastrarUsuario']);
+    Route::post('/api/usuarios/autenticar', [UsuarioController::class, 'autenticar']);
+    Route::post('/api/usuarios/cadastrar', [UsuarioController::class, 'cadastrarUsuario']);
+    Route::get('/api/usuarios/listar', [UsuarioController::class, 'index']);
+    Route::post('/api/usuarios/recuperar', [UsuarioController::class, 'getUser']);
 });
