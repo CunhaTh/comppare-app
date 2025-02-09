@@ -72,9 +72,9 @@ class UsuarioController extends Controller
         return response()->json($response);
     }
 
-    public function update(Request $request, $id)
+    public function atualizarDados(Request $request)
     {
-        $usuario = Usuarios::findOrFail($id);
+        $usuario = Usuarios::findOrFail($request->idUsuario);
         $usuario->update($request->all());
         $response = [
             'codRetorno' => 200,
@@ -83,10 +83,10 @@ class UsuarioController extends Controller
         return response()->json($response);
     }
 
-    public function destroy($id)
+    public function atualizarStatus(Request $request)
     {
         //Falta criar o campo status para desativar logicamente
-        Usuarios::findOrFail($id)->delete();
+        $usuario = Usuarios::findOrFail($request->idUsuario);
         $response = [
             'codRetorno' => 200,
             'message' => $this->codes[200],

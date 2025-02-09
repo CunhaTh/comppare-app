@@ -60,7 +60,7 @@ class PlanoController extends Controller
         return response()->json($response);
     }
 
-    public function update(Request $request, $id)
+    public function atualizarDados(Request $request, $id)
     {
         $plano = Planos::findOrFail($id);
         $plano->update($request->all());
@@ -71,7 +71,7 @@ class PlanoController extends Controller
         return response()->json($response);
     }
 
-    public function destroy($id)
+    public function atualizarStatus($id)
     {
         //Falta criar o campo status para desativar logicamente
         Planos::findOrFail($id)->delete();

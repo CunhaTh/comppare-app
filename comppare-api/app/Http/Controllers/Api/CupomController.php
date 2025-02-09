@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Cupom;
+use App\Http\Util\Helper;
+
+class CupomController extends Controller
+{
+    private $codes = [];
+
+    public function __construct()
+    {
+        $this->codes = Helper::getHttpCodes();
+    }
+
+    public function index()
+    {
+        $response = [
+            'codRetorno' => 200,
+            'message' => $this->codes[200],
+            'data' => Cupom::all()
+
+        ];
+        return response()->json($response);
+    }
+
+    public function saveTicket(Request $request)
+    {
+        $cupom = Cupom::create([
+            'cupom' => $request->cupom,
+            'percentualDesconto' => $request->percentualDesconto
+
+        ]);
+        if (isset($cupom->id)) {
+            $cupom->dataExpiracao = $cupom->created_at->addDays(5);
+            $cupom->save();
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200]
+            ];
+        } else {
+
+            $response = [
+                'codRetorno' => 500,
+                'message' => $this->codes[500]
+            ];
+        }
+        return response()->json($response);
+    }
+
+    public function getTicketDiscount(Request $request)
+    {
+        $cupom = Cupom::find($request->idCupom);
+        isset($cupom->id) ?
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200],
+                'data' => $cupom
+            ] :  $response = [
+                'codRetorno' => 404,
+                'message' => $this->codes[404]
+            ];
+        return response()->json($response);
+    }
+
+    public function atualizarDados(Request $request)
+    {
+        $cupom = Cupom::findOrFail($request->idCupom);
+
+        if (isset($cupom->id)) {
+            $cupom->cupom = $request->cupom;
+            $cupom->percentualDesconto = $request->percentualDesconto;
+            $cupom->save();
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200]
+            ];
+        } else {
+            $response = [
+                'codRetorno' => 500,
+                'message' => $this->codes[500]
+            ];
+        }
+
+        return response()->json($response);
+    }
+
+    public function atualizarStatus(Request $request)
+    {
+        $cupom = Cupom::findOrFail($request->idCupom);
+        if (isset($cupom->id)) {
+            $cupom->status = $request->status;
+            $cupom->save();
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200]
+            ];
+        } else {
+
+            $response = [
+                'codRetorno' => 500,
+                'message' => $this->codes[500]
+            ];
+        }
+        return response()->json($response);
+    }
+}

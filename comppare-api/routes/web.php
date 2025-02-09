@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Api\PlanoController;
+use App\Http\Controllers\Api\CupomController;
 
 Route::middleware('api')->group(function () {
     Route::get('/api/test', function () {
@@ -18,4 +19,9 @@ Route::middleware('api')->group(function () {
     Route::get('/api/planos/listar', [PlanoController::class, 'index']);
     Route::post('/api/planos/recuperar', [PlanoController::class, 'getPlano']);
     Route::post('/api/planos/cadastrar', [PlanoController::class, 'cadastrarPlano']);
+    Route::post('/api/cupons/cadastrar', [CupomController::class, 'saveTicket']);
+    Route::get('/api/cupons/listar', [CupomController::class, 'index']);
+    Route::post('/api/cupons/recuperar', [CupomController::class, 'getTicketDiscount']);
+    Route::post('/api/cupons/atualizar-status', [CupomController::class, 'atualizarStatus']);
+    Route::post('/api/cupons/atualizar-dados', [CupomController::class, 'atualizarDados']);
 });
