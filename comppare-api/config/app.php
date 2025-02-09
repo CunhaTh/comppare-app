@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'validadeCupom' => env('VALIDADE_CUPOM'),
+    'gratuidadePlano' => env('GRATUIDADE_PLANOS')
 ];

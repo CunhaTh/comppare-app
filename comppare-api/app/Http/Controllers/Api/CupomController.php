@@ -10,10 +10,12 @@ use App\Http\Util\Helper;
 class CupomController extends Controller
 {
     private $codes = [];
+    private int $gratuidade = 0;
 
     public function __construct()
     {
         $this->codes = Helper::getHttpCodes();
+        $this->gratuidade = config('app.validadeCupom');
     }
 
     public function index()
@@ -35,7 +37,7 @@ class CupomController extends Controller
 
         ]);
         if (isset($cupom->id)) {
-            $cupom->dataExpiracao = $cupom->created_at->addDays(5);
+            $cupom->dataExpiracao = $cupom->created_at->addDays($this->gratuidade);
             $cupom->save();
             $response = [
                 'codRetorno' => 200,

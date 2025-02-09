@@ -10,4 +10,9 @@ class Planos extends Model
     use HasFactory;
 
     protected $fillable = ['nome', 'descricao', 'valor', 'tempoGratuidade', 'status'];
+
+    public function usuarios()
+    {
+        return $this->hasMany(Usuarios::class);
+    }
 }

@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('cpf')->unique();
             $table->string('senha');
             $table->boolean('status')->default(true);
+            $table->unsignedBigInteger('idPlano'); //
+            $table->foreign('idPlano')->references('id')->on('planos');
 
             $table->timestamps();
         });
