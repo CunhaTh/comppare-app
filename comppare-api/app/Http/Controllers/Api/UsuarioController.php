@@ -27,37 +27,44 @@ class UsuarioController extends Controller
         return response()->json($response);
     }
 
-    public function cadastrarUsuario(Request $request)
+    public function cadastrarUsuario(Request $request): object
     {
-
-        $exists = Usuarios::where('cpf', $request->cpf)->exists();
-
-        if ($exists) {
-            return response()->json([
-                'codRetorno' => 409,
-                'message' => $this->codes[409],
-            ], 409);
-        } else {
-
-
-            $usuario = Usuarios::create([
-                'nome' => $request->nome,
-                'senha' => bcrypt($request->senha), // 
-                'cpf' => $request->cpf
-            ]);
-            isset($usuario->id) ?
-                $response = [
-                    'codRetorno' => 200,
-                    'message' => $this->codes[200]
-                ] :  $response = [
-                    'codRetorno' => 500,
-                    'message' => $this->codes[500]
-                ];
+        if (!Helper::validaCPF($request->cpf)) {
+            $response = [
+                'codRetorno' => 400,
+                'message' => $this->codes[400]
+            ];
             return response()->json($response);
+        } else {
+            $exists = Usuarios::where('cpf', $request->cpf)->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'codRetorno' => 409,
+                    'message' => $this->codes[409],
+                ], 409);
+            } else {
+
+
+                $usuario = Usuarios::create([
+                    'nome' => $request->nome,
+                    'senha' => bcrypt($request->senha), // 
+                    'cpf' => $request->cpf
+                ]);
+                isset($usuario->id) ?
+                    $response = [
+                        'codRetorno' => 200,
+                        'message' => $this->codes[200]
+                    ] :  $response = [
+                        'codRetorno' => 500,
+                        'message' => $this->codes[500]
+                    ];
+                return response()->json($response);
+            }
         }
     }
 
-    public function getUser(Request $request)
+    public function getUser(Request $request): object
     {
         $usuario = Usuarios::find($request->idUsuario);
         isset($usuario->id) ?
@@ -72,29 +79,60 @@ class UsuarioController extends Controller
         return response()->json($response);
     }
 
-    public function atualizarDados(Request $request)
+    public function atualizarDados(Request $request): object
     {
-        $usuario = Usuarios::findOrFail($request->idUsuario);
-        $usuario->update($request->all());
-        $response = [
-            'codRetorno' => 200,
-            'message' => $this->codes[200]
-        ];
+        if (!Helper::validaCPF($request->cpf)) {
+            $response = [
+                'codRetorno' => 400,
+                'message' => $this->codes[400]
+            ];
+            return response()->json($response);
+        } else {
+            $usuario = Usuarios::findOrFail($request->idUsuario);
+            if (isset($usuario->id)) {
+                $usuario->nome = $request->nome;
+                $usuario->senha = bcrypt($request->senha);
+                $usuario->cpf = $request->cpf;
+                $usuario->save();
+                $response = [
+                    'codRetorno' => 200,
+                    'message' => $this->codes[200]
+                ];
+            } else {
+                $response = [
+                    'codRetorno' => 500,
+                    'message' => $this->codes[500]
+                ];
+            }
+        }
         return response()->json($response);
     }
 
-    public function atualizarStatus(Request $request)
+
+
+
+    public function atualizarStatus(Request $request): object
     {
         //Falta criar o campo status para desativar logicamente
         $usuario = Usuarios::findOrFail($request->idUsuario);
-        $response = [
-            'codRetorno' => 200,
-            'message' => $this->codes[200],
-        ];
+        if (isset($usuario->id)) {
+            $usuario->status = $request->status;
+            $usuario->save();
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200]
+            ];
+        } else {
+
+            $response = [
+                'codRetorno' => 500,
+                'message' => $this->codes[500]
+            ];
+        }
         return response()->json($response);
     }
 
-    public function autenticar(Request $request)
+    public function autenticar(Request $request): object
     {
         // Chama a função para pegar os códigos e mensagens
 
@@ -109,20 +147,18 @@ class UsuarioController extends Controller
 
         // Verificar se a senha fornecida corresponde à senha armazenada no banco
         if (!$user || !Hash::check($request->input('senha'), $user->senha)) {
-            return response()->json(
-                [
-                    'message' => $this->codes[404], // Mensagem associada ao código 404
-                    'codRetorno' => 404
-                ],
-                404
-            );
+            $response = [
+                'codRetorno' => 404,
+                'message' => $this->codes[404]
+            ];
         } else {
-            // Sucesso na autenticação
-            return response()->json([
+            $response = [
                 'codRetorno' => 200,
-                'message' => $this->codes[200], // Mensagem associada ao código 200
-                'data' => $user->only('id', 'nome', 'cpf') // Retornar informações do usuário, sem a senha
-            ]);
+                'message' => $this->codes[200],
+                'data' => $user->only('id', 'nome', 'cpf')
+            ];
         }
+
+        return response()->json($response);
     }
 }
