@@ -10,7 +10,7 @@ class Usuarios extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nome', 'senha', 'cpf', 'status'];
+    protected $fillable = ['nome', 'senha', 'cpf', 'status', 'dataLimiteCompra'];
 
     public function plano(): BelongsTo
     {

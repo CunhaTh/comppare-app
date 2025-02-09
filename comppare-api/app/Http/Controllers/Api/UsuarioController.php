@@ -7,13 +7,18 @@ use Illuminate\Http\Request;
 use App\Models\Usuarios;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Util\Helper;
+use Carbon\Carbon;
+
+
 
 class UsuarioController extends Controller
 {
     private $codes = [];
+    private int $gratuidade = 0;
     public function __construct()
     {
         $this->codes = Helper::getHttpCodes();
+        $this->gratuidade = config('app.gratuidadePlano');
     }
 
     public function index()
@@ -29,6 +34,8 @@ class UsuarioController extends Controller
 
     public function cadastrarUsuario(Request $request): object
     {
+
+        dd(Carbon::now()->addDays($this->gratuidade));
         if (!Helper::validaCPF($request->cpf)) {
             $response = [
                 'codRetorno' => 400,
