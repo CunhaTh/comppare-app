@@ -21,7 +21,7 @@ class UsuarioController extends Controller
         $this->gratuidade = config('app.gratuidadePlano');
     }
 
-    public function index()
+    public function index() : object
     {
         $response = [
             'codRetorno' => 200,
@@ -38,33 +38,42 @@ class UsuarioController extends Controller
         if (!Helper::validaCPF($request->cpf)) {
             $response = [
                 'codRetorno' => 400,
-                'message' => $this->codes[400]
+                'message' => $this->codes[-2]
             ];
             return response()->json($response);
         } else {
             $exists = Usuarios::where('cpf', $request->cpf)->exists();
 
             if ($exists) {
-                return response()->json([
-                    'codRetorno' => 409,
-                    'message' => $this->codes[409],
-                ], 409);
+                 $response = [
+                     'codRetorno' => 400,
+                     'message' => $this->codes[-6]
+                 ];
+                 return response()->json($response);
+
             } else {
 
 
                 $usuario = Usuarios::create([
                     'nome' => $request->nome,
-                    'senha' => bcrypt($request->senha), // 
-                    'cpf' => $request->cpf
+                    'senha' => bcrypt($request->senha), //
+                    'cpf' => $request->cpf,
+                    'idPlano' => $request->idPlano
                 ]);
-                isset($usuario->id) ?
-                    $response = [
-                        'codRetorno' => 200,
-                        'message' => $this->codes[200]
-                    ] :  $response = [
-                        'codRetorno' => 500,
-                        'message' => $this->codes[500]
-                    ];
+             if(isset($usuario->id)){
+                 $usuario->dataLimiteCompra = $usuario->created_at->addDays($this->gratuidade);
+                 $usuario->save();
+                     $response = [
+                         'codRetorno' => 200,
+                         'message' => $this->codes[200]
+                     ];
+             }else{
+                 $response = [
+                     'codRetorno' => 500,
+                     'message' => $this->codes[500]
+                 ];
+
+             }
                 return response()->json($response);
             }
         }

@@ -9,7 +9,7 @@ Route::middleware('api')->group(function () {
     Route::get('/api/test', function () {
         $apiVersion = env('APP_VERSION');  // 'default_version' é o valor padrão caso a variável não exista
 
-        return response()->json(['message' => 'API works on version:' . $apiVersion]);
+        return response()->json(['message' => 'API funcional na versão: ' . $apiVersion]);
     });
     //Rotas user
     Route::post('/api/usuarios/autenticar', [UsuarioController::class, 'autenticar']);

@@ -73,6 +73,13 @@ class Helper
             508 => 'Loop Detectado',
             510 => 'Não Estendido',
             511 => 'Autenticação de Rede Requerida',
+            //Especificos do COMPPARE APP
+            -1 => 'Erro desconhecido',
+            -2 => 'Erro ao validar CPF',
+            -3 => 'Erro ao validar CNPJ',
+            -4 => 'Erro ao validar Email',
+            -5 => 'Erro ao validar Telefone',
+            -6 => 'CPF já cadastrado no banco de dados'
         ];
     }
 
