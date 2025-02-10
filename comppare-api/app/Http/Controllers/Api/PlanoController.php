@@ -15,7 +15,7 @@ class PlanoController extends Controller
         $this->codes = Helper::getHttpCodes();
     }
 
-    public function index()
+    public function index() : object
     {
         $response = [
             'codRetorno' => 200,
@@ -26,7 +26,7 @@ class PlanoController extends Controller
         return response()->json($response);
     }
 
-    public function cadastrarPlano(Request $request)
+    public function cadastrarPlano(Request $request) : object
     {
         $plano = Planos::create([
             'nome' => $request->nomePlano,
@@ -45,7 +45,7 @@ class PlanoController extends Controller
     }
 
 
-    public function getPlano(Request $request)
+    public function getPlano(Request $request) : object
     {
         $plano = Planos::find($request->idPlano);
         isset($plano->id) ?
@@ -60,25 +60,45 @@ class PlanoController extends Controller
         return response()->json($response);
     }
 
-    public function atualizarDados(Request $request, $id)
+    public function atualizarDados(Request $request): object
     {
-        $plano = Planos::findOrFail($id);
-        $plano->update($request->all());
-        $response = [
-            'codRetorno' => 200,
-            'message' => $this->codes[200]
-        ];
+        $plano = Planos::findOrFail($request->idPlano);
+        if(isset($plano->id)){
+            $plano->nome = $request->nomePlano;
+            $plano->descricao = $request->descricao;
+            $plano->valor = $request->valor;
+            $plano->save();
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200]
+            ];
+        }else{
+            $response = [
+                'codRetorno' => 500,
+                'message' => $this->codes[500]
+            ];
+        }
+
         return response()->json($response);
     }
 
-    public function atualizarStatus($id)
+    public function atualizarStatus(Request $request) : object
     {
-        //Falta criar o campo status para desativar logicamente
-        Planos::findOrFail($id)->delete();
-        $response = [
-            'codRetorno' => 200,
-            'message' => $this->codes[200],
-        ];
+        $plano = Planos::findOrFail($request->idPlano);
+        if(isset($plano->id)){
+            $plano->status = $request->status;
+            $plano->save();
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200]
+            ];
+        }else{
+            $response = [
+                'codRetorno' => 500,
+                'message' => $this->codes[500]
+            ];
+        }
         return response()->json($response);
+
     }
 }

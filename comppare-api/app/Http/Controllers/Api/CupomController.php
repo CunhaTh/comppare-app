@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Util\Helper;
 use Illuminate\Http\Request;
 use App\Models\Cupom;
-use App\Http\Util\Helper;
 
 class CupomController extends Controller
 {
@@ -18,7 +18,7 @@ class CupomController extends Controller
         $this->gratuidade = config('app.validadeCupom');
     }
 
-    public function index()
+    public function index() : object
     {
         $response = [
             'codRetorno' => 200,
@@ -29,7 +29,7 @@ class CupomController extends Controller
         return response()->json($response);
     }
 
-    public function saveTicket(Request $request)
+    public function saveTicket(Request $request) : object
     {
         $cupom = Cupom::create([
             'cupom' => $request->cupom,
@@ -53,7 +53,7 @@ class CupomController extends Controller
         return response()->json($response);
     }
 
-    public function getTicketDiscount(Request $request)
+    public function getTicketDiscount(Request $request) : object
     {
         $cupom = Cupom::find($request->idCupom);
         isset($cupom->id) ?
@@ -68,7 +68,7 @@ class CupomController extends Controller
         return response()->json($response);
     }
 
-    public function atualizarDados(Request $request)
+    public function atualizarDados(Request $request) : object
     {
         $cupom = Cupom::findOrFail($request->idCupom);
 
@@ -90,7 +90,7 @@ class CupomController extends Controller
         return response()->json($response);
     }
 
-    public function atualizarStatus(Request $request)
+    public function atualizarStatus(Request $request) : object
     {
         $cupom = Cupom::findOrFail($request->idCupom);
         if (isset($cupom->id)) {
