@@ -35,7 +35,6 @@ class UsuarioController extends Controller
     public function cadastrarUsuario(Request $request): object
     {
 
-        dd(Carbon::now()->addDays($this->gratuidade));
         if (!Helper::validaCPF($request->cpf)) {
             $response = [
                 'codRetorno' => 400,
