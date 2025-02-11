@@ -38,14 +38,19 @@ class _PlanosPage extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Container(child: Row(
+        title: Row(
           children: [
-            GestureDetector(onTap: (){
-               Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage(title: 'HomePage',)));
-            },child: Image.asset('assets/logo_escura.png', width: 30),),
-            
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => MyHomePage(title: 'HomePage')));
+              },
+              child: Image.asset('assets/logo_escura.png', width: 30),
+            ),
           ],
-        )),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -61,49 +66,67 @@ class _PlanosPage extends State<HomePage> {
               // Implementar ação para contato
             },
             child: Text(
-              'comppare-app@comppare.com.br',
+              'contato-comppare@comppare.com.br',
               style: TextStyle(color: Color(0xFF637700)),
             ),
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Escolha seu Plano',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+                'Escolha seu Plano',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildPlanButton('Basic', 1),
-                    _buildPlanButton('Standard', 2),
-                    _buildPlanButton('Team', 3),
-                  ],
+            SizedBox(height: 20),
+            Expanded(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildPlanButton('Basic', 1),
+                      _buildPlanButton('Standard', 2),
+                      _buildPlanButton('Team', 3),
+                    ],
+                  ),
+                  SizedBox(height: 20), // Espaço entre os botões e detalhes
+                  Expanded(
+                    child: _buildPlanDetails(),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 10),
+            Center(
+              child: GestureDetector(
+                onTap: (){Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => CadastroScreen()));},
+                child: Container(
+                  padding: EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color:  Color(0xFF637700),
+                    borderRadius: BorderRadius.circular(12.0), // Mais arredondado
+                    
+                  ),
+                  child: Text(
+                  'Assinar',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white
+                    ),
+                  ),
                 ),
-                Expanded(
-                  child: _buildPlanDetails(),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => CadastroScreen()));
-              },
-              child: Text('Assinar'),
-            ),
-          ),
-        ],
+              ),
+            ) 
+          ],
+        ),
       ),
     );
   }
@@ -115,11 +138,23 @@ class _PlanosPage extends State<HomePage> {
         padding: EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: selectedPlan == index ? Color(0xFF637700) : Colors.grey[300],
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(12.0), // Mais arredondado
+          boxShadow: [
+            if (selectedPlan == index)
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 8.0,
+                offset: Offset(0, 4),
+              ),
+          ],
         ),
         child: Text(
           title,
-          style: TextStyle(color: selectedPlan == index ? Colors.white : Colors.black),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: selectedPlan == index ? Colors.white : Colors.black,
+          ),
         ),
       ),
     );
@@ -162,19 +197,31 @@ class _PlanosPage extends State<HomePage> {
     var selectedPlanDetails = plans[selectedPlan - 1];
 
     return Card(
-      elevation: 4,
+      elevation: 6,
       margin: EdgeInsets.all(16.0),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '\$${selectedPlanDetails['price']}',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF637700)),
             ),
-            Text(selectedPlanDetails['description']),
+            SizedBox(height: 10),
+            Text(
+              selectedPlanDetails['description'],
+              style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+            ),
             SizedBox(height: 16.0),
+            Text(
+              'Características:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            SizedBox(height: 8.0),
             ...selectedPlanDetails['features'].map<Widget>((feature) {
               return Row(
                 children: [

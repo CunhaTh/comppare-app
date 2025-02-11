@@ -62,14 +62,27 @@ class _MyHomePageState extends State<MyHomePage> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.all(16.0), // Adiciona espaçamento ao redor do botão
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
-                },
-                tooltip: 'Click',
-                child: const Text('Assinar'),
+              padding: const EdgeInsets.only(bottom: 40), // Adiciona espaçamento ao redor do botão
+              child:GestureDetector(
+              onTap: (){Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => HomePage()));},
+              child: Container(
+                padding: EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color:  Color(0xFF637700),
+                  borderRadius: BorderRadius.circular(12.0), // Mais arredondado
+                  
+                ),
+                child: Text(
+                'Assinar',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white
+                  ),
+                ),
               ),
+            )
             ),
           ),
         ],

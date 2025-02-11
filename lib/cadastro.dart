@@ -66,7 +66,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Registre-se!',
+                  'Cadastre-se!',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF637700)),
                 ),
                 const SizedBox(height: 20),
@@ -151,13 +151,20 @@ class _CadastroScreenState extends State<CadastroScreen> {
                  ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF637700), // Cor do botão
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: (){
                           Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
                         },
-                        child: const Text('Entrar', style: TextStyle(color: Colors.white)),
+                        child: const Text(
+                  'Cadastrar',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white
+                    ),
+                  ),
                       ),
               ],
             ),

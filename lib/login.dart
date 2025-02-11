@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF637700), // Cor do botão
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: _login,
@@ -151,15 +151,27 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 24),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CustomScreen()),
-                );
-              },
-              child: const Text('Ir para Custom Screen'),
-            ),
+            GestureDetector(
+              onTap: (){Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => CustomScreen()));},
+              child: Container(
+                padding: EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color:  Color(0xFF637700),
+                  borderRadius: BorderRadius.circular(12.0), // Mais arredondado
+                  
+                ),
+                child: Text(
+                'Customizar',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white
+                  ),
+                ),
+              ),
+            )
+           
           ],
         ),
       ),
