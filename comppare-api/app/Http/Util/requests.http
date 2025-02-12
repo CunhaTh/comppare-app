@@ -8,8 +8,12 @@ POST {{baseUrl}}/usuarios/cadastrar
 Content-Type: application/json
 
 {
-  "nome": "João da Silva",
+  "nome": "Luis Felipe",
   "cpf": "02342288140",
-  "senha": "Senha@123",
+  "senha": "13151319",
     "idPlano" : 1
 }
+
+
+###hpost
+GET {{baseUrl}}/usuarios/listar
