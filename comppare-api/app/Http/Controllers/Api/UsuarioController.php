@@ -55,10 +55,11 @@ class UsuarioController extends Controller
 
 
                 $usuario = Usuarios::create([
-                    'nome' => $request->nome,
-                    'senha' => bcrypt($request->senha), //
-                    'cpf' => $request->cpf,
-                    'idPlano' => $request->idPlano
+                    'nome'     => $request->nome,
+                    'senha'    => bcrypt($request->senha), //
+                    'cpf'      => $request->cpf,
+                    'telefone' => $request->telefone,
+                    'idPlano'  => $request->idPlano
                 ]);
              if(isset($usuario->id)){
                  $usuario->dataLimiteCompra = $usuario->created_at->addDays($this->gratuidade);
@@ -108,6 +109,7 @@ class UsuarioController extends Controller
                 $usuario->nome = $request->nome;
                 $usuario->senha = bcrypt($request->senha);
                 $usuario->cpf = $request->cpf;
+                $usuario->telefone = $request->telefone;
                 $usuario->save();
                 $response = [
                     'codRetorno' => 200,
@@ -179,7 +181,7 @@ class UsuarioController extends Controller
             $response = [
                 'codRetorno' => 200,
                 'message' => $this->codes[200],
-                'data' => $user->only('id', 'nome', 'cpf')
+                'data' => $user->only('id', 'nome', 'cpf','telefone')
             ];
         }
 
