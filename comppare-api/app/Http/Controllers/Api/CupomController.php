@@ -10,6 +10,7 @@ use App\Models\Cupom;
 class CupomController extends Controller
 {
     private $codes = [];
+    //teste server
     private int $gratuidade = 0;
 
     public function __construct()
