@@ -149,8 +149,8 @@ class UsuarioController extends Controller
 
     public function autenticar(Request $request): object
     {
-        $now = Carbon::now();
 
+        $osTime = Carbon::now()->setTimezone('America/Recife');
         // Chama a função para pegar os códigos e mensagens
 
         // Validar os dados de entrada
@@ -169,7 +169,7 @@ class UsuarioController extends Controller
                 'message' => $this->codes[404]
             ];
         } else {
-            if($user->dataLimiteCompra < $now){
+            if($user->dataLimiteCompra < $osTime){
                 $response = [
                     'codRetorno' => 400,
                     'message' => $this->codes[-7]
