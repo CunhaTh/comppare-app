@@ -2,6 +2,7 @@ import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/main.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:application_progress/teste.dart';
 
 void main() {
   runApp(MyApp());
@@ -98,7 +99,7 @@ class _PlanosPage extends State<HomePage> {
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => CadastroScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => ApiScreen()));
               },
               child: Text('Assinar'),
             ),
