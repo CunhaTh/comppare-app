@@ -79,7 +79,8 @@ class Helper
             -3 => 'Erro ao validar CNPJ',
             -4 => 'Erro ao validar Email',
             -5 => 'Erro ao validar Telefone',
-            -6 => 'CPF já cadastrado no banco de dados'
+            -6 => 'CPF já cadastrado no banco de dados',
+            -7 => 'Período de gratuidade expirado'
         ];
     }
 

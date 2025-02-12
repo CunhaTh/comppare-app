@@ -149,6 +149,8 @@ class UsuarioController extends Controller
 
     public function autenticar(Request $request): object
     {
+        $now = Carbon::now();
+
         // Chama a função para pegar os códigos e mensagens
 
         // Validar os dados de entrada
@@ -167,6 +169,13 @@ class UsuarioController extends Controller
                 'message' => $this->codes[404]
             ];
         } else {
+            if($user->dataLimiteCompra < $now){
+                $response = [
+                    'codRetorno' => 400,
+                    'message' => $this->codes[-7]
+                ];
+                return response()->json($response);
+            }
             $response = [
                 'codRetorno' => 200,
                 'message' => $this->codes[200],
