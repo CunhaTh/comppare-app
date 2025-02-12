@@ -30,15 +30,12 @@ Route::middleware('api')->group(function () {
     Route::post('/api/cupons/recuperar', [CupomController::class, 'getTicketDiscount']);
     Route::post('/api/cupons/atualizar-status', [CupomController::class, 'atualizarStatus']);
     Route::post('/api/cupons/atualizar-dados', [CupomController::class, 'atualizarDados']);
-
-    // Rotas tipo plano
+// Rotas tipo plano
     Route::get('/api/tipo-planos/listar', [TipoPlanoController::class, 'index']);
     Route::post('/api/tipo-planos/recuperar', [TipoPlanoController::class, 'getTipoPlano']);
-    Route::post('/api/tipo-planos/cadastrar', [TipoPlanoController::class, 'cadastrar']);
+    Route::post('/api/tipo-planos/cadastrar', [TipoPlanoController::class, 'cadastrarTipoPlano']);
     Route::post('/api/tipo-planos/atualizar-status', [TipoPlanoController::class, 'atualizarStatus']);
     Route::post('/api/tipo-planos/atualizar-dados', [TipoPlanoController::class, 'atualizarDados']);
-
-
 
 
 });

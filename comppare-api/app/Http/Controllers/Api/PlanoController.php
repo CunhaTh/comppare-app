@@ -29,9 +29,11 @@ class PlanoController extends Controller
     public function cadastrarPlano(Request $request) : object
     {
         $plano = Planos::create([
-            'nome' => $request->nomePlano,
+            'nome' => $request->nome,
             'descricao' => $request->descricao,
-            'valor' => $request->valor
+            'valor' => $request->valor,
+            'idTipoPlano' => $request->tipoPlano,
+            'tempoGratuidade' => $request->gratuidade
         ]);
         isset($plano->id) ?
             $response = [
@@ -67,6 +69,8 @@ class PlanoController extends Controller
             $plano->nome = $request->nomePlano;
             $plano->descricao = $request->descricao;
             $plano->valor = $request->valor;
+            $plano->tempoGratuidade = $request->gratuidade;
+            $plano->idTipoPlano = $request->tipoPlano;
             $plano->save();
             $response = [
                 'codRetorno' => 200,

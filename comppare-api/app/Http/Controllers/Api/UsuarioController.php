@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Planos;
 use Illuminate\Http\Request;
 use App\Models\Usuarios;
 use Illuminate\Support\Facades\Hash;
@@ -62,7 +63,8 @@ class UsuarioController extends Controller
                     'idPlano'  => $request->idPlano
                 ]);
              if(isset($usuario->id)){
-                 $usuario->dataLimiteCompra = $usuario->created_at->addDays($this->gratuidade);
+                 $idPlano = $usuario->idPlano;
+                 $usuario->dataLimiteCompra = $usuario->created_at->addDays(Planos::find($idPlano)->tempoGratuidade)->setTimezone('America/Recife');;
                  $usuario->save();
                      $response = [
                          'codRetorno' => 200,
