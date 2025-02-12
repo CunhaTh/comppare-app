@@ -2,44 +2,42 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Util\Helper;
+use App\Models\TipoPlano;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Cupom;
 
-class CupomController extends Controller
+
+class TipoPlanoController extends Controller
 {
     private $codes = [];
-    //teste server
-    private int $gratuidade = 0;
-
     public function __construct()
     {
         $this->codes = Helper::getHttpCodes();
-        $this->gratuidade = config('app.validadeCupom');
     }
-
+    /**
+     * Display a listing of the resource.
+     */
     public function index() : object
     {
         $response = [
             'codRetorno' => 200,
             'message' => $this->codes[200],
-            'data' => Cupom::all()
+            'data' => TipoPlano::all()
 
         ];
         return response()->json($response);
     }
 
-    public function saveTicket(Request $request) : object
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function cadastrar(Request $request)
     {
-        $cupom = Cupom::create([
-            'cupom' => $request->cupom,
-            'percentualDesconto' => $request->percentualDesconto
-
+        $tipoPlano = TipoPlano::create([
+            'nome' => $request->nome
         ]);
-        if (isset($cupom->id)) {
-            $cupom->dataExpiracao = $cupom->created_at->addDays($request->quantidadeDias);
-            $cupom->save();
+        if (isset($tipoPlano->id)) {
             $response = [
                 'codRetorno' => 200,
                 'message' => $this->codes[200]
@@ -54,29 +52,34 @@ class CupomController extends Controller
         return response()->json($response);
     }
 
-    public function getTicketDiscount(Request $request) : object
+    /**
+     * Display the specified resource.
+     */
+    public function getTipoPlano(Request $request)
     {
-        $cupom = Cupom::find($request->idCupom);
-        isset($cupom->id) ?
+        $tipoPlano = TipoPlano::find($request->idTipoPlano);
+        isset($tipoPlano->id) ?
             $response = [
                 'codRetorno' => 200,
                 'message' => $this->codes[200],
-                'data' => $cupom
+                'data' => $tipoPlano
             ] :  $response = [
-                'codRetorno' => 404,
-                'message' => $this->codes[404]
-            ];
+            'codRetorno' => 404,
+            'message' => $this->codes[404]
+        ];
         return response()->json($response);
     }
 
-    public function atualizarDados(Request $request) : object
+    /**
+     * Update the specified resource in storage.
+     */
+    public function atualizarDados(Request $request)
     {
-        $cupom = Cupom::findOrFail($request->idCupom);
+        $tipoPlano = TipoPlano::find($request->idTipoPlano);
 
-        if (isset($cupom->id)) {
-            $cupom->cupom = $request->cupom;
-            $cupom->percentualDesconto = $request->percentualDesconto;
-            $cupom->save();
+        if (isset($tipoPlano->id)) {
+            $tipoPlano->nome = $request->nome;
+            $tipoPlano->save();
             $response = [
                 'codRetorno' => 200,
                 'message' => $this->codes[200]
@@ -90,13 +93,12 @@ class CupomController extends Controller
 
         return response()->json($response);
     }
-
-    public function atualizarStatus(Request $request) : object
+    public function atualizarStatus(Request $request)
     {
-        $cupom = Cupom::findOrFail($request->idCupom);
-        if (isset($cupom->id)) {
-            $cupom->status = $request->status;
-            $cupom->save();
+        $tipoPlano = TipoPlano::find($request->idTipoPlano);
+        if (isset($tipoPlano->id)) {
+            $tipoPlano->status = $request->status;
+            $tipoPlano->save();
             $response = [
                 'codRetorno' => 200,
                 'message' => $this->codes[200]

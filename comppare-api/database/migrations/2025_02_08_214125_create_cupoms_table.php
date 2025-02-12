@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('percentualDesconto');
             $table->timestamp('dataExpiracao')->nullable();
             $table->timestamps();
+
         });
     }
 
