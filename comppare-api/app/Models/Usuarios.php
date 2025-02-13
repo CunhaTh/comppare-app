@@ -16,7 +16,17 @@ class Usuarios extends Authenticatable implements JWTSubject
     use HasFactory;
     use Notifiable;
 
-    protected $fillable = ['nome', 'senha', 'cpf', 'status', 'dataLimiteCompra', 'idPlano', 'telefone'];
+    protected $fillable = [
+        'nome',
+        'senha',
+        'cpf',
+        'status',
+        'dataLimiteCompra',
+        'idPlano',
+        'telefone' ,
+        'dataUltimoPagamento'
+    ];
+
     protected $hidden = ['senha'];
 
     public function plano(): BelongsTo

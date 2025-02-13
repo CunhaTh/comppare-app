@@ -10,13 +10,18 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Util\Helper;
 use Carbon\Carbon;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Exceptions\JWTException;
 
 
 
 class UsuarioController extends Controller
 {
-    private $codes = [];
+    private array $codes= [];
+    private int $planoGratuito = 1;
+    private int $planoPremium = 2;
+
+    private int $planoEmpresarial = 3;
+
+    private int $tempoRenovacao = 30;
 
 
     public function __construct()
@@ -70,8 +75,10 @@ class UsuarioController extends Controller
 
                 if (isset($usuario->id)) {
                     $idPlano = $usuario->idPlano;
-                    $usuario->dataLimiteCompra = $usuario->created_at->addDays(Planos::find($idPlano)->tempoGratuidade)->setTimezone('America/Recife');;
-                    $usuario->save();
+                    if ($idPlano != $this->planoGratuito) {
+                        $usuario->dataLimiteCompra = $usuario->created_at->addDays(Planos::find($idPlano)->tempoGratuidade)->setTimezone('America/Recife');;
+                        $usuario->save();
+                    }
                     $response = [
                         'codRetorno' => 200,
                         'message' => $this->codes[200],
@@ -241,4 +248,6 @@ class UsuarioController extends Controller
         }
         return response()->json($response);
     }
+
+    //Criar metodo para recuperar informações de pagamento com base no retorno da API de pagamentos
 }

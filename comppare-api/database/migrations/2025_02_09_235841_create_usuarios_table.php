@@ -21,8 +21,7 @@ return new class extends Migration
             $table->unsignedBigInteger('idPlano'); //
             $table->foreign('idPlano')->references('id')->on('planos');
             $table->timestamp('dataLimiteCompra')->nullable();
-
-
+            $table->timestamp('dataUltimoPagamento')->nullable();
             $table->timestamps();
         });
     }
