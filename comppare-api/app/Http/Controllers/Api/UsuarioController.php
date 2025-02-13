@@ -9,19 +9,20 @@ use App\Models\Usuarios;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Util\Helper;
 use Carbon\Carbon;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 
 
 class UsuarioController extends Controller
 {
     private $codes = [];
-    private int $gratuidade = 0;
+
 
     public function __construct()
     {
         $this->codes = Helper::getHttpCodes();
-        $this->gratuidade = config('app.gratuidadePlano');
+
     }
 
     public function index(): object
