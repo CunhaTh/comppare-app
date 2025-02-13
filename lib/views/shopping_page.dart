@@ -53,7 +53,7 @@ class _PlanosPage extends State<HomePage> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
             child: Center(
               child: Text(
                 'Precisa de ajuda? contate-nos ',
@@ -65,9 +65,12 @@ class _PlanosPage extends State<HomePage> {
             onTap: () {
               // Implementar ação para contato
             },
-            child: Text(
-              'contato-comppare@comppare.com.br',
-              style: TextStyle(color: Color(0xFF637700)),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 20),
+              child: Text(
+                'contato-comppare@comppare.com.br',
+                style: TextStyle(color: Color(0xFF637700)),
+              ),
             ),
           ),
         ],
@@ -83,7 +86,7 @@ class _PlanosPage extends State<HomePage> {
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 80),
             Expanded(
               child: Column(
                 children: [
@@ -124,7 +127,8 @@ class _PlanosPage extends State<HomePage> {
                   ),
                 ),
               ),
-            ) 
+            ),
+            Text('"CUPONS" ') 
           ],
         ),
       ),

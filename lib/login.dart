@@ -133,52 +133,130 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tela Principal'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Aqui você pode customizar seus cards!',
-              style: TextStyle(fontSize: 24),
-            ),
-            const SizedBox(height: 20),
-            GestureDetector(
-              onTap: (){Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => CustomScreen()));},
-              child: Container(
-                padding: EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color:  Color(0xFF637700),
-                  borderRadius: BorderRadius.circular(12.0), // Mais arredondado
-                  
+    return Padding(
+      padding: const EdgeInsets.only(right: 30),
+      child: Stack(
+        children: [
+          Scaffold(
+          appBar: AppBar(
+            title: const Text('Tela Principal'),
+            actions: [
+              
+              // Aqui você pode adicionar mais botões no menu superior
+              ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF637700), // Cor do botão
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: (){
+                          /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                        },
+                        child: const Text(
+                          'Cadastrar',
+                          style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white
+                        ),
+                       ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF637700), // Cor do botão
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: (){
+                        /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                        },
+                        child: const Text(
+                          'Cadastrar',
+                          style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white
+                        ),
+                       ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF637700), // Cor do botão
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: (){
+                         /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                        },
+                        child: const Text(
+                          'Cadastrar',
+                          style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white
+                        ),
+                       ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF637700), // Cor do botão
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: (){
+                         /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                        },
+                        child: const Text(
+                          'Cadastrar',
+                          style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white
+                        ),
+                       ),
+                      ),
+                      
+            ],
+          ),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Aqui você pode customizar seus cards!',
+                  style: TextStyle(fontSize: 24),
                 ),
-                child: Text(
-                'Customizar',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => CustomScreen()));
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF637700),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: const Text('Ir para Custom Screen', style: TextStyle(color: Colors.white)),
                   ),
                 ),
-              ),
-            )
-           
-          ],
+              ],
+            ),
+          ),
         ),
+        ] 
       ),
     );
   }
 }
 
+// Certifique-se de criar a CustomScreen
 class CustomScreen extends StatelessWidget {
   const CustomScreen({super.key});
 
@@ -186,31 +264,10 @@ class CustomScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pefil do Usuário'),
+        title: const Text('Tela de Customização'),
       ),
       body: Center(
-        child: Container(
-          width: 300,
-          height: 300,
-          decoration: BoxDecoration(
-            color: Color(0xFF637700), // Fundo verde escuro
-            borderRadius: BorderRadius.circular(30), // Bordas arredondadas
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              'Card Principal',
-              style: TextStyle(color: Colors.white, fontSize: 20),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
+        child: const Text('Aqui é a tela de customização!'),
       ),
     );
   }

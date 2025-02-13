@@ -1,4 +1,5 @@
 import 'package:application_progress/cadastro.dart';
+import 'package:application_progress/views/gerencial_admin.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 
@@ -85,6 +86,25 @@ class _MyHomePageState extends State<MyHomePage> {
             )
             ),
           ),
+           Padding(
+             padding: const EdgeInsets.only(top: 40,left: 30),
+             child: Row(
+               children: [
+                 ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromARGB(155, 182, 33, 7), // Cor do botão
+                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: (){
+                              Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => GerencialAdmin()));
+                            },
+                            child: const Text('Gerenciar', style: TextStyle(color: Colors.white)),
+                          ),
+               ],
+             ),
+           ),
         ],
       ),
     );
