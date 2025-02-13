@@ -18,6 +18,8 @@ Route::middleware('api')->group(function () {
     Route::post('/api/usuarios/recuperar', [UsuarioController::class, 'getUser']);
     Route::post('/api/usuarios/atualizar-status', [UsuarioController::class, 'atualizarStatus']);
     Route::post('/api/usuarios/atualizar-dados', [UsuarioController::class, 'atualizarDados']);
+    Route::post('/api/usuarios/valida-existencia-usuario', [UsuarioController::class, 'validaExistenciaUsuario']);
+    Route::post('/api/usuarios/atualizar-senha', [UsuarioController::class, 'atualizarSenha']);
     //Rotas planos
     Route::get('/api/planos/listar', [PlanoController::class, 'index']);
     Route::post('/api/planos/recuperar', [PlanoController::class, 'getPlano']);

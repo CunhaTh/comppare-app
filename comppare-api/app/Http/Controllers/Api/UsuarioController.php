@@ -9,6 +9,7 @@ use App\Models\Usuarios;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Util\Helper;
 use Carbon\Carbon;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 
 
@@ -16,17 +17,21 @@ class UsuarioController extends Controller
 {
     private $codes = [];
     private int $gratuidade = 0;
+
     public function __construct()
     {
         $this->codes = Helper::getHttpCodes();
         $this->gratuidade = config('app.gratuidadePlano');
     }
 
-    public function index() : object
+    public function index(): object
     {
+        $usuariosAtivos = Usuarios::where('status', 1)->count();
         $response = [
             'codRetorno' => 200,
             'message' => $this->codes[200],
+            'totalUsuarios' => Usuarios::count(),
+            'usuariosAtivos' => $usuariosAtivos,
             'data' => Usuarios::all()
 
         ];
@@ -43,40 +48,41 @@ class UsuarioController extends Controller
             ];
             return response()->json($response);
         } else {
-            $exists = Usuarios::where('cpf', $request->cpf)->exists();
-
-            if ($exists) {
-                 $response = [
-                     'codRetorno' => 400,
-                     'message' => $this->codes[-6]
-                 ];
-                 return response()->json($response);
+            if ($this->confirmaUser($request)) {
+                $response = [
+                    'codRetorno' => 400,
+                    'message' => $this->codes[-6]
+                ];
+                return response()->json($response);
 
             } else {
 
 
                 $usuario = Usuarios::create([
-                    'nome'     => $request->nome,
-                    'senha'    => bcrypt($request->senha), //
-                    'cpf'      => $request->cpf,
+                    'nome' => $request->nome,
+                    'senha' => bcrypt($request->senha), //
+                    'cpf' => $request->cpf,
                     'telefone' => $request->telefone,
-                    'idPlano'  => $request->idPlano
+                    'idPlano' => $request->idPlano
                 ]);
-             if(isset($usuario->id)){
-                 $idPlano = $usuario->idPlano;
-                 $usuario->dataLimiteCompra = $usuario->created_at->addDays(Planos::find($idPlano)->tempoGratuidade)->setTimezone('America/Recife');;
-                 $usuario->save();
-                     $response = [
-                         'codRetorno' => 200,
-                         'message' => $this->codes[200]
-                     ];
-             }else{
-                 $response = [
-                     'codRetorno' => 500,
-                     'message' => $this->codes[500]
-                 ];
+                $token = JWTAuth::fromUser($usuario);
 
-             }
+                if (isset($usuario->id)) {
+                    $idPlano = $usuario->idPlano;
+                    $usuario->dataLimiteCompra = $usuario->created_at->addDays(Planos::find($idPlano)->tempoGratuidade)->setTimezone('America/Recife');;
+                    $usuario->save();
+                    $response = [
+                        'codRetorno' => 200,
+                        'message' => $this->codes[200],
+                        'token' => $token
+                    ];
+                } else {
+                    $response = [
+                        'codRetorno' => 500,
+                        'message' => $this->codes[500]
+                    ];
+
+                }
                 return response()->json($response);
             }
         }
@@ -90,10 +96,10 @@ class UsuarioController extends Controller
                 'codRetorno' => 200,
                 'message' => $this->codes[200],
                 'data' => $usuario
-            ] :  $response = [
-                'codRetorno' => 404,
-                'message' => $this->codes[404]
-            ];
+            ] : $response = [
+            'codRetorno' => 404,
+            'message' => $this->codes[404]
+        ];
         return response()->json($response);
     }
 
@@ -128,11 +134,8 @@ class UsuarioController extends Controller
     }
 
 
-
-
     public function atualizarStatus(Request $request): object
     {
-        //Falta criar o campo status para desativar logicamente
         $usuario = Usuarios::findOrFail($request->idUsuario);
         if (isset($usuario->id)) {
             $usuario->status = $request->status;
@@ -173,20 +176,68 @@ class UsuarioController extends Controller
                 'message' => $this->codes[404]
             ];
         } else {
-            if($user->dataLimiteCompra < $osTime){
+            if ($user->dataLimiteCompra < $osTime) {
                 $response = [
                     'codRetorno' => 400,
                     'message' => $this->codes[-7]
                 ];
                 return response()->json($response);
             }
+            $token = JWTAuth::fromUser($user);
+
             $response = [
                 'codRetorno' => 200,
                 'message' => $this->codes[200],
-                'data' => $user->only('id', 'nome', 'cpf','telefone')
+                'token' => $token,
+                'data' => $user->only('id', 'nome', 'cpf', 'telefone')
             ];
         }
 
+        return response()->json($response);
+    }
+
+    private function confirmaUser(Request $request): bool
+    {
+        $exists = Usuarios::where('cpf', $request->cpf)->exists();
+        return $exists;
+
+    }
+
+    public function validaExistenciaUsuario(Request $request): object
+    {
+        $existe = $this->confirmaUser($request);
+        $existe ?
+        $response = [
+            'codRetorno' => 200,
+            'message' => $this->codes[200]
+        ]:
+            $response = [
+                'codRetorno' => 404,
+                'message' => $this->codes[404]
+            ];
+        return response()->json($response);
+    }
+
+    public function atualizarSenha(Request $request): object
+    {
+        $usuario = Usuarios::findOrFail($request->cpf);
+        if (isset($usuario->cpf)) {
+            $usuario->senha = bcrypt($request->senha);
+            $usuario->save();
+            $token = JWTAuth::fromUser($usuario);
+
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200],
+                'token' => $token
+            ];
+        } else {
+
+            $response = [
+                'codRetorno' => 500,
+                'message' => $this->codes[500]
+            ];
+        }
         return response()->json($response);
     }
 }
