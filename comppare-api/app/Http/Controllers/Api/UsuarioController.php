@@ -165,9 +165,6 @@ class UsuarioController extends Controller
     public function autenticar(Request $request): object
     {
 
-        $osTime = Carbon::now()->setTimezone('America/Recife');
-        // Chama a função para pegar os códigos e mensagens
-
         // Validar os dados de entrada
         $request->validate([
             'cpf' => 'required|string',
@@ -177,29 +174,7 @@ class UsuarioController extends Controller
         // Recuperar o usuário com base no CPF
         $user = Usuarios::where('cpf', $request->input('cpf'))->first();
 
-        // Verificar se a senha fornecida corresponde à senha armazenada no banco
-        if (!$user || !Hash::check($request->input('senha'), $user->senha)) {
-            $response = [
-                'codRetorno' => 404,
-                'message' => $this->codes[404]
-            ];
-        } else {
-            if ($user->dataLimiteCompra < $osTime) {
-                $response = [
-                    'codRetorno' => 400,
-                    'message' => $this->codes[-7]
-                ];
-                return response()->json($response);
-            }
-            $token = JWTAuth::fromUser($user);
-
-            $response = [
-                'codRetorno' => 200,
-                'message' => $this->codes[200],
-                'token' => $token,
-                'data' => $user->only('id', 'nome', 'cpf', 'telefone')
-            ];
-        }
+       $response = $this->checaPermissoes($user, $request);
 
         return response()->json($response);
     }
@@ -244,6 +219,46 @@ class UsuarioController extends Controller
             $response = [
                 'codRetorno' => 500,
                 'message' => $this->codes[500]
+            ];
+        }
+        return response()->json($response);
+    }
+
+    private function checaPermissoes(Usuarios $user, Request $request): object{
+        $osTime = Carbon::now()->setTimezone('America/Recife');
+        $daLimiteAcesso = $user->dataUltimoPagamento->addDays($this->tempoRenovacao)->setTimezone('America/Recife');
+        $dataLimiteCompra = Carbon::parse($user->dataLimiteCompra)->setTimezone('America/Recife');
+
+        // Verificar se a senha fornecida corresponde à senha armazenada no banco
+        if (!$user || !Hash::check($request->input('senha'), $user->senha)) {
+            $response = [
+                'codRetorno' => 404,
+                'message' => $this->codes[404]
+            ];
+        } else {
+            //Verifica validade de perio de testes para planos pagos
+            if ( ($user->idPlano != $this->planoGratuito) && $dataLimiteCompra > $osTime) {
+                $response = [
+                    'codRetorno' => 400,
+                    'message' => $this->codes[-7]
+                ];
+                return response()->json($response);
+            }
+            //Verifica data do ultimo pagamento
+            if ( ($user->idPlano != $this->planoGratuito) && $daLimiteAcesso > $osTime) {
+                $response = [
+                    'codRetorno' => 400,
+                    'message' => $this->codes[-8]
+                ];
+                return response()->json($response);
+            }
+            $token = JWTAuth::fromUser($user);
+
+            $response = [
+                'codRetorno' => 200,
+                'message' => $this->codes[200],
+                'token' => $token,
+                'data' => $user->only('id', 'nome', 'cpf', 'telefone')
             ];
         }
         return response()->json($response);

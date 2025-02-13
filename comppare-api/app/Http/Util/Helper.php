@@ -74,13 +74,14 @@ class Helper
             510 => 'Não Estendido',
             511 => 'Autenticação de Rede Requerida',
             //Especificos do COMPPARE APP
-            -1 => 'Erro desconhecido',
-            -2 => 'Erro ao validar CPF',
-            -3 => 'Erro ao validar CNPJ',
-            -4 => 'Erro ao validar Email',
-            -5 => 'Erro ao validar Telefone',
-            -6 => 'CPF já cadastrado no banco de dados',
-            -7 => 'Período de gratuidade expirado'
+            -1 => 'Error: Erro desconhecido',
+            -2 => 'Error: Erro ao validar CPF',
+            -3 => 'Error: Erro ao validar CNPJ',
+            -4 => 'Error: Erro ao validar Email',
+            -5 => 'Error: Erro ao validar Telefone',
+            -6 => 'Error: CPF já cadastrado no banco de dados',
+            -7 => 'Error: Período de gratuidade expirado. Por favor, atualize sua assinatura adquirindo um novo plano.',
+            -8 => 'Error: Assinatura exiprada. Por favor, atualize sua assinatura adquirindo um novo plano.'
         ];
     }
 
