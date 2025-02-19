@@ -17,10 +17,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Meu Progresso'),
-      debugShowCheckedModeBanner: false
+      home: const MyHomePage(title: 'AppProgress'),
+      debugShowCheckedModeBanner: false,
     );
-  
   }
 }
 
@@ -39,33 +38,35 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Imagem de fundo
           Center(
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 4), // Borda branca
-                borderRadius: BorderRadius.circular(12), // Bordas arredondadas
+                border: Border.all(color: Colors.white, width: 4),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12), // Arredondar a imagem
+                borderRadius: BorderRadius.circular(12),
                 child: Image.asset(
                   "assets/tela_principal.png",
                   fit: BoxFit.cover,
-                  width: 2400, // Defina a largura desejada
-                  height: 1080, // Defina a altura desejada
+                  width: 2400,
+                  height: 1080,
                 ),
               ),
             ),
           ),
-
-          // Botão "Assinar" na parte inferior
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.all(16.0), // Adiciona espaçamento ao redor do botão
+              padding: const EdgeInsets.all(16.0),
               child: FloatingActionButton(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HomePage(),
+                    ),
+                  );
                 },
                 tooltip: 'Click',
                 child: const Text('Assinar'),

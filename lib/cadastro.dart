@@ -1,5 +1,7 @@
 import 'package:application_progress/login.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() => runApp(const MyApp());
 
@@ -11,13 +13,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Login Gamificado',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const CadastroScreen(),
+      home: const CadastroScreen(idPlano: null),
     );
   }
 }
 
 class CadastroScreen extends StatefulWidget {
-  const CadastroScreen({super.key});
+  final int? idPlano;
+
+  const CadastroScreen({super.key, required this.idPlano});
 
   @override
   _CadastroScreenState createState() => _CadastroScreenState();
@@ -31,8 +35,127 @@ class _CadastroScreenState extends State<CadastroScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  final String _baseUrl = 'https://api.comppare.com.br/api';
+  bool _isLoading = false;
+
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
+  }
+
+  void _sendCadastroData() async {
+    String nome = _nameController.text.trim();
+    String cpf = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
+    String email = _emailController.text.trim();
+    String telefone = _phoneController.text.trim();
+    String senha = _passwordController.text.trim();
+    String confirmSenha = _confirmPasswordController.text.trim();
+
+    if ([nome, cpf, email, telefone, senha, confirmSenha].any((field) => field.isEmpty)) {
+      _showErrorDialog('Por favor, preencha todos os campos!');
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      _showErrorDialog('E-mail inválido! Verifique e tente novamente.');
+      return;
+    }
+
+    if (senha != confirmSenha) {
+      _showErrorDialog('As senhas não coincidem!');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final cpfExiste = await _checarExistenciaCpf(cpf);
+
+      if (cpfExiste) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('Usuário já cadastrado com este CPF!');
+      } else {
+        await _cadastrarUsuario(nome, cpf, email, telefone, senha);
+        _navigateToLogin();  // Navega para a tela de login somente após o cadastro bem-sucedido
+      }
+    } catch (e) {
+      _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<bool> _checarExistenciaCpf(String cpf) async {
+    try {
+      final verificaExistenciaResponse = await http.post(
+        Uri.parse('$_baseUrl/usuarios/valida-existencia-usuario'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"cpf": cpf}),
+      );
+
+      if (verificaExistenciaResponse.statusCode == 200) {
+        final responseData = jsonDecode(verificaExistenciaResponse.body);
+        print('Resposta da API: $responseData'); // Adicione este log
+        return responseData['codRetorno'] == 200 && responseData['message'] == 'OK';  // Verifica se o código de retorno e a mensagem indicam existência
+      } else {
+        _showErrorDialog('Erro ao verificar CPF. Tente novamente.');
+        return false;  // Considerar o CPF como não existente em caso de erro na verificação
+      }
+    } catch (e) {
+      _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
+      return false;  // Considerar o CPF como não existente em caso de erro na verificação
+    }
+  }
+
+  Future<void> _cadastrarUsuario(String nome, String cpf, String email, String telefone, String senha) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/usuarios/cadastrar'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "nome": nome,
+          "cpf": cpf,
+          "email": email,
+          "senha": senha,
+          "telefone": telefone,
+          "idPlano": widget.idPlano,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        final errorResponse = jsonDecode(response.body);
+        _showErrorDialog(errorResponse['mensagem'] ?? 'Erro ao cadastrar. Tente novamente.');
+      }
+    } catch (e) {
+      _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Erro'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _navigateToLogin() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 
   @override
@@ -69,15 +192,17 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       _buildTextField(_passwordController, 'Senha', obscureText: true),
                       _buildTextField(_confirmPasswordController, 'Confirmar Senha', obscureText: true),
                       const SizedBox(height: 20),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF637700),
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: _navigateToLogin,
-                        child: const Text('Entrar', style: TextStyle(color: Colors.white)),
-                      ),
+                      _isLoading
+                          ? const CircularProgressIndicator()
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF637700),
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: _sendCadastroData,
+                              child: const Text('Cadastrar', style: TextStyle(color: Colors.white)),
+                            ),
                     ],
                   ),
                 ),
@@ -110,23 +235,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
       width: 100,
       height: 60,
       decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(30)),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tela Principal')),
-      body: const Center(
-        child: Text(
-          'Aqui você pode customizar seus cards!',
-          style: TextStyle(fontSize: 24),
-        ),
-      ),
     );
   }
 }
