@@ -1,4 +1,5 @@
 import 'package:application_progress/login.dart';
+import 'package:application_progress/views/pagamento.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -29,7 +30,12 @@ class CadastroScreen extends StatefulWidget {
 
 class _CadastroScreenState extends State<CadastroScreen> {
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _cpfController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _celularController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+   final TextEditingController _passworConfirmedController = TextEditingController();
+  
 
   void _login() {
     // Aqui você deve implementar a lógica para autenticar o usuário
@@ -84,7 +90,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       ),
                       const SizedBox(height: 10),
                       TextField(
-                        controller: _usernameController,
+                        controller: _cpfController,
                         decoration: const InputDecoration(
                           labelText: 'CPF',
                           labelStyle: TextStyle(color: Color(0xFF637700)),
@@ -97,7 +103,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       ),
                 const SizedBox(height: 10),
                 TextField(
-                        controller: _usernameController,
+                        controller: _emailController,
                         decoration: const InputDecoration(
                           labelText: 'e-mail',
                           labelStyle: TextStyle(color: Color(0xFF637700)),
@@ -110,7 +116,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       ),
                 const SizedBox(height: 10),
                 TextField(
-                        controller: _usernameController,
+                        controller: _celularController,
                         decoration: const InputDecoration(
                           labelText: 'celular',
                           labelStyle: TextStyle(color: Color(0xFF637700)),
@@ -123,7 +129,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       ),
                 const SizedBox(height: 10),
                 TextField(
-                        controller: _usernameController,
+                        controller: _passwordController,
                         decoration: const InputDecoration(
                           labelText: 'senha',
                           labelStyle: TextStyle(color: Color(0xFF637700)),
@@ -136,7 +142,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       ),
                 const SizedBox(height: 10),
                 TextField(
-                        controller: _usernameController,
+                        controller: _passworConfirmedController,
                         decoration: const InputDecoration(
                           labelText: 'confirmar senha',
                           labelStyle: TextStyle(color: Color(0xFF637700)),
@@ -155,16 +161,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => Pagamento()));
                         },
                         child: const Text(
-                  'Cadastrar',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white
-                    ),
-                  ),
+                          'Cadastrar',
+                          style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white
+                        ),
+                       ),
                       ),
               ],
             ),
