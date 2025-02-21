@@ -109,7 +109,7 @@ class _PlanosPage extends State<Pagamento> {
             Center(
               child: GestureDetector(
                 onTap: (){Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => CadastroScreen()));},
+                      MaterialPageRoute(builder: (context) => CadastroScreen(idPlano: null,)));},
                 child: Container(
                   padding: EdgeInsets.all(16.0),
                   decoration: BoxDecoration(

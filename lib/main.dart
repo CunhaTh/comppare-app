@@ -1,5 +1,7 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/views/gerencial_admin.dart';
+import 'package:application_progress/views/pagamento.dart';
+import 'package:application_progress/views/shopping_page.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 
@@ -18,10 +20,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Meu Progresso'),
-      debugShowCheckedModeBanner: false
+      home: const MyHomePage(title: 'AppProgress'),
+      debugShowCheckedModeBanner: false,
     );
-  
   }
 }
 
@@ -40,71 +41,59 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Imagem de fundo
           Center(
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 4), // Borda branca
-                borderRadius: BorderRadius.circular(12), // Bordas arredondadas
+                border: Border.all(color: Colors.white, width: 4),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12), // Arredondar a imagem
+                borderRadius: BorderRadius.circular(12),
                 child: Image.asset(
                   "assets/tela_principal.png",
                   fit: BoxFit.cover,
-                  width: 2400, // Defina a largura desejada
-                  height: 1080, // Defina a altura desejada
+                  width: 2400,
+                  height: 1080,
                 ),
               ),
             ),
           ),
-
-          // Botão "Assinar" na parte inferior
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 40), // Adiciona espaçamento ao redor do botão
-              child:GestureDetector(
-              onTap: (){Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => HomePage()));},
-              child: Container(
-                padding: EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color:  Color(0xFF637700),
-                  borderRadius: BorderRadius.circular(12.0), // Mais arredondado
-                  
-                ),
-                child: Text(
-                'Assinar',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white
-                  ),
-                ),
+              padding: const EdgeInsets.only(bottom: 100),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GerencialAdmin(),
+                    ),
+                  );
+                },
+                tooltip: 'Click',
+                child: const Text('ADM'),
               ),
-            )
             ),
           ),
-           Padding(
-             padding: const EdgeInsets.only(top: 40,left: 30),
-             child: Row(
-               children: [
-                 ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromARGB(155, 182, 33, 7), // Cor do botão
-                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            onPressed: (){
-                              Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => GerencialAdmin()));
-                            },
-                            child: const Text('Gerenciar', style: TextStyle(color: Colors.white)),
-                          ),
-               ],
-             ),
-           ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HomePage(),
+                    ),
+                  );
+                },
+                tooltip: 'Click',
+                child: const Text('Assinar'),
+              ),
+            ),
+          ),
         ],
       ),
     );

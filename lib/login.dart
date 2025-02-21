@@ -1,4 +1,7 @@
+import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(MyApp());
@@ -12,8 +15,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Login',
       theme: ThemeData(
-        primaryColor: Color(0xFF637700), // Cor primária
-        scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206), // Cor de fundo
+        primaryColor: Color(0xFF637700),
+        scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.black),
           bodyMedium: TextStyle(color: Colors.black),
@@ -33,13 +36,66 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _cpfController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
-  void _login() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => HomeScreen()),
+  Future<void> _login() async {
+  setState(() {
+    _isLoading = true;
+  });
+
+  final String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
+  final Map<String, String> headers = {'Content-Type': 'application/json'};
+  final Map<String, dynamic> body = {
+    'cpf': _cpfController.text.trim().replaceAll(RegExp(r'\D'), ''),
+    'senha': _passwordController.text,
+  };
+
+  try {
+    final response = await http.post(Uri.parse(url), headers: headers, body: json.encode(body));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      if (data.containsKey('original') && data['original'].containsKey('token')) {
+        final String token = data['original']['token'];
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen(token: token)),
+        );
+      } else {
+        _showErrorDialog('Credenciais inválidas. Tente novamente.');
+      }
+    } else {
+      final Map<String, dynamic> errorData = json.decode(response.body);
+      _showErrorDialog('Credenciais inválidas. Tente novamente.');
+    }
+  } catch (error) {
+    _showErrorDialog('Erro de conexão. Tente novamente mais tarde.');
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Erro'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -56,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Color.fromARGB(255, 216, 250, 217), // Fundo do container
+                  color: Color.fromARGB(255, 216, 250, 217),
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
@@ -76,9 +132,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextField(
-                      controller: _emailController,
+                      controller: _cpfController,
                       decoration: const InputDecoration(
-                        labelText: 'Email',
+                        labelText: 'CPF',
                         labelStyle: TextStyle(color: Color(0xFF637700)),
                         border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
@@ -104,12 +160,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF637700), // Cor do botão
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                        backgroundColor: Color(0xFF637700),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: _login,
-                      child: const Text('Entrar', style: TextStyle(color: Colors.white)),
+                      onPressed: _isLoading ? null : _login,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Entrar', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -135,7 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final String token;
+  const HomeScreen({super.key, required this.token});
 
   @override
   Widget build(BuildContext context) {
