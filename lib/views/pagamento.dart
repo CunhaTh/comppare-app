@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,10 +19,10 @@ class MyApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white, backgroundColor: Color(0xFFaed513), // Cor do texto do botão
+            foregroundColor: Colors.white,
+            backgroundColor: Color(0xFFaed513),
           ),
         ),
-        
       ),
       home: CheckoutScreen(),
     );
@@ -34,6 +36,23 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _selectedPaymentMethod;
+  final TextEditingController _cardNumberController = TextEditingController();
+  final TextEditingController _cardHolderController = TextEditingController();
+  final TextEditingController _expiryDateController = TextEditingController();
+  final TextEditingController _cvvController = TextEditingController();
+  String? _qrCodeData;
+
+  void _generatePixQRCode(dynamic pixCode5204000053039865405) {
+    const uuid = Uuid();
+    String pixCode = uuid.v4(); // Gera um código único para o PIX
+    String value = '80.00'; // Valor da compra (ajuste conforme necessário)
+
+    // Formato do código PIX (exemplo)
+    _qrCodeData = '00020101021129370014BR.GOV.BCB.PIX0136$pixCode5204000053039865405${
+        value.replaceAll('.', '')}0000';
+    
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,30 +103,85 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 },
               ),
             ),
+            if (_selectedPaymentMethod == 'cartao') ...[
+              SizedBox(height: 20),
+              TextField(
+                controller: _cardNumberController,
+                decoration: InputDecoration(
+                  labelText: 'Número do Cartão',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: _cardHolderController,
+                decoration: InputDecoration(
+                  labelText: 'Nome do Titular',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _expiryDateController,
+                      decoration: InputDecoration(
+                        labelText: 'Data de Validade (MM/AA)',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.datetime,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _cvvController,
+                      decoration: InputDecoration(
+                        labelText: 'CVV',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Aqui você pode adicionar a lógica para processar o pagamento
                 if (_selectedPaymentMethod != null) {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text('Pagamento Realizado'),
-                        content: Text('Você escolheu pagar com $_selectedPaymentMethod.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: Text('OK'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
+                  if (_selectedPaymentMethod == 'cartao' &&
+                      (_cardNumberController.text.isEmpty ||
+                          _cardHolderController.text.isEmpty ||
+                          _expiryDateController.text.isEmpty ||
+                          _cvvController.text.isEmpty)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Por favor, preencha todos os campos do cartão.')),
+                    );
+                  } else if (_selectedPaymentMethod == 'pix') {
+                    _generatePixQRCode('');
+                  } else {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: Text('Pagamento Realizado'),
+                          content: Text('Você escolheu pagar com $_selectedPaymentMethod.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text('OK'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
                 } else {
-                  // Alertar o usuário para selecionar um método de pagamento
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Por favor, selecione um método de pagamento.')),
                   );
@@ -115,6 +189,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               },
               child: Text('Finalizar Compra'),
             ),
+            if (_qrCodeData != null) ...[
+              SizedBox(height: 20),
+              Text('Escaneie o QR Code para pagar:'),
+              QrImageView(
+                data: _qrCodeData!,
+                version: QrVersions.auto,
+                size: 200.0,
+              ),
+              SizedBox(height: 10),
+              Text('Código PIX: $_qrCodeData'),
+            ],
           ],
         ),
       ),
