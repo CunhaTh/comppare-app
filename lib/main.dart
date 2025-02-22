@@ -1,4 +1,5 @@
 import 'package:application_progress/cadastro.dart';
+import 'package:application_progress/login.dart';
 import 'package:application_progress/views/gerencial_admin.dart';
 import 'package:application_progress/views/pagamento.dart';
 import 'package:application_progress/views/shopping_page.dart';
@@ -76,10 +77,11 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
+          
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.only(left: 100,bottom: 30),
               child: FloatingActionButton(
                 onPressed: () {
                   Navigator.push(
@@ -91,6 +93,24 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
                 tooltip: 'Click',
                 child: const Text('Assinar'),
+              ),
+            ),
+          ),
+           Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 100,bottom: 30),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LoginScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'Click',
+                child: const Text('Login'),
               ),
             ),
           ),
