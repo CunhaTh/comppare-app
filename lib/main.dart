@@ -1,8 +1,9 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/login.dart';
-import 'package:application_progress/views/gerencial_admin.dart';
+import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/comparepage.dart';
 import 'package:application_progress/views/pagamento.dart';
-import 'package:application_progress/views/shopping_page.dart';
+import 'package:application_progress/views/admpage.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 
@@ -42,80 +43,56 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Stack(
         children: [
-          Center(
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  "assets/tela_principal.png",
-                  fit: BoxFit.cover,
-                  width: 2400,
-                  height: 1080,
-                ),
-              ),
+          // Imagem de fundo com responsividade
+          Positioned.fill(
+            child: Image.asset(
+              "assets/tela_principal.png",
+              fit: BoxFit.cover,
             ),
           ),
+          // Área de botões
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 100),
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CheckoutScreen(),
-                    ),
-                  );
-                },
-                tooltip: 'Click',
-                child: const Text('ADM'),
-              ),
-            ),
-          ),
-          
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 100,bottom: 30),
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HomePage(),
-                    ),
-                  );
-                },
-                tooltip: 'Click',
-                child: const Text('Assinar'),
-              ),
-            ),
-          ),
-           Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 100,bottom: 30),
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LoginScreen(),
-                    ),
-                  );
-                },
-                tooltip: 'Click',
-                child: const Text('Login'),
+              padding: const EdgeInsets.only(bottom: 50),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildActionButton(context, 'ADM', PrincipalPage()),
+                  _buildActionButton(context, 'Assinar', HomePage()),
+                  _buildActionButton(context, 'Login', LoginScreen()),
+                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // Método para criar botões com design melhorado
+  Widget _buildActionButton(BuildContext context, String label, Widget targetPage) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => targetPage,
+          ),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        backgroundColor: Colors.blue, // Cor de fundo personalizada
+        textStyle: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      child: Text(label),
     );
   }
 }

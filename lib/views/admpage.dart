@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Login',
+      title: 'Parceiros',
       theme: ThemeData(
         primaryColor: Color(0xFF637700), // Cor primária
         scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206), // Cor de fundo
@@ -20,13 +20,13 @@ class MyApp extends StatelessWidget {
         ),
         colorScheme: ColorScheme.fromSwatch().copyWith(secondary: Color(0xFFaed513)),
       ),
-      home: Parceiros(),
+      home: AdmPage(),
     );
   }
 }
 
-class Parceiros extends StatelessWidget {
-  const Parceiros({super.key});
+class AdmPage extends StatelessWidget {
+  const AdmPage({super.key});
 
   @override
   Widget build(BuildContext context) {

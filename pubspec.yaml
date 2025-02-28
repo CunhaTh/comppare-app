@@ -36,6 +36,7 @@ dependencies:
   flutter_riverpod: ^2.0.0
   qr_flutter: ^4.0.0
   uuid: ^3.0.6
+  image_picker: ^1.1.2
   
   http: ^0.13.3
   
