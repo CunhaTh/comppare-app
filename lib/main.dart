@@ -92,14 +92,14 @@ class _MyHomePageState extends State<MyHomePage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        backgroundColor: Colors.blueAccent, // Cor de fundo personalizada
+        backgroundColor: const Color.fromARGB(255, 255, 68, 68), // Cor de fundo personalizada
         textStyle: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
           color: Colors.white, // Cor do texto
         ),
       ),
-      child: const Text('ADM'),
+      child: const Text('ADM',style: TextStyle(color: Colors.white),),
     );
   }
 
@@ -115,17 +115,10 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       },
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        backgroundColor: Colors.blue, // Cor de fundo personalizada
-        textStyle: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.white, // Cor do texto
-        ),
-      ),
+      foregroundColor: Color.fromARGB(255, 251, 255, 250), 
+      backgroundColor: Color.fromARGB(255, 105, 172, 99),
+      padding: EdgeInsets.symmetric(horizontal: 45, vertical: 20),
+      textStyle: TextStyle(fontSize: 18),),
       child: Text(label),
     );
   }

@@ -94,7 +94,7 @@ class _PrincipalPage extends State<PrincipalPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Page Principal'),
-        backgroundColor: Color.fromARGB(255, 70, 137, 64),
+        backgroundColor: Color(0xFF637700),
       ),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 50),
@@ -113,7 +113,7 @@ class _PrincipalPage extends State<PrincipalPage> {
                       child: GestureDetector(child: Icon(Icons.add_a_photo_rounded,size: 60,),),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor:Color.fromARGB(179, 196, 255, 211),
-                        padding: EdgeInsets.symmetric(horizontal: 50, vertical: 30),
+                        padding: EdgeInsets.symmetric(horizontal: 25, vertical: 15),
                       ),
                     ),
                     SizedBox(height: 20),
@@ -136,7 +136,7 @@ class _PrincipalPage extends State<PrincipalPage> {
                       onPressed: _saveImages,
                       child: Text('Salvar'),
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: Colors.white70,
+                        foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
                         padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
                         textStyle: TextStyle(fontSize: 18),
                       ),
@@ -183,7 +183,7 @@ class _PrincipalPage extends State<PrincipalPage> {
                 child: Text('COMPARAR'),
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: const Color.fromARGB(179, 196, 255, 211),
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 60, vertical: 30),
                   textStyle: TextStyle(fontSize: 18),
                 ),
               ),

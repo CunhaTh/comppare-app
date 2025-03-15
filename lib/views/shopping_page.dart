@@ -143,7 +143,7 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               'Escolha seu Plano',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
@@ -160,13 +160,20 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: isLoading ? null : navigateToCadastro,
-              child: isLoading
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Assinar'),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 40),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                              padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                              textStyle: TextStyle(fontSize: 18),
+                              ),
+                onPressed: isLoading ? null : navigateToCadastro,
+                child: isLoading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text('Assinar'),
+              ),
             ),
           ),
         ],
@@ -197,33 +204,34 @@ class _HomePageState extends State<HomePage> {
     final selectedPlanDetails = plans[selectedPlan - 1];
 
     return Card(
-      elevation: 4,
-      margin: EdgeInsets.all(16.0),
+      elevation: 10,
+      margin: EdgeInsets.only(top: 30,bottom: 100, left: 80,right: 80),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(top: 40),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '\$${selectedPlanDetails['valor']}',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
             ),
             Text(selectedPlanDetails['descricao']),
-            SizedBox(height: 16.0),
+            SizedBox(height: 20.0),
             ...selectedPlanDetails.entries.where((entry) =>
                 entry.key != 'nome' &&
                 entry.key != 'descricao' &&
                 entry.key != 'valor').map<Widget>((entry) {
-              return Row(
-                children: [
-                  Icon(FontAwesomeIcons.check, color: Colors.green),
-                  SizedBox(width: 8.0),
-                  Expanded(
-                    child: Text(
-                      '${entry.key}: ${entry.value}',
-                    ),
-                  ),
-                ],
+              return Padding(
+                padding: const EdgeInsets.only(left: 100,top: 20),
+                child: Row(
+                  children: [
+                    Icon(FontAwesomeIcons.check, color: Colors.green),
+                    SizedBox(width: 8.0),
+                     Text(
+                        '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
+                      ),
+                    
+                  ],
+                ),
               );
             }).toList(),
           ],

@@ -160,10 +160,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF637700),
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
+                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                              padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                              textStyle: TextStyle(fontSize: 18),
+                              ),
                       onPressed: _isLoading ? null : _login,
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)

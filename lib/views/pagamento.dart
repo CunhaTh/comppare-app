@@ -75,7 +75,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
-      title: Text('Tela de Checkout'),
+      backgroundColor: Color(0xFF637700),
+      title: Text('Tela de Checkout', style: TextStyle(color: Colors.white),),
     ),
     body: Padding(
       padding: const EdgeInsets.all(16.0),
@@ -195,7 +196,7 @@ Widget build(BuildContext context) {
           children: [
             ElevatedButton(
                style: ElevatedButton.styleFrom(
-                        foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: Color.fromARGB(179, 196, 255, 211),
+                        foregroundColor: Colors.white, backgroundColor: Color(0xFF637700),
                         padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                         textStyle: TextStyle(fontSize: 18),
                       ),

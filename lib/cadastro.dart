@@ -169,7 +169,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
           Positioned(bottom: 100, left: 50, child: _buildCloud()),
           Center(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.only(left: 20,right: 20),
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFD8FAD9),
@@ -181,25 +181,33 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Registre-se!',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF637700)),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 40),
+                        child: const Text(
+                          'Registre-se!',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF637700)),
+                        ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 180),
                       _buildTextField(_nameController, 'Nome Completo'),
+                      SizedBox(height: 15,),
                       _buildTextField(_cpfController, 'CPF'),
+                      SizedBox(height: 15,),
                       _buildTextField(_emailController, 'E-mail'),
+                      SizedBox(height: 15,),
                       _buildTextField(_phoneController, 'Celular'),
+                      SizedBox(height: 15,),
                       _buildTextField(_passwordController, 'Senha', obscureText: true),
+                      SizedBox(height: 15,),
                       _buildTextField(_confirmPasswordController, 'Confirmar Senha', obscureText: true),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 180),
                       _isLoading
                           ? const CircularProgressIndicator()
                           : ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF637700),
-                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                              padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                              textStyle: TextStyle(fontSize: 18),
                               ),
                               onPressed: _sendCadastroData,
                               child: const Text('Cadastrar', style: TextStyle(color: Colors.white)),
