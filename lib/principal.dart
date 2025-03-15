@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'dart:typed_data'; // Para usar o Uint8List
-import 'dart:html' as html; // Para usar no Flutter Web
+import 'dart:typed_data';
+import 'dart:html' as html;
 
 void main() {
   runApp(MyApp());
@@ -15,7 +15,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Comparação de Projetos',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.green,
+        scaffoldBackgroundColor: Color.fromARGB(255, 70, 137, 64),
       ),
       home: PrincipalPage(),
     );
@@ -28,11 +29,11 @@ class PrincipalPage extends StatefulWidget {
 }
 
 class _PrincipalPage extends State<PrincipalPage> {
-  List<Uint8List?> _images = [null, null]; // Alterado para armazenar duas imagens
+  List<Uint8List?> _images = []; // Permitir lista de imagens
+  List<Uint8List?> _savedImages = []; // Lista para armazenar imagens salvas
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> _addImage(int index) async {
-    // Se estiver no Web, use o file picker do HTML
+  Future<void> _addImage() async {
     if (kIsWeb) {
       html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
       uploadInput.accept = 'image/*';
@@ -45,23 +46,22 @@ class _PrincipalPage extends State<PrincipalPage> {
         reader.readAsArrayBuffer(files[0]);
         reader.onLoadEnd.listen((e) {
           setState(() {
-            _images[index] = reader.result as Uint8List;
+            _images.add(reader.result as Uint8List);
           });
         });
       });
     } else {
-      // Para dispositivos móveis
       final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         setState(() {
-          _images[index] = File(pickedFile.path).readAsBytesSync();
+          _images.add(File(pickedFile.path).readAsBytesSync());
         });
       }
     }
   }
 
   void _compareImages(BuildContext context) {
-    if (_images.where((image) => image != null).length < 2) {
+    if (_images.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Adicione pelo menos duas fotos para comparar')),
       );
@@ -77,11 +77,11 @@ class _PrincipalPage extends State<PrincipalPage> {
   }
 
   void _saveImages() {
-    // Exemplo simples de "salvar" as imagens
     for (var image in _images) {
       if (image != null) {
-        print('Imagem salva: [bytes: ${image.length}]'); // Exibir tamanho da imagem
-        // Aqui você pode adicionar o código para salvar no banco de dados
+        setState(() {
+          _savedImages.add(image); // Adiciona a imagem à lista de imagens salvas
+        });
       }
     }
     ScaffoldMessenger.of(context).showSnackBar(
@@ -94,81 +94,101 @@ class _PrincipalPage extends State<PrincipalPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Page Principal'),
+        backgroundColor: Color.fromARGB(255, 70, 137, 64),
       ),
       body: Padding(
-        padding: const EdgeInsets.only(bottom: 450),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(children: [
-                    Text('Adicionar Imagem', style: TextStyle(fontSize: 30)),
-                    Center(
-                      child: GestureDetector(
-                        child: IconButton(
-                          onPressed: () => _addImage(0), // Adiciona imagem à primeira posição
-                          icon: _images[0] != null
-                              ? Image.memory(_images[0]!, width: 150, height: 150) // Usando Image.memory
-                              : Icon(Icons.upload_file, size: 150, color: Colors.green),
-                        ),
+        padding: const EdgeInsets.only(bottom: 50),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribui o espaço entre os widgets
+          children: [
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Adicionar Imagem', style: TextStyle(fontSize: 18, color: Color.fromARGB(255, 70, 137, 64))),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: _addImage,
+                      child: GestureDetector(child: Icon(Icons.add_a_photo_rounded,size: 60,),),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor:Color.fromARGB(179, 196, 255, 211),
+                        padding: EdgeInsets.symmetric(horizontal: 50, vertical: 30),
                       ),
                     ),
-                    SizedBox(height: 50),
+                    SizedBox(height: 20),
+                    Wrap(
+                      spacing: 10,
+                      children: _images.map((image) {
+                        return image != null
+                            ? Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Image.memory(image, width: 100, height: 100),
+                              )
+                            : Container(width: 100, height: 100, color: Colors.grey);
+                      }).toList(),
+                    ),
+                    SizedBox(height: 150),
                     ElevatedButton(
                       onPressed: _saveImages,
                       child: Text('Salvar'),
-                    ),
-                  ]),
-
-                  SizedBox(width: 250),
-                  Column(children: [
-                    Text('Campo Pesquisa', style: TextStyle(fontSize: 30)),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            child: IconButton(
-                              onPressed: () => _addImage(1), // Adiciona imagem à segunda posição
-                              icon: _images[1] != null
-                                  ? Image.memory(_images[1]!, width: 80, height: 80) // Usando Image.memory
-                                  : Icon(Icons.upload_file, size: 80),
-                            ),
-                          ),
-                          GestureDetector(
-                            child: IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.paste_outlined, size: 80),
-                            ),
-                          ),
-                          GestureDetector(
-                            child: IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.paste_outlined, size: 80),
-                            ),
-                          ),
-                          GestureDetector(
-                            child: IconButton(
-                              onPressed: () {
-                                _compareImages(context);
-                              },
-                              icon: Icon(
-                                Icons.add_box_rounded,
-                                size: 80,
-                              ),
-                            ),
-                          ),
-                        ],
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: Colors.white70,
+                        padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                        textStyle: TextStyle(fontSize: 18),
                       ),
                     ),
-                  ]),
-                ],
+                    SizedBox(height: 20),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                      Text('Pastas do Usuário', style: TextStyle(fontSize: 30, color: Colors.white70)),
+                      Center(
+                        child: Container(
+                          height: 200, // Defina uma altura para o ListView
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _savedImages.length,
+                            itemBuilder: (context, index) {
+                              return _savedImages[index] != null
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.white, width: 2),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Image.memory(_savedImages[index]!, width: 100, height: 100),
+                                      ),
+                                    )
+                                  : Container(width: 100, height: 100, color: Colors.grey);
+                            },
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  _compareImages(context);
+                },
+                child: Text('COMPARAR'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: const Color.fromARGB(179, 196, 255, 211),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  textStyle: TextStyle(fontSize: 18),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -185,6 +205,7 @@ class ComparisonPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Comparar Fotos'),
+        backgroundColor: Color.fromARGB(255, 70, 137, 64),
       ),
       body: Row(
         children: [

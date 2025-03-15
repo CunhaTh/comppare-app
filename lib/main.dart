@@ -50,7 +50,13 @@ class _MyHomePageState extends State<MyHomePage> {
               fit: BoxFit.cover,
             ),
           ),
-          // Área de botões
+          // Botão ADM no canto superior direito
+          Positioned(
+            top: 40,
+            right: 20,
+            child: _buildAdmButton(context),
+          ),
+          // Área de botões na parte inferior
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -58,15 +64,42 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildActionButton(context, 'ADM', PrincipalPage()),
                   _buildActionButton(context, 'Assinar', HomePage()),
                   _buildActionButton(context, 'Login', LoginScreen()),
+                  _buildActionButton(context, 'Cadastro', CadastroScreen(idPlano: null)),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // Método para criar o botão ADM
+  Widget _buildAdmButton(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PrincipalPage(),
+          ),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        backgroundColor: Colors.blueAccent, // Cor de fundo personalizada
+        textStyle: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.white, // Cor do texto
+        ),
+      ),
+      child: const Text('ADM'),
     );
   }
 
@@ -90,6 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
         textStyle: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
+          color: Colors.white, // Cor do texto
         ),
       ),
       child: Text(label),

@@ -1,5 +1,6 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/main.dart';
+import 'package:application_progress/views/pagamento.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -74,7 +75,7 @@ class _HomePageState extends State<HomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CadastroScreen(idPlano: idPlano),
+          builder: (context) => CheckoutScreen(idPlano: idPlano),
         ),
       );
     } catch (e) {
