@@ -118,7 +118,7 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: EdgeInsets.only(),
             child: Center(
               child: Text(
                 'Precisa de ajuda? contate-nos ',
@@ -126,12 +126,15 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          InkWell(
-            onTap: () {
-            },
-            child: Text(
-              'comppare-app@comppare.com.br',
-              style: TextStyle(color: Color(0xFF637700)),
+          Padding(
+            padding: const EdgeInsets.only(left: 5,right: 30),
+            child: InkWell(
+              onTap: () {
+              },
+              child: Text(
+                'comppare-app@comppare.com.br',
+                style: TextStyle(color: Color(0xFF637700)),
+              ),
             ),
           ),
         ],

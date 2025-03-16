@@ -93,7 +93,7 @@ class _PrincipalPage extends State<PrincipalPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Page Principal'),
+        title: Text('Page Principal',style: TextStyle(color: Colors.white),),
         backgroundColor: Color(0xFF637700),
       ),
       body: Padding(
@@ -204,8 +204,8 @@ class ComparisonPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Comparar Fotos'),
-        backgroundColor: Color.fromARGB(255, 70, 137, 64),
+        title: Text('Comparando Fotos',style: TextStyle(color: Colors.white),),
+        backgroundColor: Color(0xFF637700),
       ),
       body: Row(
         children: [

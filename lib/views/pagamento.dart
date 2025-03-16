@@ -81,7 +81,7 @@ Widget build(BuildContext context) {
     body: Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Resumo do Pedido',
@@ -97,7 +97,9 @@ Widget build(BuildContext context) {
             'Método de Pagamento',
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          ListTile(
+          Column(crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+            ListTile(
             title: Text('Cartão de Crédito/Débito'),
             leading: Radio<String>(
               value: 'cartao',
@@ -185,6 +187,8 @@ Widget build(BuildContext context) {
               ],
             ),
           ],
+          ],),
+          
           SizedBox(height: 20),    
         ],
         
@@ -197,12 +201,12 @@ Widget build(BuildContext context) {
             ElevatedButton(
                style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white, backgroundColor: Color(0xFF637700),
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        textStyle: TextStyle(fontSize: 18),
+                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 25),
+                        textStyle: TextStyle(fontSize: 17),
                       ),
               onPressed: () {
   if (_selectedPaymentMethod != null) {
-    if (_selectedPaymentMethod == 'cartao' && !_validateCreditCardFields()) {
+    if (_selectedPaymentMethod == 'cartao' && !_validateCreditCardFields()) { 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Por favor, preencha todos os campos do cartão.')),
       );
@@ -240,8 +244,8 @@ Widget build(BuildContext context) {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                        foregroundColor: Color.fromARGB(255, 219, 231, 249), backgroundColor: Color(0xFF3483FA),
-                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 18),
+                        foregroundColor: Colors.white, backgroundColor: Color(0xFF3483FA),
+                        padding: EdgeInsets.symmetric(horizontal: 45, vertical: 25),
                         textStyle: TextStyle(fontSize: 18),
                       ),
               onPressed: () async {
