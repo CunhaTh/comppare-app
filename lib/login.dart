@@ -1,3 +1,4 @@
+import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -98,6 +99,26 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+  
+  Widget _buildActionButton(BuildContext context, String label, Widget targetPage) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => targetPage,
+          ),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        foregroundColor: Color.fromARGB(255, 251, 255, 250),
+        backgroundColor: Color(0xFF637700),
+        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+        textStyle: TextStyle(fontSize: 18),
+      ),
+      child: Text(label),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,18 +178,43 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       style: const TextStyle(color: Colors.black),
                     ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
-                              padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
-                              textStyle: TextStyle(fontSize: 18),
-                              ),
-                      onPressed: _isLoading ? null : _login,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Entrar', style: TextStyle(color: Colors.white)),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                                foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                                padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                                textStyle: TextStyle(fontSize: 18),
+                                ),
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('Entrar', style: TextStyle(color: Colors.white)),
+                      ),
+                      const SizedBox(width: 20),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                                foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                                padding: EdgeInsets.symmetric(horizontal: 60, vertical: 20),
+                                textStyle: TextStyle(fontSize: 18),
+                                ),
+                        onPressed: (){
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CadastroScreen(idPlano: null,),
+                            ),
+                          );
+                        },
+                        child: Text('Cadastrar', style: TextStyle(color: Colors.white)),
+                      ),
+                      ]),
                     ),
+                    
                   ],
                 ),
               ),

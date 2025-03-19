@@ -61,9 +61,9 @@ class _PrincipalPage extends State<PrincipalPage> {
   }
 
   void _compareImages(BuildContext context) {
-    if (_images.length < 2) {
+    if (_images.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Adicione pelo menos duas fotos para comparar')),
+        SnackBar(content: Text('Adicione pelo menos dez fotos para comparar')),
       );
       return;
     }
@@ -209,12 +209,46 @@ class ComparisonPage extends StatelessWidget {
       ),
       body: Row(
         children: [
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Image.memory(images[0]),
           ),
           SizedBox(width: 10),
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Image.memory(images[1]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[2]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[3]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[4]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[5]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[6]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[7]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[8]),
+          ),
+           SizedBox(
+            width: 80,
+            child: Image.memory(images[9]),
           ),
         ],
       ),

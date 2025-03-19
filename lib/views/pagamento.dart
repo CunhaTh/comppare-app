@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import 'package:application_progress/views/comparepage.dart';
+import 'package:application_progress/cartao-token.dart';
+
 
 void main() {
   runApp(MyApp());
@@ -53,6 +58,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _expiryDateController = TextEditingController();
   final TextEditingController _cvvController = TextEditingController();
   String? _qrCodeData;
+
+  Future<String?> _generatePaymentToken() async {
+    final url = 'https://seu-backend.com/generate_payment_token'; // Altere para o seu endpoint
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'card_number': _cardNumberController.text,
+        'card_holder': _cardHolderController.text,
+        'expiry_date': _expiryDateController.text,
+        'cvv': _cvvController.text,
+        'reuse': true // para permitir reutilização do token
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['payment_token']; // Ajuste conforme a resposta da sua API
+    } else {
+      throw Exception('Falha ao gerar o payment_token');
+    }
+  }
+
 
   void _generatePixQRCode(dynamic pixCode5204000053039865405) {
     const uuid = Uuid();
@@ -200,46 +228,56 @@ Widget build(BuildContext context) {
           children: [
             ElevatedButton(
                style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white, backgroundColor: Color(0xFF637700),
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 25),
-                        textStyle: TextStyle(fontSize: 17),
+                      foregroundColor: Colors.white, backgroundColor: Color(0xFF637700),
+                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 25),
+                      textStyle: TextStyle(fontSize: 17),
                       ),
-              onPressed: () {
-  if (_selectedPaymentMethod != null) {
-    if (_selectedPaymentMethod == 'cartao' && !_validateCreditCardFields()) { 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Por favor, preencha todos os campos do cartão.')),
-      );
-    } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Pagamento Realizado'),
-            content: Text('Você escolheu pagar com $_selectedPaymentMethod.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Fechar o diálogo
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => PrincipalPage(),
-                    ),
+              onPressed: () async {
+                if (_selectedPaymentMethod != null) {
+                  if (_selectedPaymentMethod == 'cartao' && !_validateCreditCardFields()) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Por favor, preencha todos os campos do cartão.')),
+                    );
+                  } else {
+                    try {
+                      String? paymentToken = await _generatePaymentToken();
+                      if (paymentToken != null) {
+                        // Aqui você pode prosseguir com o pagamento usando o paymentToken
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: Text('Pagamento Realizado'),
+                              content: Text('Pagamento realizado com sucesso. Token: $paymentToken'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(); // Fechar o diálogo
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => PrincipalPage(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text('OK'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao gerar payment token: $e')),
+                      );
+                    }
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Por favor, selecione um método de pagamento.')),
                   );
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Por favor, selecione um método de pagamento.')),
-    );
-  }
-},
+                }
+              },
               child: Text('Finalizar Compra'),
             ),
             ElevatedButton(
@@ -261,7 +299,6 @@ Widget build(BuildContext context) {
                 style: TextStyle(fontSize: 16),
               ),
             ),
-            
           ],
         ),
       ),
