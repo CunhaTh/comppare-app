@@ -85,6 +85,11 @@ class _MyHomePageState extends State<MyHomePage> {
       "valor": 49.0,
     },
   ];
+   void selectPlan(int index) {
+    setState(() {
+      selectedPlan = index;
+    });
+  }
  
 
   @override
@@ -113,23 +118,51 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Área de botões na parte inferior
+                const SizedBox(height: 80),
+                // Área do meio da tela
+                Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Escolha seu Plano',
+              style: TextStyle(color: Colors.white,fontSize: 25, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Column(
+              children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildActionButton(context, 'Login', LoginScreen()),
-                    _buildActionButton(context, 'Cadastro', CadastroScreen(idPlano: null)),
+                    for (int i = 0; i < plans.length; i++)
+                      _buildPlanButton(plans[i]['nome'], i + 1),
                   ],
                 ),
-                const SizedBox(height: 200),
-                Positioned(
-              top: MediaQuery.of(context).size.height * 10,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
+                Column(children:[ _buildPlanDetails()]),
+              ],
+            ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                              padding: EdgeInsets.symmetric(horizontal: 140, vertical: 25),
+                              textStyle: TextStyle(fontSize: 18),
+                              ),
+                onPressed: isLoading ? null : navigateToCadastro,
+                child: isLoading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text('Assinar'),
+              ),
+            ),
+          ),
+        ],
+      ),
+             /* Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                   boxShadow: [
@@ -166,13 +199,71 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
                   ],
                 ),
-              ),
-            ),
+              ),*/
+            
               ],
             ),
             
             
           ],
+        ),
+      ),
+    );
+  }
+
+   Widget _buildPlanDetails() {
+    final selectedPlanDetails = plans[selectedPlan - 1];
+    return Card(
+      elevation: 10,
+      margin: EdgeInsets.only(top: 30,bottom: 20, left: 80,right: 80),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Column(
+          children: [
+            Text(
+              '\$${selectedPlanDetails['valor']}',
+              style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+            ),
+            Text(selectedPlanDetails['descricao']),
+            SizedBox(height: 10.0),
+            ...selectedPlanDetails.entries.where((entry) =>
+                entry.key != 'nome' &&
+                entry.key != 'descricao' &&
+                entry.key != 'valor').map<Widget>((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(left: 30,top: 10,bottom: 300),
+                child: Row(
+                  children: [
+                    Icon(FontAwesomeIcons.check, color: Colors.green),
+                    SizedBox(width: 8.0),
+                     Text(
+                        '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
+                      ),
+                    
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanButton(String title, int index) {
+    return GestureDetector(
+      onTap: () => selectPlan(index),
+      child: Container(
+        padding: EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: selectedPlan == index ? Color(0xFF637700) : Colors.grey[300],
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: selectedPlan == index ? Colors.white : Colors.black,
+          ),
         ),
       ),
     );
@@ -225,28 +316,31 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildAdmButton(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomePage(),
+    return Padding(
+      padding: const EdgeInsets.only(right: 20,bottom: 40),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(),
+            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        );
-      },
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          backgroundColor: const Color.fromARGB(255, 255, 68, 68),
+          textStyle: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
-        backgroundColor: const Color.fromARGB(255, 255, 68, 68),
-        textStyle: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        child: const Text('ADM',style: TextStyle(color: Colors.white),),
       ),
-      child: const Text('ADM'),
     );
   }
 
