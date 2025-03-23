@@ -131,7 +131,6 @@ class _MyHomePageState extends State<MyHomePage> {
       selectedPlan = index;
     });
   }
- 
 // Widget principal com todo conteudo
   @override
   Widget build(BuildContext context) {
@@ -171,18 +170,21 @@ class _MyHomePageState extends State<MyHomePage> {
                     style: TextStyle(color: Colors.black,fontSize: 25, fontWeight: FontWeight.bold),
                   ),
                 ),
-                  Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (int i = 0; i < plans.length; i++)
-                              _buildPlanButton(plans[i]['nome'], i + 1),
-                          ],
-                        ),
-                        Column(children:[ _buildPlanDetails()]),
-                      ],
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 30),
+                    child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (int i = 0; i < plans.length; i++)
+                                _buildPlanButton(plans[i]['nome'], i + 1),
+                            ],
+                          ),
+                          Column(children:[ _buildPlanDetails()]),
+                        ],
+                      ),
+                  ),
                     Padding(padding: EdgeInsets.only(top: 20,bottom: 20)),
                    Padding(padding: const EdgeInsets.all(16.0),
                    child: Column(
@@ -362,7 +364,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               textStyle: TextStyle(fontSize: 18),
                               ),
                                 onPressed: isLoading ? null : navigateToCadastro,
-                                  child: isLoading ? CircularProgressIndicator(color: Colors.white) : Text('Assinar'),
+                                  child: isLoading ? CircularProgressIndicator(color: Colors.white) : Text('ASSINE'),
                                 ),
                               ),
                             ),
@@ -450,7 +452,7 @@ class _MyHomePageState extends State<MyHomePage> {
           );
         },
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

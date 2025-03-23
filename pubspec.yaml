@@ -72,6 +72,7 @@ flutter:
       - assets/tela_principal.png
       - assets/logo_escura.png
       - assets/pagemconst.png
+      - assets/logo_cortada.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

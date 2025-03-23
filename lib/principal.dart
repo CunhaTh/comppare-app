@@ -201,22 +201,57 @@ class _PrincipalPage extends State<PrincipalPage> {
       ),
       drawer: Drawer(
         child: ListView(
-          padding: EdgeInsets.zero,
           children: <Widget>[
-            UserAccountsDrawerHeader(
-              accountName: Text("Seu Nome"),
-              accountEmail: Text("seuemail@exemplo.com"),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Text("A", style: TextStyle(fontSize: 40.0)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Image.asset(
+              "assets/logo_cortada.png",
+              width:150,
+              height: 50,
+            ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 50,top: 8, right: 5),
+                  child: CircleAvatar(backgroundColor: Colors.black,child: GestureDetector(onTap: (){
+                        Navigator.of(context).pop();
+                      },child: Icon(Icons.close,color: Colors.white,size: 25,),)),
+                ),
+
+              ],
+            ),
+            Divider(color: Colors.black,),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                onTap: (){},
+                title: Row(children: [
+                  Icon(Icons.analytics),
+                  SizedBox(width: 15,),Text('Dados de Uso')],),
               ),
             ),
-            ListTile(
-              title: Text('Fechar Menu'),
-              onTap: () {
-                Navigator.of(context).pop(); // Fecha o menu
-              },
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                /*Adicione a navegação da pegina */
+                onTap: (){ },
+                title: Row(children: [Icon(Icons.card_membership),SizedBox(width: 15,),Text('Financeiro')],),
+              ),
             ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                onTap: (){},
+                title: Row(children: [Icon(Icons.call_split_sharp),SizedBox(width: 15,),Text('Ranking')],),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                onTap: (){},
+                title: Row(children: [Icon(Icons.support_agent_outlined),SizedBox(width: 15,),Text('Suporte')],),
+              ),
+            ),
+            
           ],
         ),
       ),
