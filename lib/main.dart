@@ -16,16 +16,37 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AppProgress',
+      title: 'comppare',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'AppProgress'),
+      home: MyHomePage(title: '',),
       debugShowCheckedModeBanner: false,
     );
   }
 }
+
+/*class PagEmConstrucao extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar( // Adicione um título se desejar
+      ),
+      body: Container(
+        width: double.infinity, // Preencher a largura da tela
+        height: double.infinity, // Preencher a altura da tela
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/pagemconst.png',), // Caminho da imagem
+            fit: BoxFit.cover, // Ajusta a imagem para cobrir toda a tela
+          ),
+        ),
+      ),
+    );
+  }
+} */
+
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -40,6 +61,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int selectedPlan = 1;
   bool isLoading = false;
+  int? selectedQuestionIndex;
 
   Future<void> navigateToCadastro() async {
     setState(() {
@@ -64,7 +86,26 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-
+   // Lista de perguntas e respostas
+  final List<Map<String, String>> faqs = [
+    {
+      "question": "Como faço para assinar um plano?",
+      "answer": "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
+    },
+    {
+      "question": "Quais são os métodos de pagamento aceitos?",
+      "answer": "Aceitamos cartões de crédito, débito e PayPal."
+    },
+    {
+      "question": "Posso cancelar minha assinatura?",
+      "answer": "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
+    },
+    {
+      "question": "Como posso mudar meu plano?",
+      "answer": "Para mudar seu plano, entre em contato com o suporte ao cliente."
+    },
+  ];
+  // Lista de planos
   final List<Map<String, dynamic>> plans = [
     {
       "idPlano": 1,
@@ -91,7 +132,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
  
-
+// Widget principal com todo conteudo
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,13 +144,13 @@ class _MyHomePageState extends State<MyHomePage> {
               "assets/tela_principal.png",
               fit: BoxFit.cover,
               width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.3,
+              height: MediaQuery.of(context).size.height * 0.2,
             ),
             // Área de botões na parte superior
             Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(left: 25,top: 40),
+                  padding: const EdgeInsets.only(left: 15, top: 5),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -121,45 +162,70 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(height: 80),
                 // Área do meio da tela
                 Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Escolha seu Plano',
-              style: TextStyle(color: Colors.white,fontSize: 25, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    for (int i = 0; i < plans.length; i++)
-                      _buildPlanButton(plans[i]['nome'], i + 1),
-                  ],
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 10),
+                  child: Text(
+                    'NOSSOS PLANOS',
+                    style: TextStyle(color: Colors.black,fontSize: 25, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                Column(children:[ _buildPlanDetails()]),
-              ],
-            ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
-                              padding: EdgeInsets.symmetric(horizontal: 140, vertical: 25),
-                              textStyle: TextStyle(fontSize: 18),
-                              ),
-                onPressed: isLoading ? null : navigateToCadastro,
-                child: isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Assinar'),
+                  Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (int i = 0; i < plans.length; i++)
+                              _buildPlanButton(plans[i]['nome'], i + 1),
+                          ],
+                        ),
+                        Column(children:[ _buildPlanDetails()]),
+                      ],
+                    ),
+                    Padding(padding: EdgeInsets.only(top: 20,bottom: 20)),
+                   Padding(padding: const EdgeInsets.all(16.0),
+                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Perguntas Frequentes',
+                       style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                       ),
+                       const SizedBox(height: 10,),
+                       ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: faqs.length,
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () {
+                              setState((){
+                                selectedQuestionIndex = selectedQuestionIndex == index ? null : index;
+                              });
+                            },
+                            child: Card(margin: const EdgeInsets.symmetric(vertical: 5),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(faqs[index]["question"]!,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                if (selectedQuestionIndex == index) ...[
+                                  const SizedBox(height: 5),
+                                  Text(faqs[index]["answer"]!)
+                                ]
+                              ],
+                            ),),
+                          );
+                        },
+                       )
+                    ],
+                   ),),
+                   
+                   
+                ],
               ),
-            ),
-          ),
-        ],
-      ),
+              
              /* Container(
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
@@ -200,24 +266,46 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),*/
-            
+            Padding(
+                     padding: const EdgeInsets.only(top: 60, bottom: 15),
+                     child: Center(
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center,children: [
+                      Center(
+                          child: Text(
+                            'Precisa de ajuda? contate-nos ',
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                        ),
+                        Padding(padding: EdgeInsets.only(top: 10,bottom: 10, left: 10)),
+                       InkWell(
+                          onTap: () {
+                          },
+                          child: Text(
+                            'comppare-app@comppare.com.br',
+                            style: TextStyle(color: Color(0xFF637700)),
+                          ),
+                        ),
+                      
+                                       ],),),
+                   )
               ],
             ),
-            
             
           ],
         ),
       ),
+      
     );
   }
 
    Widget _buildPlanDetails() {
     final selectedPlanDetails = plans[selectedPlan - 1];
     return Card(
+      color: const Color(0xFF99cc00),
       elevation: 10,
-      margin: EdgeInsets.only(top: 30,bottom: 20, left: 80,right: 80),
+      margin: EdgeInsets.only(left: 80,right: 80),
       child: Padding(
-        padding: const EdgeInsets.only(top: 20),
+        padding: const EdgeInsets.only(top: 10),
         child: Column(
           children: [
             Text(
@@ -232,18 +320,52 @@ class _MyHomePageState extends State<MyHomePage> {
                 entry.key != 'valor').map<Widget>((entry) {
               return Padding(
                 padding: const EdgeInsets.only(left: 30,top: 10,bottom: 300),
-                child: Row(
+                child: Column(
                   children: [
-                    Icon(FontAwesomeIcons.check, color: Colors.green),
-                    SizedBox(width: 8.0),
-                     Text(
+                    Column(children: [
+                      Row(children: [
+                        Icon(FontAwesomeIcons.check, color: Colors.black),
+                        SizedBox(width: 10.0),
+                        Text(
                         '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
                       ),
-                    
-                  ],
+                      ],),
+                      Row(children: [
+                        Icon(FontAwesomeIcons.check, color: Colors.black),
+                        SizedBox(width: 10.0),
+                    Text(
+                        '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
+                      ),
+                      ],),
+                      Row(children: [
+                        Icon(FontAwesomeIcons.check, color: Colors.black),
+                        SizedBox(width: 10.0),
+                      Text(
+                        '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
+                      ),
+                        ],
+                          ),
+                            ],
+                            ),
+                            
+                          ],
                 ),
               );
             }).toList(),
+            Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                         foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Colors.black,
+                              padding: EdgeInsets.symmetric(horizontal: 100, vertical: 25),
+                              textStyle: TextStyle(fontSize: 18),
+                              ),
+                                onPressed: isLoading ? null : navigateToCadastro,
+                                  child: isLoading ? CircularProgressIndicator(color: Colors.white) : Text('Assinar'),
+                                ),
+                              ),
+                            ),
           ],
         ),
       ),
@@ -256,7 +378,7 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Container(
         padding: EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: selectedPlan == index ? Color(0xFF637700) : Colors.grey[300],
+          color: selectedPlan == index ? Colors.black : Colors.grey[300],
           borderRadius: BorderRadius.circular(8.0),
         ),
         child: Text(
@@ -317,7 +439,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildAdmButton(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 20,bottom: 40),
+      padding: const EdgeInsets.only(top: 30,right: 20,bottom: 40),
       child: ElevatedButton(
         onPressed: () {
           Navigator.push(
@@ -328,7 +450,7 @@ class _MyHomePageState extends State<MyHomePage> {
           );
         },
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -356,9 +478,9 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       style: ElevatedButton.styleFrom(
         foregroundColor: Color.fromARGB(255, 251, 255, 250),
-        backgroundColor: Color(0xFF637700),
+        backgroundColor: Colors.black,
         padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-        textStyle: TextStyle(fontSize: 18),
+        textStyle: TextStyle(fontSize: 16),
       ),
       child: Text(label),
     );

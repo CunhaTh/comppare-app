@@ -69,9 +69,9 @@ flutter:
   uses-material-design: true
 
   assets:
-      - assets/video_god2.mp4
       - assets/tela_principal.png
       - assets/logo_escura.png
+      - assets/pagemconst.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

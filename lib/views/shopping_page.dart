@@ -1,4 +1,5 @@
 import 'package:application_progress/cadastro.dart';
+import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/views/pagamento.dart';
 import 'package:flutter/material.dart';
@@ -111,7 +112,7 @@ class _HomePageState extends State<HomePage> {
           onTap: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => MyHomePage(title: '',)),
+              MaterialPageRoute(builder: (context) => /*MyHomePage(title: '',)*/LoginScreen()),
             );
           },
           child: Image.asset('assets/logo_escura.png', width: 30),
