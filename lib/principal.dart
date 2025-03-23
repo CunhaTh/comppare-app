@@ -93,8 +93,16 @@ class _PrincipalPage extends State<PrincipalPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Page Principal',style: TextStyle(color: Colors.white),),
+        title: Text('Page Principal', style: TextStyle(color: Colors.white),),
         backgroundColor: Color(0xFF637700),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.menu),
+            onPressed: () {
+              Scaffold.of(context).openDrawer(); // Abre o menu lateral
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 50),
@@ -110,9 +118,9 @@ class _PrincipalPage extends State<PrincipalPage> {
                     SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: _addImage,
-                      child: GestureDetector(child: Icon(Icons.add_a_photo_rounded,size: 60,),),
+                      child: GestureDetector(child: Icon(Icons.add_a_photo_rounded, size: 60,),),
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor:Color.fromARGB(179, 196, 255, 211),
+                        foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: Color.fromARGB(179, 196, 255, 211),
                         padding: EdgeInsets.symmetric(horizontal: 25, vertical: 15),
                       ),
                     ),
@@ -191,6 +199,27 @@ class _PrincipalPage extends State<PrincipalPage> {
           ],
         ),
       ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            UserAccountsDrawerHeader(
+              accountName: Text("Seu Nome"),
+              accountEmail: Text("seuemail@exemplo.com"),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Text("A", style: TextStyle(fontSize: 40.0)),
+              ),
+            ),
+            ListTile(
+              title: Text('Fechar Menu'),
+              onTap: () {
+                Navigator.of(context).pop(); // Fecha o menu
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -204,7 +233,7 @@ class ComparisonPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Comparando Fotos',style: TextStyle(color: Colors.white),),
+        title: Text('Comparando Fotos', style: TextStyle(color: Colors.white),),
         backgroundColor: Color(0xFF637700),
       ),
       body: Row(
@@ -218,35 +247,35 @@ class ComparisonPage extends StatelessWidget {
             width: 80,
             child: Image.memory(images[1]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[2]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[3]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[4]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[5]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[6]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[7]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[8]),
           ),
-           SizedBox(
+          SizedBox(
             width: 80,
             child: Image.memory(images[9]),
           ),
