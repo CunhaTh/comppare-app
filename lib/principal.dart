@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Comparação de Projetos',
       theme: ThemeData(
         primarySwatch: Colors.green,
-        scaffoldBackgroundColor: Color.fromARGB(255, 70, 137, 64),
+        scaffoldBackgroundColor: Colors.white,
       ),
       home: PrincipalPage(),
     );
@@ -93,67 +93,167 @@ class _PrincipalPage extends State<PrincipalPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Page Principal', style: TextStyle(color: Colors.white),),
-        backgroundColor: Color(0xFF637700),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer(); // Abre o menu lateral
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.only(bottom: 50),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribui o espaço entre os widgets
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Adicionar Imagem', style: TextStyle(fontSize: 18, color: Color.fromARGB(255, 70, 137, 64))),
-                    SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: _addImage,
-                      child: GestureDetector(child: Icon(Icons.add_a_photo_rounded, size: 60,),),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: Color.fromARGB(179, 196, 255, 211),
-                        padding: EdgeInsets.symmetric(horizontal: 25, vertical: 15),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Wrap(
-                      spacing: 10,
-                      children: _images.map((image) {
-                        return image != null
-                            ? Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.white, width: 2),
-                                  borderRadius: BorderRadius.circular(8),
+            Image.asset(
+              "assets/logo_cortada.png",
+              width: 150,
+              height: 50,
+            ),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        actions: [
+      // Novo IconButton para abrir o Drawer
+      Builder(
+              builder: (BuildContext context) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 20),
+                  child: GestureDetector(
+                    onTap: () {
+                      // Abre o modal ao invés do Drawer
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return Container(
+                            height: 300, // Altura do modal
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Perfil',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                                child: Image.memory(image, width: 100, height: 100),
-                              )
-                            : Container(width: 100, height: 100, color: Colors.grey);
-                      }).toList(),
+                                SizedBox(height: 20),
+                                ListTile(
+                                  leading: Icon(Icons.person),
+                                  title: Text('Meu Perfil'),
+                                  onTap: () {
+                                    // Ação ao clicar em "Meu Perfil"
+                                    Navigator.pop(context); // Fecha o modal
+                                  },
+                                ),
+                                ListTile(
+                                  leading: Icon(Icons.settings),
+                                  title: Text('Configurações'),
+                                  onTap: () {
+                                    // Ação ao clicar em "Configurações"
+                                    Navigator.pop(context); // Fecha o modal
+                                  },
+                                ),
+                                ListTile(
+                                  leading: Icon(Icons.logout),
+                                  title: Text('Sair'),
+                                  onTap: () {
+                                    // Ação ao clicar em "Sair"
+                                    Navigator.pop(context); // Fecha o modal
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: Image.asset(
+                      'assets/profile.jpg',
+                      scale: 20,
                     ),
-                    SizedBox(height: 150),
-                    ElevatedButton(
-                      onPressed: _saveImages,
-                      child: Text('Salvar'),
+                  ),
+                );
+              },
+            ),
+        ],
+  ),
+  body: Container(
+      decoration: BoxDecoration(
+        color: Colors.black, // Cor de fundo
+        // Se você quiser adicionar uma imagem de fundo, use:
+        // image: DecorationImage(
+        //   image: AssetImage("assets/background_image.png"),
+        //   fit: BoxFit.cover,
+        // ),
+      ),
+    child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.center,children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 20),
+                    child: ElevatedButton(
+                      onPressed: _addImage,
+                      child: GestureDetector(
+                        child: Icon(
+                          Icons.add_a_photo,
+                          size: 60,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
-                        padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
-                        textStyle: TextStyle(fontSize: 18),
+                        foregroundColor: Colors.black,
+                        backgroundColor:
+                            Color(0xFFaed513),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 25, vertical: 30),
                       ),
                     ),
-                    SizedBox(height: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                      Text('Pastas do Usuário', style: TextStyle(fontSize: 30, color: Colors.white70)),
+                  ),
+                 
+                  Text(''' Aperte aqui
+para criar um
+  novo album ''',
+                      style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.white)),
+                  
+                  ],),
+                 
+                  SizedBox(height: 20),
+                  Wrap(
+                    spacing: 10,
+                    children: _images.map((image) {
+                      return image != null
+                          ? Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: Colors.white, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Image.memory(image,
+                                  width: 100, height: 100),
+                            )
+                          : Container(width: 100, height: 100, color: Colors.grey);
+                    }).toList(),
+                  ),
+                  SizedBox(height: 150),
+                  ElevatedButton(
+                    onPressed: _saveImages,
+                    child: Text('Salvar'),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor:
+                          Color.fromARGB(255, 251, 255, 250),
+                      backgroundColor: Color(0xFFaed513),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                      textStyle: TextStyle(fontSize: 18),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text('Pastas do Usuário',
+                          style: TextStyle(
+                              fontSize: 30, color: Colors.white70)),
                       Center(
                         child: Container(
                           height: 200, // Defina uma altura para o ListView
@@ -166,96 +266,131 @@ class _PrincipalPage extends State<PrincipalPage> {
                                       padding: const EdgeInsets.all(8.0),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.white, width: 2),
-                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.white, width: 2),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
-                                        child: Image.memory(_savedImages[index]!, width: 100, height: 100),
+                                        child: Image.memory(
+                                            _savedImages[index]!,
+                                            width: 100,
+                                            height: 100),
                                       ),
                                     )
-                                  : Container(width: 100, height: 100, color: Colors.grey);
+                                  : Container(
+                                      width: 100, height: 100, color: Colors.grey);
                             },
                           ),
                         ),
                       ),
-                    ]),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  _compareImages(context);
-                },
-                child: Text('COMPARAR'),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Color.fromARGB(255, 70, 137, 64), backgroundColor: const Color.fromARGB(179, 196, 255, 211),
-                  padding: EdgeInsets.symmetric(horizontal: 60, vertical: 30),
-                  textStyle: TextStyle(fontSize: 18),
-                ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              onPressed: () {
+                _compareImages(context);
+              },
+              child: Text('COMPARAR'),
+              style: ElevatedButton.styleFrom(
+                foregroundColor:
+                    Colors.white,
+                backgroundColor:
+                    Color(0xFFaed513),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 60, vertical: 30),
+                textStyle: TextStyle(fontSize: 18),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Image.asset(
+  ),
+  
+  drawer: Drawer(
+    child: ListView(
+      children: <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Image.asset(
               "assets/logo_cortada.png",
-              width:150,
+              width: 150,
               height: 50,
             ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 50,top: 8, right: 5),
-                  child: CircleAvatar(backgroundColor: Colors.black,child: GestureDetector(onTap: (){
-                        Navigator.of(context).pop();
-                      },child: Icon(Icons.close,color: Colors.white,size: 25,),)),
-                ),
-
-              ],
-            ),
-            Divider(color: Colors.black,),
             Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListTile(
-                onTap: (){},
-                title: Row(children: [
-                  Icon(Icons.analytics),
-                  SizedBox(width: 15,),Text('Dados de Uso')],),
-              ),
+              padding: const EdgeInsets.only(
+                  left: 50, top: 8, right: 5),
+              child: CircleAvatar(
+                  backgroundColor: Colors.black,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  )),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListTile(
-                /*Adicione a navegação da pegina */
-                onTap: (){ },
-                title: Row(children: [Icon(Icons.card_membership),SizedBox(width: 15,),Text('Financeiro')],),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListTile(
-                onTap: (){},
-                title: Row(children: [Icon(Icons.call_split_sharp),SizedBox(width: 15,),Text('Ranking')],),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListTile(
-                onTap: (){},
-                title: Row(children: [Icon(Icons.support_agent_outlined),SizedBox(width: 15,),Text('Suporte')],),
-              ),
-            ),
-            
           ],
         ),
-      ),
-    );
+        Divider(color: Colors.black),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ListTile(
+            onTap: () {},
+            title: Row(children: [
+              Icon(Icons.analytics),
+              SizedBox(width: 15),
+              Text('Dados de Uso')
+            ]),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ListTile(
+            /*Adicione a navegação da pagina */
+            onTap: () {},
+            title: Row(children: [
+              Icon(Icons.card_membership),
+              SizedBox(width: 15),
+              Text('Financeiro')
+            ]),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ListTile(
+            onTap: () {},
+            title: Row(children: [
+              Icon(Icons.call_split_sharp),
+              SizedBox(width: 15),
+              Text('Ranking')
+            ]),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ListTile(
+            onTap: () {},
+            title: Row(children: [
+              Icon(Icons.support_agent_outlined),
+              SizedBox(width: 15),
+              Text('Suporte')
+            ]),
+          ),
+        ),
+      ],
+    ),
+  ),
+);
+
   }
 }
 
