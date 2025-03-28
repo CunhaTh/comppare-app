@@ -23,6 +23,18 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class Folder {
+  final String name;
+  final List<Uint8List> images;
+  final DateTime creationDate;
+  final String category; // Novo campo para categoria
+
+  Folder({required this.name, required this.images, required this.category})
+      : creationDate = DateTime.now();
+}
+
+
+
 class PrincipalPage extends StatefulWidget {
   @override
   _PrincipalPage createState() => _PrincipalPage();
@@ -31,7 +43,97 @@ class PrincipalPage extends StatefulWidget {
 class _PrincipalPage extends State<PrincipalPage> {
   List<Uint8List?> _images = []; // Permitir lista de imagens
   List<Uint8List?> _savedImages = []; // Lista para armazenar imagens salvas
+  List<Folder> _folders = [];
   final ImagePicker _picker = ImagePicker();
+  String _searchQuery = '';
+  
+  TextEditingController folderNameController = TextEditingController();
+  String selectedCategory = 'Categoria 1'; // Categoria padrão
+  List<String> categories = ['Categoria 1', 'Categoria 2', 'Categoria 3']; 
+
+
+ // Método para adicionar uma nova pasta com imagens
+  void _addFolder(String folderName, String selectedCategory) {
+    setState(() {
+      _folders.add(Folder(name: folderName, images: List.from(_images.where((image) => image != null).cast<Uint8List>()), category: ''));
+      
+      //_images.clear(); // Limpa as imagens após criar uma pasta
+    });
+  }
+  
+
+  Future<void> _showAModal() async {
+  final TextEditingController folderNameController = TextEditingController();
+  String selectedCategory = categories[0]; // Categoria padrão
+  DateTime selectedDate = DateTime.now(); // Data padrão
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Adicionar Imagem e Criar Pasta'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: folderNameController,
+                decoration: InputDecoration(hintText: "Nome da Pasta"),
+              ),
+              DropdownButton<String>(
+                value: selectedCategory,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedCategory = newValue!;
+                  });
+                },
+                items: categories.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+              ),
+              
+              SizedBox(height: 10),
+              Text('Data: ${selectedDate.toLocal()}'.split(' ')[0]),
+              ElevatedButton(
+                onPressed: () async {
+                  // Aqui você pode implementar um seletor de data
+                  final DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2101),
+                  );
+                  if (pickedDate != null && pickedDate != selectedDate) {
+                    setState(() {
+                      selectedDate = pickedDate;
+                    });
+                  }
+                },
+                child: Text('Selecionar Data'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              String folderName = folderNameController.text.trim();
+              if (folderName.isNotEmpty) {
+                _addFolder(folderName, selectedCategory); // Passar a categoria
+                Navigator.of(context).pop(); // Fecha o diálogo
+              }
+            },
+            child: Text('Salvar'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   Future<void> _addImage() async {
     if (kIsWeb) {
@@ -60,6 +162,20 @@ class _PrincipalPage extends State<PrincipalPage> {
     }
   }
 
+  void _saveImages() {
+    for (var image in _images) {
+      if (image != null) {
+        setState(() {
+          _savedImages.add(image); // Adiciona a imagem à lista de imagens salvas
+        });
+      }
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Imagens salvas com sucesso!')),
+    );
+  }
+  
+
   void _compareImages(BuildContext context) {
     if (_images.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -76,18 +192,56 @@ class _PrincipalPage extends State<PrincipalPage> {
     );
   }
 
-  void _saveImages() {
-    for (var image in _images) {
-      if (image != null) {
-        setState(() {
-          _savedImages.add(image); // Adiciona a imagem à lista de imagens salvas
-        });
-      }
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Imagens salvas com sucesso!')),
+  
+  
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Perfil'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: Icon(Icons.close),
+          ),
+        ],
+      ),
     );
   }
+
+  
+
+  Widget _buildFakeFolder(String folderName) {
+  return GestureDetector(
+    onTap: (){
+      _addFolder;
+    },
+    child: Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.grey[800], // Cor de fundo da pasta
+        ),
+        child: Center(
+          child: Text(
+            folderName,
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -112,58 +266,9 @@ class _PrincipalPage extends State<PrincipalPage> {
                   padding: const EdgeInsets.only(right: 20),
                   child: GestureDetector(
                     onTap: () {
-                      // Abre o modal ao invés do Drawer
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return Container(
-                            height: 300, // Altura do modal
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Perfil',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                ListTile(
-                                  leading: Icon(Icons.person),
-                                  title: Text('Meu Perfil'),
-                                  onTap: () {
-                                    // Ação ao clicar em "Meu Perfil"
-                                    Navigator.pop(context); // Fecha o modal
-                                  },
-                                ),
-                                ListTile(
-                                  leading: Icon(Icons.settings),
-                                  title: Text('Configurações'),
-                                  onTap: () {
-                                    // Ação ao clicar em "Configurações"
-                                    Navigator.pop(context); // Fecha o modal
-                                  },
-                                ),
-                                ListTile(
-                                  leading: Icon(Icons.logout),
-                                  title: Text('Sair'),
-                                  onTap: () {
-                                    // Ação ao clicar em "Sair"
-                                    Navigator.pop(context); // Fecha o modal
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
+                      Navigator.of(context).pop();
                     },
-                    child: Image.asset(
-                      'assets/profile.jpg',
-                      scale: 20,
-                    ),
+                    child: Icon(Icons.logout)
                   ),
                 );
               },
@@ -179,138 +284,163 @@ class _PrincipalPage extends State<PrincipalPage> {
         //   fit: BoxFit.cover,
         // ),
       ),
-    child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.center,children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 20),
-                    child: ElevatedButton(
-                      onPressed: _addImage,
-                      child: GestureDetector(
-                        child: Icon(
-                          Icons.add_a_photo,
-                          size: 60,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.black,
-                        backgroundColor:
-                            Color(0xFFaed513),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 25, vertical: 30),
-                      ),
-                    ),
-                  ),
-                 
-                  Text(''' Aperte aqui
-para criar um
-  novo album ''',
-                      style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white)),
-                  
-                  ],),
-                 
-                  SizedBox(height: 20),
-                  Wrap(
-                    spacing: 10,
-                    children: _images.map((image) {
-                      return image != null
-                          ? Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                    color: Colors.white, width: 2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Image.memory(image,
-                                  width: 100, height: 100),
-                            )
-                          : Container(width: 100, height: 100, color: Colors.grey);
-                    }).toList(),
-                  ),
-                  SizedBox(height: 150),
-                  ElevatedButton(
-                    onPressed: _saveImages,
-                    child: Text('Salvar'),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor:
-                          Color.fromARGB(255, 251, 255, 250),
-                      backgroundColor: Color(0xFFaed513),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 80, vertical: 20),
-                      textStyle: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text('Pastas do Usuário',
-                          style: TextStyle(
-                              fontSize: 30, color: Colors.white70)),
-                      Center(
-                        child: Container(
-                          height: 200, // Defina uma altura para o ListView
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _savedImages.length,
-                            itemBuilder: (context, index) {
-                              return _savedImages[index] != null
-                                  ? Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: Colors.white, width: 2),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Image.memory(
-                                            _savedImages[index]!,
-                                            width: 100,
-                                            height: 100),
-                                      ),
-                                    )
-                                  : Container(
-                                      width: 100, height: 100, color: Colors.grey);
-                            },
+    child: Padding(
+      padding: const EdgeInsets.only(top: 50),
+      child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Column(
+                  children: [
+                    Container(
+                     //Aqui adiciona borada
+                     //decoration: BoxDecoration(border: Border.all(width: 2, color: Colors.white)),*/
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center,children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 20, top: 10, bottom: 10),
+                        child: ElevatedButton(
+                          onPressed: _showAModal,
+                          child: GestureDetector(
+                            child:Container(child: Icon(Icons.add_a_photo,size: 50,), decoration: BoxDecoration(),)
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            backgroundColor:
+                                Color(0xFFaed513),
+                            padding:
+                                EdgeInsets.symmetric(horizontal: 25, vertical: 30),
                           ),
                         ),
                       ),
-                    ],
+                      Text(''' Aperte aqui
+para criar um
+ novo album ''',
+                          style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white)),
+                      
+                      ],
+                      ),
+                    ),
+                   
+                    SizedBox(height: 20),
+                    Wrap(
+                      spacing: 10,
+                      children: _images.map((image) {
+                        return image != null
+                            ? Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.white, width: 2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Image.memory(image,
+                                    width: 100, height: 100),
+                              )
+                            : Container(width: 100, height: 100, color: Colors.grey);
+                      }).toList(),
+                    ),
+                    SizedBox(height: 40),
+                    ElevatedButton(
+                      onPressed: _addImage,
+                      child: Text('Selecionar Imagens'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor:
+                            Color.fromARGB(255, 251, 255, 250),
+                        backgroundColor: Color(0xFFaed513),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                        textStyle: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [        
+                        Center(
+                          child: Container(
+                            height: 10, // Defina uma altura para o ListView
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _savedImages.length,
+                              itemBuilder: (context, index) {
+                                return _savedImages[index] != null
+                                    ? Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                                color: Colors.white, width: 2),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Image.memory(
+                                              _savedImages[index]!,
+                                              width: 100,
+                                              height: 100),
+                                        ),
+                                      )
+                                    : Container(
+                                        width: 100, height: 100, color: Colors.grey);
+                              },
+                            ),
+                          ),
+                        ),
+                        TextField(
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value; // Atualiza a consulta de busca
+                              });
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Buscar pastas...',
+                              hintStyle: TextStyle(color: Colors.white54),
+                              filled: true,
+                              fillColor: Colors.white10,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide(color: Colors.white,),
+                              ),
+                            ),
+                            style: TextStyle(color: Colors.white),
+                          ),
+                           // Área para mostrar pastas fictícias
+                    SizedBox(height: 20), // Espaço entre o TextField e a lista de pastas
+                    Text('Albuns Criados',style: TextStyle(fontSize: 30, color: Colors.white70)),
+                    Container(
+                    height: 150,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _folders.length, // Use a lista de pastas
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                      onTap: () {
+                        print('Pasta clicada: ${_folders[index].name}'); 
+                        // Navegar para a ComparisonPage ao clicar na pasta
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ComparisonPage(images: _folders[index].images),
+                          ),
+                        );
+                      },
+                      child: _buildFakeFolder(_folders[index].name), // Passa o nome da pasta
+                    ); // Passa o nome da pasta
+                      },
+                    ),
                   ),
-                ],
+                      ],
+                      
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: () {
-                _compareImages(context);
-              },
-              child: Text('COMPARAR'),
-              style: ElevatedButton.styleFrom(
-                foregroundColor:
-                    Colors.white,
-                backgroundColor:
-                    Color(0xFFaed513),
-                padding:
-                    EdgeInsets.symmetric(horizontal: 60, vertical: 30),
-                textStyle: TextStyle(fontSize: 18),
-              ),
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
+    ),
   ),
-  
   drawer: Drawer(
     child: ListView(
       children: <Widget>[
@@ -344,11 +474,13 @@ para criar um
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: ListTile(
-            onTap: () {},
+            onTap: () {
+              _showErrorDialog('Perfil do Usuário');
+            },
             title: Row(children: [
-              Icon(Icons.analytics),
-              SizedBox(width: 15),
-              Text('Dados de Uso')
+              Icon(Icons.person),
+              SizedBox(width: 18),
+              Text('Perfil')
             ]),
           ),
         ),
@@ -386,6 +518,30 @@ para criar um
             ]),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ListTile(
+            /*Adicione a navegação da pagina */
+            onTap: () {},
+            title: Row(children: [
+              Icon(Icons.analytics),
+              SizedBox(width: 15),
+              Text('Dados de Uso')
+            ]),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ListTile(
+            /*Adicione a navegação da pagina */
+            onTap: () {},
+            title: Row(children: [
+              Icon(Icons.settings),
+              SizedBox(width: 15),
+              Text('Configurações')
+            ]),
+          ),
+        ),
       ],
     ),
   ),
@@ -403,53 +559,18 @@ class ComparisonPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Comparando Fotos', style: TextStyle(color: Colors.white),),
+        title: Text('Comparando Fotos', style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF637700),
       ),
-      body: Row(
-        children: [
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[0]),
-          ),
-          SizedBox(width: 10),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[1]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[2]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[3]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[4]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[5]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[6]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[7]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[8]),
-          ),
-          SizedBox(
-            width: 80,
-            child: Image.memory(images[9]),
-          ),
-        ],
+      body: GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 1,
+        ),
+        itemCount: images.length,
+        itemBuilder: (context, index) {
+          return Image.memory(images[index]);
+        },
       ),
     );
   }
