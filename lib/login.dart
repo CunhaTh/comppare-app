@@ -1,4 +1,5 @@
 import 'package:application_progress/cadastro.dart';
+import 'package:application_progress/main.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Login',
       theme: ThemeData(
-        primaryColor: Color(0xFF637700),
+        primaryColor: Colors.white,
         scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.black),
@@ -133,33 +134,36 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Color.fromARGB(255, 216, 250, 217),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
+                  color: Colors.white,
                 ),
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Bem-vindo ao App!',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF637700)),
-                    ),
+                    GestureDetector(
+            onTap: (){
+              Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MyHomePage(title: '',),
+                          ),
+                        );
+                        },
+                        child: Image.asset(
+                            "assets/logo_cortada.png",
+                            width: 150,
+                            height: 50,
+                          ),
+                          ),
                     const SizedBox(height: 20),
                     TextField(
                       controller: _cpfController,
                       decoration: const InputDecoration(
                         labelText: 'CPF',
-                        labelStyle: TextStyle(color: Color(0xFF637700)),
+                        labelStyle: TextStyle(color: Colors.black),
                         border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF637700)),
+                          borderSide: BorderSide(color: Colors.black),
                         ),
                       ),
                       style: const TextStyle(color: Colors.black),
@@ -170,10 +174,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: true,
                       decoration: const InputDecoration(
                         labelText: 'Senha',
-                        labelStyle: TextStyle(color: Color(0xFF637700)),
+                        labelStyle: TextStyle(color: Colors.black),
                         border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF637700)),
+                          borderSide: BorderSide(color: Colors.black),
                         ),
                       ),
                       style: const TextStyle(color: Colors.black),
@@ -186,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                                foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                                foregroundColor: Colors.white, backgroundColor: Colors.black,
                                 padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
                                 textStyle: TextStyle(fontSize: 18),
                                 ),
@@ -198,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(width: 20),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                                foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                                foregroundColor: Colors.white, backgroundColor: Colors.black,
                                 padding: EdgeInsets.symmetric(horizontal: 60, vertical: 20),
                                 textStyle: TextStyle(fontSize: 18),
                                 ),

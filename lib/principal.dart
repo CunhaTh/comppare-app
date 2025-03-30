@@ -1,3 +1,4 @@
+import 'package:application_progress/main.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -71,7 +72,7 @@ class _PrincipalPage extends State<PrincipalPage> {
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text('Adicionar Imagem e Criar Pasta'),
+        title: Text('Criar Album'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -250,11 +251,17 @@ class _PrincipalPage extends State<PrincipalPage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
+            GestureDetector(
+              onTap: (){
+                Navigator.of(context).pop();
+              },
+              child: Image.asset(
               "assets/logo_cortada.png",
               width: 150,
               height: 50,
             ),
+            )
+            
           ],
         ),
         backgroundColor: Colors.white,
@@ -266,7 +273,12 @@ class _PrincipalPage extends State<PrincipalPage> {
                   padding: const EdgeInsets.only(right: 20),
                   child: GestureDetector(
                     onTap: () {
-                      Navigator.of(context).pop();
+                          Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PrincipalPage(),
+                          ),
+                        );
                     },
                     child: Icon(Icons.logout)
                   ),
@@ -559,8 +571,28 @@ class ComparisonPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Comparando Fotos', style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF637700),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+                onTap: (){
+                  Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MyHomePage(title: '',),
+                              ),
+                            );
+                            },
+                            child: Image.asset(
+                                "assets/logo_cortada.png",
+                                width: 150,
+                                height: 50,
+                              ),
+                              ),
+                              
+          ],
+        ),
+        backgroundColor: Colors.white,
       ),
       body: GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -569,7 +601,10 @@ class ComparisonPage extends StatelessWidget {
         ),
         itemCount: images.length,
         itemBuilder: (context, index) {
-          return Image.memory(images[index]);
+          return Column(children: [
+            
+            Image.memory(images[index])
+          ],); 
         },
       ),
     );

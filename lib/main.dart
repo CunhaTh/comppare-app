@@ -1,6 +1,7 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/comparepage.dart';
 import 'package:application_progress/views/pagamento.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';

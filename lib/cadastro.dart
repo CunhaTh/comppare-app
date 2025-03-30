@@ -1,4 +1,5 @@
 import 'package:application_progress/login.dart';
+import 'package:application_progress/main.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -163,32 +164,43 @@ class _CadastroScreenState extends State<CadastroScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          
-          Positioned(top: 50, left: -50, child: _buildCloud()),
-          Positioned(top: 100, right: -50, child: _buildCloud()),
-          Positioned(bottom: 100, left: 50, child: _buildCloud()),
           Center(
             child: Padding(
               padding: const EdgeInsets.only(left: 20,right: 20),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD8FAD9),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: const Offset(0, 5))],
+                  color: Colors.white,
                 ),
                 padding: const EdgeInsets.all(20.0),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 40),
-                        child: const Text(
+                      Center(child: 
+        Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: GestureDetector(
+            onTap: (){
+              Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MyHomePage(title: '',),
+                          ),
+                        );
+                        },
+                        child: Image.asset(
+                            "assets/logo_cortada.png",
+                            width: 150,
+                            height: 50,
+                          ),
+                          ),
+                            ),
+                              ),
+                      Text(
                           'Registre-se!',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF637700)),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
                         ),
-                      ),
-                      const SizedBox(height: 180),
+                      const SizedBox(height: 10),
                       _buildTextField(_nameController, 'Nome Completo'),
                       SizedBox(height: 15,),
                       _buildTextField(_cpfController, 'CPF'),
@@ -200,12 +212,12 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       _buildTextField(_passwordController, 'Senha', obscureText: true),
                       SizedBox(height: 15,),
                       _buildTextField(_confirmPasswordController, 'Confirmar Senha', obscureText: true),
-                      const SizedBox(height: 180),
+                      const SizedBox(height: 10),
                       _isLoading
                           ? const CircularProgressIndicator()
                           : ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
+                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Colors.black,
                               padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
                               textStyle: TextStyle(fontSize: 18),
                               ),
@@ -218,6 +230,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
           ),
+          //inputs do cadastro
+          Positioned(top: 50, left: -50, child: _buildCloud()),
+          Positioned(top: 100, right: -50, child: _buildCloud()),
+          Positioned(bottom: 100, left: 50, child: _buildCloud()),
         ],
       ),
     );
@@ -225,15 +241,15 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
   Widget _buildTextField(TextEditingController controller, String label, {bool obscureText = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(top: 20),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF637700)),
+          labelStyle: const TextStyle(color: Colors.black),
           border: const OutlineInputBorder(),
-          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF637700))),
+          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
         ),
       ),
     );

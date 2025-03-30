@@ -1,3 +1,4 @@
+import 'package:application_progress/main.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -27,6 +28,7 @@ class ProjectComparisonPage extends StatefulWidget {
 class _ProjectComparisonPageState extends State<ProjectComparisonPage> {
   List<File> _images = [];
   final ImagePicker _picker = ImagePicker();
+   String _searchQuery = '';
 
 
 
@@ -50,13 +52,65 @@ class _ProjectComparisonPageState extends State<ProjectComparisonPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Comparação de Projetos'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 80),
+              child: GestureDetector(
+                  onTap: (){
+                    Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MyHomePage(title: '',),
+                                ),
+                              );
+                              },
+                              child: Image.asset(
+                                  "assets/logo_cortada.png",
+                                  width: 150,
+                                  height: 50,
+                                ),
+                                ),
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 450),
         child: Center(
           child: Column(
             children: [
+              SizedBox(height: 30,),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Pasta 1',style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),), Image.asset('assets/logo_escura.png',scale: 6,)
+                ],
+              ),
+              SizedBox(height: 20,),
+              Container(
+                width: 320,
+                height: 40,
+                child: TextField(
+                              onChanged: (value) {
+                                setState(() {
+                                  _searchQuery = value; // Atualiza a consulta de busca
+                                });
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Buscar pastas...',
+                                hintStyle: TextStyle(color: Colors.white54),
+                                filled: true,
+                                fillColor: Colors.white10,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide(color: Colors.white,),
+                                ),
+                              ),
+                              style: TextStyle(color: Colors.white),
+                            ),
+              ),
               Expanded(
                 child: ListView.builder(
                   itemCount: _images.length,
@@ -71,8 +125,14 @@ class _ProjectComparisonPageState extends State<ProjectComparisonPage> {
               ),
               
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+        foregroundColor: Color.fromARGB(255, 251, 255, 250),
+        backgroundColor: Colors.black,
+        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+        textStyle: TextStyle(fontSize: 16),
+      ),
                 onPressed: () => _compareImages(context),
-                child: Text('Comparar Fotos'),
+                child: Text('Comparar Fotos',style: TextStyle(color: Colors.white),),
               ),
             ],
           ),
