@@ -1,6 +1,7 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/admpage.dart';
 import 'package:application_progress/views/comparepage.dart';
 import 'package:application_progress/views/pagamento.dart';
 import 'package:application_progress/views/shopping_page.dart';
@@ -156,6 +157,32 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       _buildActionButton(context, 'ENTRAR', LoginScreen()),
                       _buildAdmButton(context),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 30, bottom: 15),
+                        child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PrincipalPage(),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  backgroundColor: const Color.fromARGB(255, 255, 68, 68),
+                                  textStyle: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                child: const Text('ADM',style: TextStyle(color: Colors.white),),
+                              ),
+                      ),
                     ],
                   ),
                 ),
@@ -448,7 +475,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PrincipalPage(),
+              builder: (context) => AdmPage(),
             ),
           );
         },

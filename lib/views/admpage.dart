@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Parceiros',
+      title: 'ADM',
       theme: ThemeData(
         primaryColor: Color(0xFF637700), // Cor primária
         scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206), // Cor de fundo
@@ -32,7 +32,21 @@ class AdmPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tela Gerencial'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+                  onTap: (){
+                    Navigator.of(context).pop();
+                  },
+                  child: Image.asset(
+                  "assets/logo_cortada.png",
+                  width: 150,
+                  height: 50,
+                ),
+                ),
+          ],
+        )
       ),
       body: Center(
         child: Column(

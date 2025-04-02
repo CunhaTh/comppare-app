@@ -62,8 +62,7 @@ class _PrincipalPage extends State<PrincipalPage> {
     });
   }
   
-
-  Future<void> _showAModal() async {
+Future<void> _showAModal() async {
   final TextEditingController folderNameController = TextEditingController();
   String selectedCategory = categories[0]; // Categoria padrão
   DateTime selectedDate = DateTime.now(); // Data padrão
@@ -115,6 +114,13 @@ class _PrincipalPage extends State<PrincipalPage> {
                 },
                 child: Text('Selecionar Data'),
               ),
+              
+              SizedBox(height: 10),
+              // Adicionando o botão "Selecionar Imagem" aqui
+              ElevatedButton(
+                onPressed: _addImage,
+                child: Text('Selecionar Imagem'),
+              ),
             ],
           ),
         ),
@@ -134,6 +140,7 @@ class _PrincipalPage extends State<PrincipalPage> {
     },
   );
 }
+
 
 
   Future<void> _addImage() async {
@@ -324,13 +331,13 @@ class _PrincipalPage extends State<PrincipalPage> {
                           ),
                         ),
                       ),
-                      Text(''' Aperte aqui
+                      GestureDetector(onTap: _showAModal,child: Text(''' Aperte aqui
 para criar um
  novo album ''',
                           style: TextStyle(
                               fontSize: 18,
-                              color: Colors.white)),
-                      
+                              color: Colors.white)),)
+
                       ],
                       ),
                     ),
@@ -352,20 +359,7 @@ para criar um
                             : Container(width: 100, height: 100, color: Colors.grey);
                       }).toList(),
                     ),
-                    SizedBox(height: 40),
-                    ElevatedButton(
-                      onPressed: _addImage,
-                      child: Text('Selecionar Imagens'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor:
-                            Color.fromARGB(255, 251, 255, 250),
-                        backgroundColor: Color(0xFFaed513),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 80, vertical: 20),
-                        textStyle: TextStyle(fontSize: 18),
-                      ),
-                    ),
-                    SizedBox(height: 20),
+                    SizedBox(height: 60),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [        
@@ -398,6 +392,8 @@ para criar um
                             ),
                           ),
                         ),
+                         Text('Albuns Criados',style: TextStyle(fontSize: 30, color: Colors.white70)),
+                         SizedBox(height: 20),
                         TextField(
                             onChanged: (value) {
                               setState(() {
@@ -418,7 +414,6 @@ para criar um
                           ),
                            // Área para mostrar pastas fictícias
                     SizedBox(height: 20), // Espaço entre o TextField e a lista de pastas
-                    Text('Albuns Criados',style: TextStyle(fontSize: 30, color: Colors.white70)),
                     Container(
                     height: 150,
                     child: ListView.builder(
@@ -490,7 +485,7 @@ para criar um
               _showErrorDialog('Perfil do Usuário');
             },
             title: Row(children: [
-              Icon(Icons.person),
+              Icon(Icons.person,color: Color(0xFFaed513),),
               SizedBox(width: 18),
               Text('Perfil')
             ]),
@@ -502,7 +497,7 @@ para criar um
             /*Adicione a navegação da pagina */
             onTap: () {},
             title: Row(children: [
-              Icon(Icons.card_membership),
+              Icon(Icons.card_membership, color: Color(0xFFaed513)),
               SizedBox(width: 15),
               Text('Financeiro')
             ]),
@@ -513,7 +508,7 @@ para criar um
           child: ListTile(
             onTap: () {},
             title: Row(children: [
-              Icon(Icons.call_split_sharp),
+              Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),
               SizedBox(width: 15),
               Text('Ranking')
             ]),
@@ -524,7 +519,7 @@ para criar um
           child: ListTile(
             onTap: () {},
             title: Row(children: [
-              Icon(Icons.support_agent_outlined),
+              Icon(Icons.support_agent_outlined, color: Color(0xFFaed513)),
               SizedBox(width: 15),
               Text('Suporte')
             ]),
@@ -536,7 +531,7 @@ para criar um
             /*Adicione a navegação da pagina */
             onTap: () {},
             title: Row(children: [
-              Icon(Icons.analytics),
+              Icon(Icons.analytics, color: Color(0xFFaed513),),
               SizedBox(width: 15),
               Text('Dados de Uso')
             ]),
@@ -548,7 +543,7 @@ para criar um
             /*Adicione a navegação da pagina */
             onTap: () {},
             title: Row(children: [
-              Icon(Icons.settings),
+              Icon(Icons.settings, color: Color(0xFFaed513),),
               SizedBox(width: 15),
               Text('Configurações')
             ]),
@@ -588,8 +583,7 @@ class ComparisonPage extends StatelessWidget {
                                 width: 150,
                                 height: 50,
                               ),
-                              ),
-                              
+                              ),           
           ],
         ),
         backgroundColor: Colors.white,
@@ -602,7 +596,6 @@ class ComparisonPage extends StatelessWidget {
         itemCount: images.length,
         itemBuilder: (context, index) {
           return Column(children: [
-            
             Image.memory(images[index])
           ],); 
         },

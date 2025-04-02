@@ -151,11 +151,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                         child: Image.asset(
                             "assets/logo_cortada.png",
-                            width: 150,
-                            height: 50,
+                            width: 450,
+                            height: 60,
                           ),
                           ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 50),
                     TextField(
                       controller: _cpfController,
                       decoration: const InputDecoration(
@@ -218,7 +218,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       ]),
                     ),
-                    
+                    Padding(
+                      padding: const EdgeInsets.only(top: 30),
+                      child: GestureDetector(
+                        onTap: (){},
+                        child: Text('Esqueceu a senha?', style: TextStyle(fontWeight: FontWeight.bold,color: const Color.fromARGB(165, 0, 0, 0)),),),
+                    )
                   ],
                 ),
               ),

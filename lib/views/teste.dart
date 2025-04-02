@@ -1,4 +1,4 @@
-Future<void> _showAddImageModal() async {
+/* Future<void> _showAddImageModal() async {
   final TextEditingController folderNameController = TextEditingController();
   String selectedCategory = categories[0]; // Categoria padrão
   DateTime selectedDate = DateTime.now(); // Data padrão
@@ -85,3 +85,4 @@ ElevatedButton(
     padding: EdgeInsets.symmetric(horizontal: 25, vertical: 30),
   ),
 ),
+ */

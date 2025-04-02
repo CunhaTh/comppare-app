@@ -215,15 +215,18 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       const SizedBox(height: 10),
                       _isLoading
                           ? const CircularProgressIndicator()
-                          : ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
-                              textStyle: TextStyle(fontSize: 18),
+                          : Padding(
+                            padding: const EdgeInsets.only(top: 100),
+                            child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                                textStyle: TextStyle(fontSize: 18),
+                                ),
+                                onPressed: _sendCadastroData,
+                                child: const Text('Cadastrar', style: TextStyle(color: Colors.white)),
                               ),
-                              onPressed: _sendCadastroData,
-                              child: const Text('Cadastrar', style: TextStyle(color: Colors.white)),
-                            ),
+                          ),
                     ],
                   ),
                 ),
