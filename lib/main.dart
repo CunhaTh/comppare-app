@@ -142,7 +142,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             // Imagem de fundo com responsividade
             Image.asset(
-              "assets/tela_principal.png",
+              "assets/bg-comppare.jpeg",
               fit: BoxFit.cover,
               width: double.infinity,
               height: MediaQuery.of(context).size.height * 0.2,
@@ -233,7 +233,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 selectedQuestionIndex = selectedQuestionIndex == index ? null : index;
                               });
                             },
-                            child: Card(margin: const EdgeInsets.symmetric(vertical: 5),
+                            child: Card(margin: const EdgeInsets.symmetric(vertical: 10),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -333,7 +333,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Card(
       color: const Color(0xFF99cc00),
       elevation: 10,
-      margin: EdgeInsets.only(left: 80,right: 80),
+      margin: EdgeInsets.only(left: 44,right: 44,),
       child: Padding(
         padding: const EdgeInsets.only(top: 10),
         child: Column(

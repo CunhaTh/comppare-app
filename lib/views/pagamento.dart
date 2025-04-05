@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:application_progress/main.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -103,12 +104,52 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
-      backgroundColor: Color(0xFF637700),
-      title: Text('Tela de Checkout', style: TextStyle(color: Colors.white),),
+      backgroundColor: Colors.white,
+      title: Padding(
+          padding: const EdgeInsets.only(left: 100),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: Image.asset(
+                  "assets/logo_cortada.png",
+                  width: 150,
+                  height: 50,
+                ),
+              ),
+              Row(
+                children: [
+                  Builder(
+                    builder: (BuildContext context) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 20),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MyHomePage(title: '',),
+                              ),
+                            );
+                          },
+                          child: Icon(Icons.logout)
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
     ),
     body: Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(

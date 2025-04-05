@@ -1,3 +1,6 @@
+import 'package:application_progress/main.dart';
+import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -25,32 +28,88 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AdmPage extends StatelessWidget {
+class AdmPage extends StatefulWidget {
   const AdmPage({super.key});
+
+  @override
+  _AdmPageState createState() => _AdmPageState();
+}
+
+class _AdmPageState extends State<AdmPage> {
+  // Para armazenar o índice do ListTile selecionado
+  int? selectedTileIndex;
+  int? selectedQuestionIndex;
+
+  // Lista de FAQs
+  final List<Map<String, String>> faqs = [
+    {
+      "question": "Como faço para assinar um plano?",
+      "answer": "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
+    },
+    {
+      "question": "Quais são os métodos de pagamento aceitos?",
+      "answer": "Aceitamos cartões de crédito, débito e PayPal."
+    },
+    {
+      "question": "Posso cancelar minha assinatura?",
+      "answer": "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
+    },
+    {
+      "question": "Como posso mudar meu plano?",
+      "answer": "Para mudar seu plano, entre em contato com o suporte ao cliente."
+    },
+  ];
+  
+  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            GestureDetector(
-                  onTap: (){
-                    Navigator.of(context).pop();
-                  },
-                  child: Image.asset(
+        title: Padding(
+          padding: const EdgeInsets.only(left: 100),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: Image.asset(
                   "assets/logo_cortada.png",
                   width: 150,
                   height: 50,
                 ),
-                ),
-          ],
-        )
+              ),
+              Row(
+                children: [
+                  Builder(
+                    builder: (BuildContext context) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 20),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MyHomePage(title: '',),
+                              ),
+                            );
+                          },
+                          child: Icon(Icons.logout)
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
               'Aqui você pode customizar / Configurar "TODO" o APP',
@@ -58,49 +117,114 @@ class AdmPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             GestureDetector(
-              onTap: (){},
+              onTap: () {},
               child: Container(
                 padding: EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color:  Color(0xFF637700),
-                  borderRadius: BorderRadius.circular(12.0), // Mais arredondado
-                  
+                  color: Color(0xFF637700),
+                  borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: Text(
-                'BOTÂO',
+                  'BOTÂO',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white
+                    color: Colors.white,
                   ),
                 ),
               ),
-            )
-           
+            ),
+            const SizedBox(height: 30),
+            const Text(
+              'Configurações',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: ListView(
+                children: [
+                  ListTile(
+                    title: Text('Permissões'),
+                    trailing: Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      // Lógica para abrir a tela de permissões
+                    },
+                  ),
+                  Divider(),
+                  ListTile(
+                    title: Text('Tags'),
+                    trailing: Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      // Lógica para abrir a tela de tags
+                    },
+                  ),
+                  Divider(),
+                  ListTile(
+                    title: Text('Notificações'),
+                    trailing: Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      // Lógica para abrir a tela de notificações
+                    },
+                  ),
+                  Divider(),
+                  ListTile(
+                    title: Text('Sobre'),
+                    trailing: Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      // Lógica para abrir a tela 'Sobre'
+                    },
+                  ),
+                  Divider(),
+                  ListTile(
+                    title: Text('FAQs'),
+                    trailing: Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      setState(() {
+                        selectedTileIndex = selectedTileIndex == 0 ? null : 0; // Alterna a visibilidade do ListView
+                      });
+                    },
+                  ),
+                  if (selectedTileIndex == 0) ...[
+                    Container(
+                      height: 200, // Definindo uma altura fixa para o ListView
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: faqs.length,
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedQuestionIndex = selectedQuestionIndex == index ? null : index;
+                              });
+                            },
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 5),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    faqs[index]["question"]!,
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  if (selectedQuestionIndex == index) ...[
+                                    const SizedBox(height: 5),
+                                    Text(faqs[index]["answer"]!)
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-class Gerenciar extends StatelessWidget {
-  const Gerenciar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tela Parceiros'),
-      ),
-      body: const Center(
-        child: Text(
-          'Aqui você Ve todos os nossos parceiros',
-          style: TextStyle(fontSize: 24),
-        ),
-      ),
-    );
-  }
-}
-
-

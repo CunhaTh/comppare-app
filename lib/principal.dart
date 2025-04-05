@@ -1,8 +1,8 @@
-import 'package:application_progress/main.dart';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:html' as html;
 
@@ -28,120 +28,117 @@ class Folder {
   final String name;
   final List<Uint8List> images;
   final DateTime creationDate;
-  final String category; // Novo campo para categoria
+  final String category;
 
   Folder({required this.name, required this.images, required this.category})
       : creationDate = DateTime.now();
 }
 
-
-
 class PrincipalPage extends StatefulWidget {
   @override
-  _PrincipalPage createState() => _PrincipalPage();
+  _PrincipalPageState createState() => _PrincipalPageState();
 }
 
-class _PrincipalPage extends State<PrincipalPage> {
-  List<Uint8List?> _images = []; // Permitir lista de imagens
-  List<Uint8List?> _savedImages = []; // Lista para armazenar imagens salvas
+class _PrincipalPageState extends State<PrincipalPage> {
+  List<Uint8List> _images = [];
   List<Folder> _folders = [];
   final ImagePicker _picker = ImagePicker();
   String _searchQuery = '';
-  
+
   TextEditingController folderNameController = TextEditingController();
-  String selectedCategory = 'Categoria 1'; // Categoria padrão
-  List<String> categories = ['Categoria 1', 'Categoria 2', 'Categoria 3']; 
+  String selectedCategory = 'Categoria 1';
+  List<String> categories = ['Categoria 1', 'Categoria 2', 'Categoria 3'];
 
-
- // Método para adicionar uma nova pasta com imagens
   void _addFolder(String folderName, String selectedCategory) {
-    setState(() {
-      _folders.add(Folder(name: folderName, images: List.from(_images.where((image) => image != null).cast<Uint8List>()), category: ''));
-      
-      //_images.clear(); // Limpa as imagens após criar uma pasta
-    });
+    if (_images.isNotEmpty) {
+      setState(() {
+        _folders.add(Folder(
+          name: folderName,
+          images: List.from(_images),
+          category: selectedCategory,
+        ));
+        _images.clear(); // Limpa as imagens após criar uma pasta
+      });
+    }
   }
-  
-Future<void> _showAModal() async {
-  final TextEditingController folderNameController = TextEditingController();
-  String selectedCategory = categories[0]; // Categoria padrão
-  DateTime selectedDate = DateTime.now(); // Data padrão
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Criar Album'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: folderNameController,
-                decoration: InputDecoration(hintText: "Nome da Pasta"),
-              ),
-              DropdownButton<String>(
-                value: selectedCategory,
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedCategory = newValue!;
-                  });
-                },
-                items: categories.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-              ),
-              
-              SizedBox(height: 10),
-              Text('Data: ${selectedDate.toLocal()}'.split(' ')[0]),
-              ElevatedButton(
-                onPressed: () async {
-                  // Aqui você pode implementar um seletor de data
-                  final DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                  );
-                  if (pickedDate != null && pickedDate != selectedDate) {
-                    setState(() {
-                      selectedDate = pickedDate;
-                    });
-                  }
-                },
-                child: Text('Selecionar Data'),
-              ),
-              
-              SizedBox(height: 10),
-              // Adicionando o botão "Selecionar Imagem" aqui
-              ElevatedButton(
-                onPressed: _addImage,
-                child: Text('Selecionar Imagem'),
-              ),
-            ],
-          ),
-        ),
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Perfil'),
+        content: Text(message),
         actions: [
           TextButton(
             onPressed: () {
-              String folderName = folderNameController.text.trim();
-              if (folderName.isNotEmpty) {
-                _addFolder(folderName, selectedCategory); // Passar a categoria
-                Navigator.of(context).pop(); // Fecha o diálogo
-              }
+              Navigator.of(ctx).pop();
             },
-            child: Text('Salvar'),
+            child: Icon(Icons.close),
           ),
         ],
-      );
-    },
-  );
-}
+      ),
+    );
+  }
 
+  Future<void> _showAModal() async {
+    final TextEditingController folderNameController = TextEditingController();
+    String selectedCategory = categories[0];
 
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Criar Album'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: folderNameController,
+                  decoration: InputDecoration(hintText: "Nome da Pasta"),
+                ),
+                DropdownButton<String>(
+                  value: selectedCategory,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedCategory = newValue!;
+                    });
+                  },
+                  items: categories.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _addImage,
+                  child: Text('Selecionar Imagem'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                String folderName = folderNameController.text.trim();
+                if (folderName.isNotEmpty) {
+                  _addFolder(folderName, selectedCategory);
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Por favor, insira um nome para a pasta.')),
+                  );
+                }
+              },
+              child: Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _addImage() async {
     if (kIsWeb) {
@@ -170,24 +167,10 @@ Future<void> _showAModal() async {
     }
   }
 
-  void _saveImages() {
-    for (var image in _images) {
-      if (image != null) {
-        setState(() {
-          _savedImages.add(image); // Adiciona a imagem à lista de imagens salvas
-        });
-      }
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Imagens salvas com sucesso!')),
-    );
-  }
-  
-
-  void _compareImages(BuildContext context) {
-    if (_images.length < 10) {
+  void _compareImages(List<Uint8List> images) {
+    if (images.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Adicione pelo menos dez fotos para comparar')),
+        SnackBar(content: Text('Esta pasta não contém imagens.')),
       );
       return;
     }
@@ -195,61 +178,10 @@ Future<void> _showAModal() async {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ComparisonPage(images: _images.where((image) => image != null).cast<Uint8List>().toList()),
+        builder: (context) => ComparisonPage(images: images),
       ),
     );
   }
-
-  
-  
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Perfil'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: Icon(Icons.close),
-          ),
-        ],
-      ),
-    );
-  }
-
-  
-
-  Widget _buildFakeFolder(String folderName) {
-  return GestureDetector(
-    onTap: (){
-      _addFolder;
-    },
-    child: Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Container(
-        width: 100,
-        height: 100,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.white, width: 2),
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.grey[800], // Cor de fundo da pasta
-        ),
-        child: Center(
-          child: Text(
-            folderName,
-            style: TextStyle(color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -259,196 +191,98 @@ Future<void> _showAModal() async {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             GestureDetector(
-              onTap: (){
+              onTap: () {
                 Navigator.of(context).pop();
               },
               child: Image.asset(
-              "assets/logo_cortada.png",
-              width: 150,
-              height: 50,
-            ),
+                "assets/logo_cortada.png",
+                width: 150,
+                height: 50,
+              ),
             )
-            
           ],
         ),
-        backgroundColor: Colors.white,
+         backgroundColor: Colors.white,
         actions: [
-      // Novo IconButton para abrir o Drawer
-      Builder(
-              builder: (BuildContext context) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: GestureDetector(
-                    onTap: () {
-                          Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PrincipalPage(),
-                          ),
-                        );
-                    },
-                    child: Icon(Icons.logout)
-                  ),
-                );
-              },
-            ),
+          Builder(
+            builder: (BuildContext context) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrincipalPage(),
+                      ),
+                    );
+                  },
+                  child: Icon(Icons.logout),
+                ),
+              );
+            },
+          ),
         ],
-  ),
-  body: Container(
-      decoration: BoxDecoration(
-        color: Colors.black, // Cor de fundo
-        // Se você quiser adicionar uma imagem de fundo, use:
-        // image: DecorationImage(
-        //   image: AssetImage("assets/background_image.png"),
-        //   fit: BoxFit.cover,
-        // ),
       ),
-    child: Padding(
-      padding: const EdgeInsets.only(top: 50),
-      child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: Column(
-                  children: [
-                    Container(
-                     //Aqui adiciona borada
-                     //decoration: BoxDecoration(border: Border.all(width: 2, color: Colors.white)),*/
-                      child: Row(mainAxisAlignment: MainAxisAlignment.center,children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 20, top: 10, bottom: 10),
-                        child: ElevatedButton(
-                          onPressed: _showAModal,
-                          child: GestureDetector(
-                            child:Container(child: Icon(Icons.add_a_photo,size: 50,), decoration: BoxDecoration(),)
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            backgroundColor:
-                                Color(0xFFaed513),
-                            padding:
-                                EdgeInsets.symmetric(horizontal: 25, vertical: 30),
-                          ),
-                        ),
-                      ),
-                      GestureDetector(onTap: _showAModal,child: Text(''' Aperte aqui
-para criar um
- novo album ''',
-                          style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.white)),)
-
-                      ],
-                      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Container(
+          decoration: BoxDecoration(
+          color: Colors.black,
+        ),
+          child: Column(
+            children: [
+              ElevatedButton(
+                onPressed: _showAModal,
+                child: Text('Criar Novo Álbum'),
+              ),
+              SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                children: _images.map((image) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey, width: 2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                   
-                    SizedBox(height: 20),
-                    Wrap(
-                      spacing: 10,
-                      children: _images.map((image) {
-                        return image != null
-                            ? Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                      color: Colors.white, width: 2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Image.memory(image,
-                                    width: 100, height: 100),
-                              )
-                            : Container(width: 100, height: 100, color: Colors.grey);
-                      }).toList(),
-                    ),
-                    SizedBox(height: 60),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [        
-                        Center(
-                          child: Container(
-                            height: 10, // Defina uma altura para o ListView
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _savedImages.length,
-                              itemBuilder: (context, index) {
-                                return _savedImages[index] != null
-                                    ? Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                                color: Colors.white, width: 2),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Image.memory(
-                                              _savedImages[index]!,
-                                              width: 100,
-                                              height: 100),
-                                        ),
-                                      )
-                                    : Container(
-                                        width: 100, height: 100, color: Colors.grey);
-                              },
-                            ),
-                          ),
-                        ),
-                         Text('Albuns Criados',style: TextStyle(fontSize: 30, color: Colors.white70)),
-                         SizedBox(height: 20),
-                        TextField(
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value; // Atualiza a consulta de busca
-                              });
-                            },
-                            decoration: InputDecoration(
-                              hintText: 'Buscar pastas...',
-                              hintStyle: TextStyle(color: Colors.white54),
-                              filled: true,
-                              fillColor: Colors.white10,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide(color: Colors.white,),
-                              ),
-                            ),
-                            style: TextStyle(color: Colors.white),
-                          ),
-                           // Área para mostrar pastas fictícias
-                    SizedBox(height: 20), // Espaço entre o TextField e a lista de pastas
-                    Container(
-                    height: 150,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _folders.length, // Use a lista de pastas
-                      itemBuilder: (context, index) {
-                        return GestureDetector(
-                      onTap: () {
-                        print('Pasta clicada: ${_folders[index].name}'); 
-                        // Navegar para a ComparisonPage ao clicar na pasta
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ComparisonPage(images: _folders[index].images),
-                          ),
-                        );
-                      },
-                      child: _buildFakeFolder(_folders[index].name), // Passa o nome da pasta
-                    ); // Passa o nome da pasta
-                      },
-                    ),
-                  ),
-                      ],
-                      
-                    ),
-                  ],
+                    child: Image.memory(image, width: 100, height: 100),
+                  );
+                }).toList(),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _folders.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(_folders[index].name,style: TextStyle(color: Colors.white),),
+                      onTap: () => _compareImages(_folders[index].images),
+                    );
+                  },
                 ),
               ),
-            ),
-          ],
+              TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value; // Atualiza a consulta de busca
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Buscar pastas...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      filled: true,
+                      fillColor: Colors.white10,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                    ),
+                    style: TextStyle(color: Colors.white),
+                  ),
+            ],
+          ),
         ),
-    ),
-  ),
-  drawer: Drawer(
+      ),
+      drawer: Drawer(
     child: ListView(
       children: <Widget>[
         Row(
@@ -552,8 +386,7 @@ para criar um
       ],
     ),
   ),
-);
-
+    );
   }
 }
 
@@ -566,27 +399,7 @@ class ComparisonPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            GestureDetector(
-                onTap: (){
-                  Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MyHomePage(title: '',),
-                              ),
-                            );
-                            },
-                            child: Image.asset(
-                                "assets/logo_cortada.png",
-                                width: 150,
-                                height: 50,
-                              ),
-                              ),           
-          ],
-        ),
-        backgroundColor: Colors.white,
+        title: Text("Comparação de Imagens"),
       ),
       body: GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -595,9 +408,7 @@ class ComparisonPage extends StatelessWidget {
         ),
         itemCount: images.length,
         itemBuilder: (context, index) {
-          return Column(children: [
-            Image.memory(images[index])
-          ],); 
+          return Image.memory(images[index]);
         },
       ),
     );

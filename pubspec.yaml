@@ -45,6 +45,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   video_player: ^2.9.2
+  hive: ^2.2.3
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +76,7 @@ flutter:
       - assets/pagemconst.png
       - assets/logo_cortada.png
       - assets/profile.jpg
+      - assets/bg-comppare.jpeg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
