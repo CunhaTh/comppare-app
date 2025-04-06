@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -225,18 +225,37 @@ class _PrincipalPageState extends State<PrincipalPage> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(),
         child: Container(
           decoration: BoxDecoration(
           color: Colors.black,
         ),
           child: Column(
             children: [
-              ElevatedButton(
+              SizedBox(height: 49,),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                ElevatedButton(
                 onPressed: _showAModal,
-                child: Text('Criar Novo Álbum'),
-              ),
-              SizedBox(height: 20),
+                child: Icon(Icons.add_a_photo, size: 50,),
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.black,
+                                  backgroundColor: Color(0xFFaed513),
+                                  padding: EdgeInsets.symmetric(horizontal: 25, vertical: 30),
+                                    ),
+                                   ),
+                             GestureDetector(
+                              onTap: _showAModal,
+                              child: Text(
+                                '''   Aperte aqui 
+  para criar um 
+   novo álbum''',
+                                style: TextStyle(fontSize: 18, color: Colors.white),
+                              ),
+                            ),
+              ],),
+              SizedBox(height: 10),
               Wrap(
                 spacing: 10,
                 children: _images.map((image) {
@@ -245,7 +264,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       border: Border.all(color: Colors.grey, width: 2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Image.memory(image, width: 100, height: 100),
+                    child: Image.memory(image, width: 50, height: 100),
                   );
                 }).toList(),
               ),
@@ -260,24 +279,27 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   },
                 ),
               ),
-              TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value; // Atualiza a consulta de busca
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Buscar pastas...',
-                      hintStyle: TextStyle(color: Colors.white54),
-                      filled: true,
-                      fillColor: Colors.white10,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Colors.white),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 100),
+                child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value; // Atualiza a consulta de busca
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Buscar pastas...',
+                        hintStyle: TextStyle(color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.white10,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
                       ),
+                      style: TextStyle(color: Colors.white),
                     ),
-                    style: TextStyle(color: Colors.white),
-                  ),
+              ),
             ],
           ),
         ),
@@ -296,18 +318,18 @@ class _PrincipalPageState extends State<PrincipalPage> {
             Padding(
               padding: const EdgeInsets.only(
                   left: 50, top: 8, right: 5),
-              child: CircleAvatar(
-                  backgroundColor: Colors.black,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 25,
-                    ),
-                  )),
+              child: GestureDetector(
+                onTap: (){
+                  Navigator.of(context).pop();
+                },
+                child: CircleAvatar(
+                    backgroundColor: Colors.black,
+                    child:Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),),
+              ),
             ),
           ],
         ),
@@ -390,6 +412,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
   }
 }
 
+
+
+
 class ComparisonPage extends StatelessWidget {
   final List<Uint8List> images;
 
@@ -399,18 +424,87 @@ class ComparisonPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Comparação de Imagens"),
-      ),
-      body: GridView.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 1,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+              child: Image.asset(
+                "assets/logo_cortada.png",
+                width: 150,
+                height: 50,
+              ),
+            )
+          ],
         ),
-        itemCount: images.length,
-        itemBuilder: (context, index) {
-          return Image.memory(images[index]);
-        },
+        backgroundColor: Colors.white,
+        actions: [
+          Builder(
+            builder: (BuildContext context) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrincipalPage(),
+                      ),
+                    );
+                  },
+                  child: Icon(Icons.logout),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // GridView para exibir as imagens
+          GridView.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              childAspectRatio: 1,
+            ),
+            itemCount: images.length,
+            itemBuilder: (context, index) {
+              return Container(
+                child: Image.memory(
+                  images[index],
+                  scale: 15,
+                ),
+              );
+            },
+          ),
+          // Container fixo na parte inferior com o botão "COMPPARE"
+          Positioned(
+            left: 15,
+            right: 15,
+            bottom: 40,
+            child: Container(
+              color: Colors.black, // Cor de fundo do container
+              padding: EdgeInsets.all(10), // Espaçamento interno
+              child: GestureDetector(
+                onTap: () {
+                  // Ação do botão "COMPPARE"
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text('COMPPARE',style: TextStyle(color: Colors.white),),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 30,)
+        ],
       ),
     );
   }
 }
+
