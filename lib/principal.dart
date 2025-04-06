@@ -486,16 +486,16 @@ class ComparisonPage extends StatelessWidget {
             bottom: 40,
             child: Container(
               color: Colors.black, // Cor de fundo do container
-              padding: EdgeInsets.all(10), // Espaçamento interno
+              padding: EdgeInsets.only(top: 15, bottom: 15), // Espaçamento interno
               child: GestureDetector(
                 onTap: () {
-                  // Ação do botão "COMPPARE"
+                  _showComparisonDialog(context);
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text('COMPPARE',style: TextStyle(color: Colors.white),),
+                    Text('COMPPARE', style: TextStyle(color: Colors.white),),
                   ],
                 ),
               ),
@@ -504,6 +504,46 @@ class ComparisonPage extends StatelessWidget {
           SizedBox(height: 30,)
         ],
       ),
+    );
+  }
+
+  void _showComparisonDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Column(children: [
+                     Text("Comparação", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                      SizedBox(height: 20),
+                // Exibe a primeira imagem
+                      Image.memory(images.first, scale: 15),
+                      SizedBox(height: 50,width: 30,),
+                      // Exibe a última imagem
+                      Image.memory(images.last, scale: 15),
+                     ],)
+                
+                ],)
+             
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Fechar"),
+            ),
+          ],
+        );
+      },
     );
   }
 }
