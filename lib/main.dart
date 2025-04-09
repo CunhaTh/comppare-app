@@ -1,5 +1,6 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/login.dart';
+import 'package:application_progress/planos.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/admpage.dart';
 import 'package:application_progress/views/comparepage.dart';
@@ -7,6 +8,8 @@ import 'package:application_progress/views/pagamento.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const MyApp());
@@ -29,27 +32,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/*class PagEmConstrucao extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar( // Adicione um título se desejar
-      ),
-      body: Container(
-        width: double.infinity, // Preencher a largura da tela
-        height: double.infinity, // Preencher a altura da tela
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/pagemconst.png',), // Caminho da imagem
-            fit: BoxFit.cover, // Ajusta a imagem para cobrir toda a tela
-          ),
-        ),
-      ),
-    );
-  }
-} */
-
-
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
   
@@ -60,34 +42,70 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+
+
 class _MyHomePageState extends State<MyHomePage> {
   int selectedPlan = 1;
   bool isLoading = false;
   int? selectedQuestionIndex;
+  List<Plano> plans = [];
 
-  Future<void> navigateToCadastro() async {
+  @override
+  void initState() {
+    super.initState();
+    fetchPlans();
+  }
+
+  Future<void> fetchPlans() async {
     setState(() {
       isLoading = true;
     });
 
-    final selectedPlanDetails = plans[selectedPlan - 1];
-    final int idPlano = selectedPlanDetails['idPlano'];
-
     try {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CheckoutScreen(idPlano: idPlano),
-        ),
-      );
+      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> planosJson = data['data'];
+        plans = planosJson.map((json) => Plano.fromJson(json)).toList();
+      } else {
+        showErrorDialog("Erro ao buscar planos: ${response.reasonPhrase}");
+      }
     } catch (e) {
-      showErrorDialog("Erro ao navegar para a tela de cadastro.");
+      showErrorDialog("Erro ao buscar planos: $e");
     } finally {
       setState(() {
         isLoading = false;
       });
     }
   }
+
+  Future<void> navigateToCadastro() async {
+  setState(() {
+    isLoading = true;
+  });
+
+  // Acesse os atributos do objeto Plano diretamente
+  final selectedPlanDetails = plans[selectedPlan - 1];
+  final int idPlano = selectedPlanDetails.id; // Acesse usando notação de ponto
+
+  try {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutScreen(idPlano: idPlano),
+      ),
+    );
+  } catch (e) {
+    showErrorDialog("Erro ao navegar para a tela de cadastro.");
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+
+  
    // Lista de perguntas e respostas
   final List<Map<String, String>> faqs = [
     {
@@ -108,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
     },
   ];
   // Lista de planos
-  final List<Map<String, dynamic>> plans = [
+  /*final List<Map<String, dynamic>> plans = [
     {
       "idPlano": 1,
       "nome": "Plano Básico",
@@ -127,7 +145,7 @@ class _MyHomePageState extends State<MyHomePage> {
       "descricao": "Descrição do plano avançado.",
       "valor": 49.0,
     },
-  ];
+  ];*/
    void selectPlan(int index) {
     setState(() {
       selectedPlan = index;
@@ -201,17 +219,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 30),
                     child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              for (int i = 0; i < plans.length; i++)
-                                _buildPlanButton(plans[i]['nome'], i + 1),
-                            ],
-                          ),
-                          Column(children:[ _buildPlanDetails()]),
-                        ],
-                      ),
+  children: [
+    Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (int i = 0; i < plans.length; i++)
+          _buildPlanButton(plans[i].nome, i + 1),
+      ],
+    ),
+    Column(children: [_buildPlanDetails()]),
+  ],
+),
                   ),
                     Padding(padding: EdgeInsets.only(top: 20,bottom: 20)),
                    Padding(padding: const EdgeInsets.all(16.0),
@@ -255,47 +273,6 @@ class _MyHomePageState extends State<MyHomePage> {
                    
                 ],
               ),
-              
-             /* Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -2)),
-                  ],
-                ),
-                child: Column(
-                 crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Nossos Planos',
-                      style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    Column(
-                      
-                      children: plans.map((plan) {
-                        return _buildPlanCard(plan);
-                        
-                      }).toList(),
-                    ),
-                    ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                              foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Color(0xFF637700),
-                              padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
-                              textStyle: TextStyle(fontSize: 18),
-                              ),
-                onPressed: isLoading ? null : navigateToCadastro,
-                child: isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Assinar'),
-              ),
-                  ],
-                ),
-              ),*/
             Padding(
                      padding: const EdgeInsets.only(top: 60, bottom: 15),
                      child: Center(
@@ -328,7 +305,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-   Widget _buildPlanDetails() {
+   /*Widget _buildPlanDetails() {
     final selectedPlanDetails = plans[selectedPlan - 1];
     return Card(
       color: const Color(0xFF99cc00),
@@ -400,9 +377,38 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
-  }
+  }*/
 
-  Widget _buildPlanButton(String title, int index) {
+  Widget _buildPlanDetails() {
+  final selectedPlanDetails = plans[selectedPlan - 1];
+  return Card(
+    color: const Color(0xFF99cc00),
+    elevation: 10,
+    margin: EdgeInsets.only(left: 44, right: 44,),
+    child: Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        children: [
+          Text(
+            '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+            style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+          ),
+          Text(selectedPlanDetails.descricao),
+          SizedBox(height: 10.0),
+          // Exibir outros detalhes do plano
+          Text('Quantidade de Tags: ${selectedPlanDetails.quantidadeTags}'),
+          Text('Quantidade de Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+          // Adicione outros detalhes conforme necessário
+        ],
+      ),
+    ),
+  );
+}
+
+
+  
+
+   Widget _buildPlanButton(String title, int index) {
     return GestureDetector(
       onTap: () => selectPlan(index),
       child: Container(
