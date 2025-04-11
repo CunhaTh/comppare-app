@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
-import 'package:application_progress/views/comparepage.dart';
+import 'package:application_progress/views/compparepage.dart';
 import 'package:application_progress/cartao-token.dart';
 
 
