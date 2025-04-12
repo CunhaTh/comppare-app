@@ -96,8 +96,7 @@ Future<void> _showAModal() async {
                     selectedCategory = newValue!;
                   });
                 },
-                items: categories
-                    .map<DropdownMenuItem<String>>((String value) {
+                items: categories.map<DropdownMenuItem<String>>((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -122,17 +121,24 @@ Future<void> _showAModal() async {
                 },
                 decoration: InputDecoration(hintText: "Nova Categoria"),
               ),
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  // Excluir a categoria selecionada
-                  if (selectedCategory.isNotEmpty) {
-                    setState(() {
-                      categories.remove(selectedCategory);
-                      selectedCategory = categories.isNotEmpty ? categories[0] : '';
-                    });
-                  }
-                },
+              // Exibir categorias com Chips
+              Wrap(
+                spacing: 8.0,
+                children: categories.map((category) {
+                  return Chip(
+                    label: Text(category),
+                    deleteIcon: Icon(Icons.close),
+                    onDeleted: () {
+                      setState(() {
+                        categories.remove(category);
+                        // Atualizar a categoria selecionada se a categoria removida era a selecionada
+                        if (selectedCategory == category) {
+                          selectedCategory = categories.isNotEmpty ? categories[0] : '';
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
               ),
               TextButton(
                 onPressed: () async {
@@ -178,6 +184,8 @@ Future<void> _showAModal() async {
     },
   );
 }
+
+
 
   @override
   Widget build(BuildContext context) {
