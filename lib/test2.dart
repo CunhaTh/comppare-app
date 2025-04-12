@@ -96,12 +96,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   Navigator.of(context).pop();
 
                   // Navegar para a página CompparePage com as informações da pasta
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CompparePage(folder: _folders.last),
-                    ),
-                  );
+                  
+                
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Por favor, insira um nome para a pasta.')),

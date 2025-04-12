@@ -46,7 +46,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
     'Categoria 3'
   ];
 
-  void _addFolder(String folderName, String selectedCategory) {
+  void _addFolder(String folderName, String selectedCategory, DateTime dateTime) {
     setState(() {
       _folders.add(Folder(name: folderName, category: selectedCategory));
     });
@@ -70,60 +70,114 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  Future<void> _showAModal() async {
-    String selectedCategory = categories[0];
+Future<void> _showAModal() async {
+  String selectedCategory = categories.isNotEmpty ? categories[0] : '';
+  String newCategory = '';
+  DateTime? selectedDate;
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Criar Album'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: folderNameController,
-                  decoration: InputDecoration(hintText: "Nome da Pasta"),
-                ),
-                DropdownButton<String>(
-                  value: selectedCategory,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedCategory = newValue!;
-                    });
-                  },
-                  items: categories
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                String folderName = folderNameController.text.trim();
-                if (folderName.isNotEmpty) {
-                  _addFolder(folderName, selectedCategory);
-                  Navigator.of(context).pop();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Por favor, insira um nome para a pasta.')),
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Criar Álbum'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              TextField(
+                controller: folderNameController,
+                decoration: InputDecoration(hintText: "Nome da Pasta"),
+              ),
+              DropdownButton<String>(
+                value: selectedCategory.isNotEmpty ? selectedCategory : null,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedCategory = newValue!;
+                  });
+                },
+                items: categories
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
                   );
-                }
-              },
-              child: Text('Salvar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+                }).toList(),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Adicionar nova categoria
+                  if (newCategory.isNotEmpty) {
+                    setState(() {
+                      categories.add(newCategory);
+                      newCategory = ''; // Limpar o campo após adicionar
+                    });
+                  }
+                },
+                child: Text('Adicionar Categoria'),
+              ),
+              TextField(
+                onChanged: (value) {
+                  newCategory = value;
+                },
+                decoration: InputDecoration(hintText: "Nova Categoria"),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () {
+                  // Excluir a categoria selecionada
+                  if (selectedCategory.isNotEmpty) {
+                    setState(() {
+                      categories.remove(selectedCategory);
+                      selectedCategory = categories.isNotEmpty ? categories[0] : '';
+                    });
+                  }
+                },
+              ),
+              TextButton(
+                onPressed: () async {
+                  // Selecionar data
+                  DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate ?? DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2101),
+                  );
+                  if (pickedDate != null && pickedDate != selectedDate) {
+                    setState(() {
+                      selectedDate = pickedDate;
+                    });
+                  }
+                },
+                child: Text(
+                  selectedDate != null
+                      ? 'Data Selecionada: ${selectedDate!.toLocal()}'.split(' ')[0]
+                      : 'Selecionar Data',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              String folderName = folderNameController.text.trim();
+              if (folderName.isNotEmpty && selectedDate != null) {
+                _addFolder(folderName, selectedCategory, selectedDate!);
+                Navigator.of(context).pop();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Por favor, insira um nome para a pasta e selecione uma data.')),
+                );
+              }
+            },
+            child: Text('Salvar'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -174,8 +228,36 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       style: TextStyle(fontSize: 15, color: Colors.white),
                     ),
                   ),
+                  
+                  
             ],
             ),
+            SizedBox(height: 80,),
+                 Padding(
+                   padding: const EdgeInsets.only(bottom: 20),
+                   child: Text('Albuns Criados', style: TextStyle(color: Colors.white, fontSize: 30)),
+                 ),
+                  Padding(
+                padding: const EdgeInsets.only(bottom: 50),
+                child: TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value; // Atualiza a consulta de busca
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Buscar pastas...',
+                    hintStyle: TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: Colors.white10,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                  ),
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             Expanded(
               child: ListView.builder(
                 itemCount: _folders.length,
@@ -200,27 +282,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
               ),
             ),
              SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 100),
-                child: TextField(
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value; // Atualiza a consulta de busca
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Buscar pastas...',
-                    hintStyle: TextStyle(color: Colors.white54),
-                    filled: true,
-                    fillColor: Colors.white10,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.white),
-                    ),
-                  ),
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
+             
           ],
         ),
       ),
@@ -254,7 +316,77 @@ class _PrincipalPageState extends State<PrincipalPage> {
               ],
             ),
             Divider(color: Colors.black),
-            // Outros itens do Drawer...
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                onTap: () {
+                  _showErrorDialog('Perfil do Usuário');
+                },
+                title: Row(children: [
+                  Icon(Icons.person,color: Color(0xFFaed513),),
+                  SizedBox(width: 18),
+                  Text('Perfil')
+                ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                /*Adicione a navegação da pagina */
+                onTap: () {},
+                title: Row(children: [
+                  Icon(Icons.card_membership, color: Color(0xFFaed513)),
+                  SizedBox(width: 15),
+                  Text('Financeiro')
+                ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                onTap: () {},
+                title: Row(children: [
+                  Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),
+                  SizedBox(width: 15),
+                  Text('Ranking')
+                ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                onTap: () {},
+                title: Row(children: [
+                  Icon(Icons.support_agent_outlined, color: Color(0xFFaed513)),
+                  SizedBox(width: 15),
+                  Text('Suporte')
+                ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                /*Adicione a navegação da pagina */
+                onTap: () {},
+                title: Row(children: [
+                  Icon(Icons.analytics, color: Color(0xFFaed513),),
+                  SizedBox(width: 15),
+                  Text('Dados de Uso')
+                ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                /*Adicione a navegação da pagina */
+                onTap: () {},
+                title: Row(children: [
+                  Icon(Icons.settings, color: Color(0xFFaed513),),
+                  SizedBox(width: 15),
+                  Text('Configurações')
+                ]),
+              ),
+            ),
           ],
         ),
       ),

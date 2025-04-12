@@ -93,6 +93,14 @@ class _CompparePageState extends State<CompparePage> {
       ),
       body: Stack(
         children: [
+         
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+           
+            children: [
+              Text('Pasta 1',style: TextStyle(color: Colors.black,fontSize: 18)),
+            ],
+          ),
           // GridView para exibir as imagens
           GridView.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -110,13 +118,15 @@ class _CompparePageState extends State<CompparePage> {
             },
           ),
            Positioned(
-          left: 15,
-          right: 10,
-          bottom: 400,
+          left: 220,
+          right: 220,
+          bottom: 120,
           child: FloatingActionButton(
             backgroundColor:Color(0xFFaed513),
             onPressed: _addImage,
-            child: Icon(Icons.add_a_photo,color: Colors.black,),
+            child: Icon(
+              Icons.add_a_photo,
+              color: Colors.black,size: 30,),
           ),
         ),
           // Container fixo na parte inferior com o botão "COMPPARE"
