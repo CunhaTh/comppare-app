@@ -80,12 +80,19 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> navigateToCadastro() async {
+ Future<void> navigateToCadastro() async {
   setState(() {
     isLoading = true;
   });
 
-  // Acesse os atributos do objeto Plano diretamente
+  if (plans.isEmpty || selectedPlan < 1 || selectedPlan > plans.length) {
+    showErrorDialog("Nenhum plano disponível para seleção.");
+    setState(() {
+      isLoading = false; // Certifique-se de parar o loading
+    });
+    return; // Retorna para não continuar
+  }
+
   final selectedPlanDetails = plans[selectedPlan - 1];
   final int idPlano = selectedPlanDetails.id; // Acesse usando notação de ponto
 
@@ -104,6 +111,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 }
+
 
   
    // Lista de perguntas e respostas
