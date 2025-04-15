@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:application_progress/views/compparepage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart'; // Remover se não for mais necessário
  // Certifique-se de que o caminho do arquivo está correto
 
@@ -46,11 +49,31 @@ class _PrincipalPageState extends State<PrincipalPage> {
     'Categoria 3'
   ];
 
-  void _addFolder(String folderName, String selectedCategory, DateTime dateTime) {
+  /*void _addFolder(String folderName, String selectedCategory, DateTime dateTime) {
     setState(() {
       _folders.add(Folder(name: folderName, category: selectedCategory));
     });
-  }
+  }*/
+
+  void _addFolder(String folderName, String selectedCategory, DateTime dateTime) {
+  setState(() {
+        // Altere a chamada do método no onPressed
+    if (folderName.isNotEmpty) {
+      _folders.add(Folder(name: folderName, category: selectedCategory));
+    }
+  });
+
+  
+  
+  // Chame a função para criar a pasta no servidor
+  _createFolder(folderName, selectedCategory).then((_) {
+    // Sucesso ao criar no servidor
+    print('Pasta criada no servidor.');
+  }).catchError((error) {
+    // Em caso de erro
+    _showErrorDialog('Erro ao criar pasta: $error');
+  });
+}
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -68,6 +91,30 @@ class _PrincipalPageState extends State<PrincipalPage> {
         ],
       ),
     );
+  }
+    Future<void> _createFolder(String folderName, String selectedCategory) async {
+    final url = Uri.parse("https://api.comppare.com.br/api/pasta/create");
+    
+    // Aqui você pode usar um ID de usuário fixo ou pegar dinamicamente, dependendo da sua lógica
+    final int userId = 1; // Substitua pelo ID do usuário real, se necessário
+
+    final response = await http.post(url, 
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'idUsuario': userId,
+        'nomePasta': '$folderName/$selectedCategory', // Formatação de pasta/subpasta
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // A pasta foi criada com sucesso
+      print('Pasta criada com sucesso!');
+    } else {
+      // Em caso de erro
+      throw Exception('Falha ao criar pasta: ${response.body}');
+    }
   }
 
 Future<void> _showAModal() async {

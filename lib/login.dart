@@ -1,5 +1,6 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/main.dart';
+import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -64,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreen(token: token)),
+          MaterialPageRoute(builder: (context) => PrincipalPage()),
         );
       } else {
         _showErrorDialog('Credenciais inválidas. Tente novamente.');
