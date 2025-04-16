@@ -224,7 +224,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                                 textStyle: TextStyle(fontSize: 18),
                                 ),
                                 onPressed: _sendCadastroData,
-                                child: const Text('Cadastrar', style: TextStyle(color: Colors.white)),
+                                child: const Text('Avançar', style: TextStyle(color: Colors.white)),
                               ),
                           ),
                     ],

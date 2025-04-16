@@ -489,7 +489,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AdmPage(),
+              builder: (context) => CheckoutScreen(idPlano: null,) //CompparePage(images: [],category: '',folderName: '',),
             ),
           );
         },

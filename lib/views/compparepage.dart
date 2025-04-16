@@ -13,8 +13,10 @@ import 'dart:html' as html;
 
 class CompparePage extends StatefulWidget {
   final List<Uint8List> images;
+  final String category; // Adicionando a categoria
+  final String folderName; // Adicionando o nome da pasta
 
-  CompparePage({required this.images, required String category, required String folderName});
+  CompparePage({required this.images, required this.category, required this.folderName});
 
   @override
   State<CompparePage> createState() => _CompparePageState();
@@ -22,33 +24,34 @@ class CompparePage extends StatefulWidget {
 
 class _CompparePageState extends State<CompparePage> {
   final ImagePicker _picker = ImagePicker();
+  List<Folder> _folders = [];
 
   Future<void> _addImage() async {
-  if (kIsWeb) {
-    html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
+    if (kIsWeb) {
+      html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
+      uploadInput.accept = 'image/*';
+      uploadInput.click();
 
-    uploadInput.onChange.listen((e) async {
-      final files = uploadInput.files;
-      if (files!.isEmpty) return;
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(files[0]);
-      reader.onLoadEnd.listen((e) {
-        setState(() {
-          widget.images.add(reader.result as Uint8List);
+      uploadInput.onChange.listen((e) async {
+        final files = uploadInput.files;
+        if (files!.isEmpty) return;
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(files[0]);
+        reader.onLoadEnd.listen((e) {
+          setState(() {
+            widget.images.add(reader.result as Uint8List);
+          });
         });
       });
-    });
-  } else {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        widget.images.add(File(pickedFile.path).readAsBytesSync());
-      });
+    } else {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          widget.images.add(File(pickedFile.path).readAsBytesSync());
+        });
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -77,12 +80,7 @@ class _CompparePageState extends State<CompparePage> {
                 padding: const EdgeInsets.only(right: 20),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PrincipalPage(),
-                      ),
-                    );
+                    Navigator.of(context).pop();
                   },
                   child: Icon(Icons.logout),
                 ),
@@ -93,13 +91,59 @@ class _CompparePageState extends State<CompparePage> {
       ),
       body: Stack(
         children: [
-         
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-           
-            children: [
-              Text('Pasta 1',style: TextStyle(color: Colors.black,fontSize: 18)),
-            ],
+          Padding(
+            padding: const EdgeInsets.only(left: 15,top: 300),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                 Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Exibe o nome da pasta e a categoria
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                              Text(
+                                'Pasta:  ',
+                                style: TextStyle(color: Colors.black, fontSize: 15),
+                                ),
+                                Container(
+                                height: 30,
+                                width: 120,
+                                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Color(0xFFaed513)),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 30,top: 5),
+                                  child: Container(child: Text('${widget.folderName}', style: TextStyle(fontSize:15,color: Colors.black,fontWeight: FontWeight.bold),)),
+                                ))
+                                
+                              ],
+                            ),
+                            SizedBox(height: 15,),
+                      Row(
+                        children: [
+                           Text(
+                                'Subalbum:  ',
+                                style: TextStyle(color: Colors.black, fontSize: 15),
+                              ),
+                              Container(
+                                height: 30,
+                                width: 120,
+                                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.black),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 20,top: 5),
+                                  child: Container(child: Text('${widget.category}', style: TextStyle(fontSize:15,color: Color(0xFFaed513)),)),
+                                ))
+                            ],
+                            )
+                          ],
+                        )          
+                ],
+              ),
+              ],
+            ),
           ),
           // GridView para exibir as imagens
           GridView.builder(

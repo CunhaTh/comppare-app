@@ -42,11 +42,11 @@ class _PrincipalPageState extends State<PrincipalPage> {
   List<Folder> _folders = [];
   String _searchQuery = '';
   final TextEditingController folderNameController = TextEditingController();
-  String selectedCategory = 'Categoria 1';
+  String selectedCategory = 'SubAlbum 1';
   List<String> categories = [
-    'Categoria 1',
-    'Categoria 2',
-    'Categoria 3'
+    'SubAlbum 1',
+    'SubAlbum 2',
+    'SubAlbum 3'
   ];
 
   /*void _addFolder(String folderName, String selectedCategory, DateTime dateTime) {
@@ -95,8 +95,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     Future<void> _createFolder(String folderName, String selectedCategory) async {
     final url = Uri.parse("https://api.comppare.com.br/api/pasta/create");
     
-    // Aqui você pode usar um ID de usuário fixo ou pegar dinamicamente, dependendo da sua lógica
-    final int userId = 1; // Substitua pelo ID do usuário real, se necessário
+    
+    final int userId = 1;
 
     final response = await http.post(url, 
       headers: {
@@ -104,12 +104,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
       },
       body: jsonEncode({
         'idUsuario': userId,
-        'nomePasta': '$folderName/$selectedCategory', // Formatação de pasta/subpasta
+        'nomePasta': '$folderName/$selectedCategory', 
       }),
     );
 
     if (response.statusCode == 200) {
-      // A pasta foi criada com sucesso
+    
       print('Pasta criada com sucesso!');
     } else {
       // Em caso de erro
@@ -156,17 +156,19 @@ Future<void> _showAModal() async {
                   if (newCategory.isNotEmpty) {
                     setState(() {
                       categories.add(newCategory);
-                      newCategory = ''; // Limpar o campo após adicionar
+                      newCategory = ''; 
+                      _categoryModal();// Limpar o campo após adicionar
                     });
-                  }
+                  } 
+                
                 },
-                child: Text('Adicionar Categoria'),
+                child: Text('Adicionar SubAlbum'),
               ),
               TextField(
                 onChanged: (value) {
                   newCategory = value;
                 },
-                decoration: InputDecoration(hintText: "Nova Categoria"),
+                decoration: InputDecoration(hintText: "Novo SubAlbum"),
               ),
               // Exibir categorias com Chips
               Wrap(
@@ -231,6 +233,31 @@ Future<void> _showAModal() async {
     },
   );
 }
+void _categoryModal() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Categoria Criada!'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Ok'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
 
 
@@ -317,7 +344,8 @@ Future<void> _showAModal() async {
               child: ListView.builder(
                 itemCount: _folders.length,
                 itemBuilder: (context, index) {
-                  return ListTile(
+                  return Column(children: [
+                    ListTile(
                     title: Text(_folders[index].name, style: TextStyle(color: Colors.white),),
                     subtitle: Text(_folders[index].category,style: TextStyle(color: const Color.fromARGB(108, 255, 255, 255))),
                     onTap: () {
@@ -332,7 +360,8 @@ Future<void> _showAModal() async {
                         ),
                       );
                     },
-                  );
+                  )
+                  ],);
                 },
               ),
             ),
