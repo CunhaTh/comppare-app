@@ -49,12 +49,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     'SubAlbum 3'
   ];
 
-  /*void _addFolder(String folderName, String selectedCategory, DateTime dateTime) {
-    setState(() {
-      _folders.add(Folder(name: folderName, category: selectedCategory));
-    });
-  }*/
-
   void _addFolder(String folderName, String selectedCategory, DateTime dateTime) {
   setState(() {
         // Altere a chamada do método no onPressed

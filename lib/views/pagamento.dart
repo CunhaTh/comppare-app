@@ -10,10 +10,6 @@ import 'package:uuid/uuid.dart';
 import 'package:application_progress/views/compparepage.dart';
 import 'package:application_progress/cartao-token.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
