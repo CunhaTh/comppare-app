@@ -40,6 +40,8 @@ dependencies:
   url_launcher: ^6.0.20
   flutter_secure_storage: ^5.0.2
   http: ^0.13.3
+  flutter_inappwebview: ^6.1.5
+  web: ^1.1.0
   
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
