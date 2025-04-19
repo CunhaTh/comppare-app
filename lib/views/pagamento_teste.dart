@@ -99,23 +99,20 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
 
               // Injetar código para adaptar de acordo com a plataforma
               await controller.evaluateJavascript(source: """
-                // Função para inicializar a página
+
                 function setupPage() {
                   console.log("Configurando a página");
-                  
-                  // Garantir que o formulário seja visível
+     
                   const form = document.getElementById('cardForm');
                   if (form) {
                     form.style.display = 'block';
                     console.log("Formulário exibido com sucesso");
                   }
                   
-                  // Se estiver na web, configurar comunicação alternativa
                   const isWeb = ${kIsWeb ? 'true' : 'false'};
                   if (isWeb) {
                     console.log("Executando em ambiente web");
                     
-                    // Implementação alternativa para a web
                     window.tokenCaptured = null;
                     window.flutterBridge = function(method, data) {
                       console.log("Chamada de bridge simulada: " + method);
@@ -124,10 +121,8 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
                         window.tokenCaptured = data;
                         console.log("Token capturado:", data);
                         
-                        // Mostrar na interface
                         alert("Token gerado: " + data);
-                        
-                        // Exibir visualmente
+
                         const display = document.createElement('div');
                         display.style.position = 'fixed';
                         display.style.bottom = '10px';
@@ -145,13 +140,11 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
                     }
                   }
                   
-                  // Inicializar a página
                   if (typeof initializePage === 'function') {
                     initializePage();
                   }
                 }
                 
-                // Executar setup
                 setupPage();
               """);
 
@@ -222,13 +215,11 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
             ),
         ],
       ),
-      // Botão para recuperar token na web
       bottomNavigationBar: kIsWeb
           ? Container(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
                 onPressed: () async {
-                  // Recuperar token para web
                   if (webViewController != null) {
                     final token = await webViewController!.evaluateJavascript(
                         source: "window.tokenCaptured") as String?;
@@ -257,7 +248,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
     );
   }
 
-  // No modo web, verificar periodicamente se o token foi gerado
   void _startTokenCheckTimer() {
     if (!kIsWeb || webViewController == null) return;
 
@@ -301,25 +291,20 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: gap: https://ssl.gstatic.com https://cdn.jsdelivr.net https://cdn.efipay.com.br https://app.efipay.com.br https://sandbox.gerencianet.com.br; style-src * 'self' 'unsafe-inline'; script-src * 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.efipay.com.br https://app.efipay.com.br https://sandbox.gerencianet.com.br;">
     <title>Token do Cartão</title>
-    
-    <!-- Carregando múltiplas versões da biblioteca da Efí para garantir compatibilidade -->
-    <!-- Scripts carregados em ordem de prioridade -->
+
     <script src="https://sandbox.gerencianet.com.br/v1/cdn/gerencianet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/payment-token-efi/dist/payment-token-efi-umd.min.js"></script>
     <script src="https://cdn.efipay.com.br/sdk/js/efipay-sdk.min.js"></script>
     <script src="https://cdn.gerencianet.com.br/v1/gerencianet.js"></script>
-    
-    <!-- Script para inicializar e verificar a disponibilidade do SDK -->
+
     <script>
-      // Verificar qual SDK está disponível após carregamento de todos os scripts
       window.addEventListener('load', function() {
         setTimeout(function() {
           console.log("Verificando disponibilidade do SDK após carregamento completo da página");
           
           if (typeof EfiPay !== 'undefined' && EfiPay.CreditCard) {
             console.log("EfiPay.CreditCard está disponível na inicialização");
-            
-            // Verificar métodos disponíveis
+  
             const methods = ['setAccount', 'setEnvironment', 'setCreditCardData', 'getPaymentToken'];
             const availableMethods = methods.filter(method => typeof EfiPay.CreditCard[method] === 'function');
             console.log(`Métodos EfiPay disponíveis (${availableMethods.length}/${methods.length}):`, availableMethods.join(', '));
@@ -440,14 +425,12 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
     </div>
 
     <script>
-      // Elementos do DOM
       const statusEl = document.getElementById('status');
       const formEl = document.getElementById('cardForm');
       const generateButton = document.getElementById('generateButton');
       const errorDetailsEl = document.getElementById('errorDetails');
       const toggleDetailsEl = document.getElementById('toggleDetails');
-      
-      // Configurar exibição de detalhes
+
       toggleDetailsEl.addEventListener('click', function() {
         if (errorDetailsEl.style.display === 'none') {
           errorDetailsEl.style.display = 'block';
@@ -458,27 +441,22 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
         }
       });
       
-      // Constantes (substitua com seu identificador de conta Efi)
       const ACCOUNT_IDENTIFIER = 'dab94c73c24695ee58451c59298b151c';
       const ENVIRONMENT = 'sandbox'; // 'sandbox' ou 'production'
       
-      // Console log customizado que também exibe na interface
       function logToUi(message, type = 'info') {
         console.log(message);
         
-        // Atualiza o status na UI
         if (type === 'error') {
           statusEl.className = 'error';
           statusEl.textContent = "Erro: " + (typeof message === 'string' ? message : 'Veja os detalhes abaixo');
           
           if (typeof message === 'object') {
-            // Mostrar erro detalhado
             const detailedError = JSON.stringify(message, null, 2);
             errorDetailsEl.textContent = detailedError;
             errorDetailsEl.style.display = 'block';
             toggleDetailsEl.style.display = 'block';
           } else if (typeof message === 'string' && message.length > 50) {
-            // Se for uma mensagem longa, mostrar resumo e detalhes
             errorDetailsEl.textContent = message;
             errorDetailsEl.style.display = 'block';
             toggleDetailsEl.style.display = 'block';
@@ -496,7 +474,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
         }
       }
       
-      // Formatação do número do cartão
       document.getElementById('number').addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 0) {
@@ -504,21 +481,17 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
         }
         e.target.value = value;
       });
-      
-      // Formatação do CVV (apenas números)
+
       document.getElementById('cvv').addEventListener('input', function(e) {
         e.target.value = e.target.value.replace(/\D/g, '');
       });
-      
-      // Formatação do CPF/CNPJ (apenas números)
+
       document.getElementById('holderDocument').addEventListener('input', function(e) {
         e.target.value = e.target.value.replace(/\D/g, '');
       });
       
-      // Verificar a bandeira do cartão
       async function identificarBandeira(numero) {
         try {
-          // Tentar diferentes formatos
           if (typeof EfiPay !== 'undefined' && EfiPay.CreditCard) {
             return await EfiPay.CreditCard
               .setCardNumber(numero.replace(/\D/g, ''))
@@ -534,40 +507,31 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
           return null;
         }
       }
-      
-      // Comunicar com o Flutter
+
       function sendToFlutter(method, data) {
-        // Verificar se o bridge está disponível
         if (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') {
-          // Comunicação nativa Flutter
           return window.flutter_inappwebview.callHandler(method, data)
             .catch(e => {
               console.error("Erro na comunicação nativa:", e);
-              // Se ocorrer erro, usar a alternativa
               if (method === 'onTokenReceived') {
                 window.tokenCaptured = data;
               }
             });
         } else {
-          // Alternativa para web
           console.log("Usando comunicação alternativa para web");
           if (method === 'onTokenReceived') {
             window.tokenCaptured = data;
             
-            // Mostrar na interface
             alert("Token gerado: " + data);
           }
           return Promise.resolve(true);
         }
       }
       
-      // Função para obter o token real do cartão
       async function gerarToken() {
-        // Limpar erros anteriores
         errorDetailsEl.style.display = 'none';
         toggleDetailsEl.style.display = 'none';
         
-        // Validar o formulário
         const form = document.getElementById('cardForm');
         const inputs = form.querySelectorAll('input, select');
         let isValid = true;
@@ -586,25 +550,20 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
           return;
         }
 
-        // Desabilitar o botão durante o processamento
         generateButton.disabled = true;
         generateButton.textContent = "Processando...";
-        
-        // Mostrar status de processamento
+
         logToUi("Inicializando serviço de tokenização...");
         
         try {
-          // Verificar qual SDK está disponível
           let sdkType = null;
-          
-          // Verificar mais cuidadosamente a disponibilidade do SDK EfiPay
+  
           if (typeof EfiPay !== 'undefined') {
             console.log("Objeto EfiPay encontrado:", EfiPay);
             
             if (EfiPay.CreditCard) {
               console.log("EfiPay.CreditCard encontrado");
-              
-              // Verificar os métodos necessários
+   
               const requiredMethods = ['setAccount', 'setEnvironment', 'setCreditCardData', 'getPaymentToken'];
               const missingMethods = requiredMethods.filter(method => typeof EfiPay.CreditCard[method] !== 'function');
               
@@ -626,14 +585,12 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
           }
           
           if (!sdkType) {
-            // Tentar carregar o SDK novamente antes de falhar
             console.log("SDK não detectado, tentando carregar novamente...");
             const loaded = tryLoadSDK();
             if (!loaded) {
               throw new Error("SDK da Efi não está disponível. Não é possível gerar o token.");
             }
             
-            // Verificar após carregamento
             if (typeof EfiPay !== 'undefined' && EfiPay.CreditCard) {
               sdkType = 'EfiPay';
             } else if (typeof gn !== 'undefined' && gn.checkout) {
@@ -645,7 +602,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
             }
           }
           
-          // Coletar dados do cartão
           const cardNumber = document.getElementById('number').value.replace(/\D/g, '');
           const brand = document.getElementById('brand').value;
           const cvv = document.getElementById('cvv').value;
@@ -654,25 +610,21 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
           const holderName = document.getElementById('holderName').value;
           const holderDocument = document.getElementById('holderDocument').value;
           
-          // Verificar se a bandeira corresponde ao número do cartão
           try {
             const detectedBrand = await identificarBandeira(cardNumber);
             if (detectedBrand && detectedBrand !== 'undefined' && detectedBrand !== brand) {
               logToUi(`A bandeira selecionada (${brand}) não corresponde à bandeira detectada (${detectedBrand}). Usando ${detectedBrand}.`, 'warning');
               
-              // Atualizar o select para a bandeira detectada
               document.getElementById('brand').value = detectedBrand;
             }
           } catch (brandError) {
             console.error("Erro ao verificar bandeira:", brandError);
-            // Não interromper o fluxo, apenas logar o erro
           }
           
           logToUi("Gerando token do cartão...");
           
           let result = null;
           
-          // Preparar dados do cartão no formato esperado pela API
           const cardData = {
             brand: document.getElementById('brand').value,
             number: cardNumber,
@@ -690,17 +642,13 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
             cvv: "***"
           }));
           
-          // Usar a API específica conforme o tipo de SDK disponível
           if (sdkType === 'EfiPay') {
             console.log("Usando EfiPay para gerar token");
             try {
-              // Habilitar modo debug
               if (typeof EfiPay.CreditCard.debugger === 'function') {
                 EfiPay.CreditCard.debugger(true);
               }
               
-              // Usar sequência apropriada de chamadas e garantir que cada função retorne o objeto
-              // para encadeamento correto de métodos
               let creditCard = EfiPay.CreditCard;
               
               console.log("Configurando conta:", ACCOUNT_IDENTIFIER);
@@ -718,7 +666,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
               } catch (tokenError) {
                 console.warn("Erro na obtenção do token com método encadeado. Tentando método alternativo...", tokenError);
                 
-                // Tentar método alternativo
                 result = await EfiPay.CreditCard
                   .setAccount(ACCOUNT_IDENTIFIER)
                   .setEnvironment(ENVIRONMENT)
@@ -730,7 +677,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
             } catch (efiError) {
               console.error("Erro específico do EfiPay:", efiError);
               
-              // Tentar método alternativo se o erro indicar problema com encadeamento
               if (efiError instanceof TypeError && efiError.message && (
                   efiError.message.includes("is not a function") || 
                   efiError.message.includes("Cannot read properties of") ||
@@ -739,7 +685,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
                 console.log("Erro parece ser de encadeamento de métodos. Tentando abordagem alternativa...");
                 
                 try {
-                  // Tentar com função all-in-one se disponível
                   if (typeof EfiPay.getPaymentToken === 'function') {
                     console.log("Tentando EfiPay.getPaymentToken diretamente");
                     
@@ -752,16 +697,13 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
                     result = await EfiPay.getPaymentToken(tokenParams);
                     console.log("Token obtido com método alternativo:", result);
                     
-                    // Se chegou aqui, funcionou!
                     return;
                   }
                 } catch (alternativeError) {
                   console.error("Erro também no método alternativo:", alternativeError);
-                  // Continuar para o tratamento de erro original
                 }
               }
               
-              // Capturar o erro em detalhes
               let errorDetail = "";
               if (efiError instanceof Error) {
                 errorDetail = `${efiError.name}: ${efiError.message}\n${efiError.stack || 'Sem stack trace'}`;
@@ -772,8 +714,7 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
               errorDetailsEl.textContent = errorDetail;
               errorDetailsEl.style.display = 'block';
               toggleDetailsEl.style.display = 'block';
-              
-              // Verificar se o erro está relacionado a problemas de configuração
+        
               if (errorDetail.includes("account") || errorDetail.includes("setAccount")) {
                 throw new Error(`Erro na configuração da conta Efi. Verifique ACCOUNT_IDENTIFIER: ${ACCOUNT_IDENTIFIER}`);
               } else if (errorDetail.includes("environment") || errorDetail.includes("setEnvironment")) {
@@ -784,17 +725,13 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
             }
           } else if (sdkType === 'gn') {
             console.log("Usando gn para gerar token");
-            // Configurar o ambiente
             gn.checkout.setMode(ENVIRONMENT);
-            
-            // Definir o callback de resposta
+
             const getTokenPromise = new Promise((resolve, reject) => {
-              // Função de callback para receber o token ou erro
               const handleResponse = function(error, response) {
                 if (error) {
                   console.error("Erro na getPaymentToken:", error);
                   
-                  // Exibir detalhes do erro
                   errorDetailsEl.textContent = JSON.stringify(error, null, 2);
                   errorDetailsEl.style.display = 'block';
                   toggleDetailsEl.style.display = 'block';
@@ -805,8 +742,7 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
                   resolve(response);
                 }
               };
-              
-              // Chamar a API com os dados do cartão
+
               try {
                 console.log("Chamando gn.checkout.getPaymentToken");
                 gn.checkout.getPaymentToken(cardData, handleResponse);
@@ -816,21 +752,16 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
               }
             });
             
-            // Aguardar o resultado
             result = await getTokenPromise;
           } else if (sdkType === '$gn') {
             console.log("Usando $gn para gerar token");
-            // Configurar o ambiente
             $gn.checkout.setMode(ENVIRONMENT);
             
-            // Definir o callback de resposta
             const getTokenPromise = new Promise((resolve, reject) => {
-              // Função de callback para receber o token ou erro
               const handleResponse = function(error, response) {
                 if (error) {
                   console.error("Erro na getPaymentToken:", error);
-                  
-                  // Exibir detalhes do erro
+
                   errorDetailsEl.textContent = JSON.stringify(error, null, 2);
                   errorDetailsEl.style.display = 'block';
                   toggleDetailsEl.style.display = 'block';
@@ -842,7 +773,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
                 }
               };
               
-              // Chamar a API com os dados do cartão
               try {
                 console.log("Chamando $gn.checkout.getPaymentToken");
                 $gn.checkout.getPaymentToken(cardData, handleResponse);
@@ -852,7 +782,6 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
               }
             });
             
-            // Aguardar o resultado
             result = await getTokenPromise;
           }
           
@@ -861,23 +790,19 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
           }
           
           console.log("Token gerado com sucesso:", result);
-          
-          // Atualizar o status
+
           logToUi("Token gerado com sucesso!", 'success');
-          
-          // Mostrar o token no detalhe
+
           errorDetailsEl.textContent = JSON.stringify(result, null, 2);
           errorDetailsEl.style.display = 'block';
           toggleDetailsEl.style.display = 'block';
           toggleDetailsEl.textContent = 'Mostrar detalhes do token';
-          
-          // Enviar o token para o Flutter ou captura na web
+
           await sendToFlutter('onTokenReceived', result.payment_token);
           
         } catch (error) {
           console.error("Erro ao gerar token:", error);
-          
-          // Construir uma mensagem de erro mais detalhada
+
           let errorMessage = "Erro ao gerar token";
           let errorDetails = "";
           
@@ -892,34 +817,27 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
               errorDetails = "Erro não pode ser convertido para texto";
             }
           }
-          
-          // Mostrar na UI
+
           logToUi(errorMessage, 'error');
-          
-          // Detalhes completos no console
+
           console.error("Detalhes completos do erro:", error);
-          
-          // Mostrar detalhes no elemento específico
+
           errorDetailsEl.textContent = errorDetails;
           errorDetailsEl.style.display = 'block';
           toggleDetailsEl.style.display = 'block';
-          
-          // Também tentar enviar para o Flutter
+
           try {
             sendToFlutter('onError', errorMessage);
           } catch (e) {
             console.warn("Não foi possível enviar erro para o Flutter:", e);
           }
         } finally {
-          // Desativar loading
           generateButton.disabled = false;
           generateButton.textContent = "Gerar Token Real Efi";
         }
       }
       
-      // Carregar o SDK se necessário
       function tryLoadSDK() {
-        // Verificar se algum SDK já está disponível
         if ((typeof EfiPay !== 'undefined' && EfiPay.CreditCard) || 
             (typeof gn !== 'undefined' && gn.checkout) || 
             (typeof $gn !== 'undefined' && $gn.checkout)) {
@@ -928,16 +846,14 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
         }
         
         console.log("SDK não disponível, tentando carregar...");
-        
-        // Array de URLs para diferentes versões da biblioteca
+
         const sdkUrls = [
           'https://cdn.jsdelivr.net/npm/payment-token-efi/dist/payment-token-efi-umd.min.js',
           'https://cdn.efipay.com.br/sdk/js/efipay-sdk.min.js',
           'https://cdn.gerencianet.com.br/v1/gerencianet.js',
           'https://sandbox.gerencianet.com.br/v1/cdn/gerencianet.js'
         ];
-        
-        // Função para carregar um script e retornar uma promessa
+
         function loadScript(url) {
           return new Promise((resolve, reject) => {
             console.log(`Tentando carregar SDK de: ${url}`);
@@ -958,14 +874,12 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
             document.head.appendChild(script);
           });
         }
-        
-        // Carregar cada URL em sequência até que um funcione
+
         sdkUrls.forEach(url => {
           loadScript(url).then(success => {
             if (success) {
               console.log(`SDK carregado de ${url}`);
-              
-              // Verificar se agora está disponível
+
               setTimeout(() => {
                 if (typeof EfiPay !== 'undefined' && EfiPay.CreditCard) {
                   console.log("EfiPay.CreditCard disponível após carregamento");
@@ -990,12 +904,10 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
         return false;
       }
       
-      // Inicialização ao carregar a página
       function initializePage() {
         console.log("Inicializando página");
         tryLoadSDK();
         
-        // Adicionar um botão para debug
         const container = document.querySelector('.debug-section') || document.body;
         const debugBtn = document.createElement('button');
         debugBtn.textContent = 'Verificar SDK';
@@ -1017,11 +929,9 @@ class _EfiTokenPageState extends State<EfiTokenPage> {
         };
         container.appendChild(debugBtn);
       }
-      
-      // Inicializar quando a página carregar
+
       document.addEventListener('DOMContentLoaded', initializePage);
       
-      // Fallback
       setTimeout(function() {
         if (document.readyState === 'complete') {
           initializePage();
