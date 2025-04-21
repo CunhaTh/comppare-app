@@ -13,6 +13,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'dialog_ranking.dart';
 import 'views/pagamento_teste.dart';
 
 void main() {
@@ -524,6 +525,10 @@ class _MyHomePageState extends State<MyHomePage> {
       padding: const EdgeInsets.only(top: 30, right: 20, bottom: 40),
       child: ElevatedButton(
         onPressed: () {
+          // showDialog(
+          //   context: context,
+          //   builder: (context) => const DialogRanking(),
+          // );
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const EfiTokenPage()
