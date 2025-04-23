@@ -12,6 +12,8 @@ class Plano {
   final int quantidadeConvites;
   final int status;
 
+  var entries;
+
   Plano({
     required this.id,
     required this.nome,

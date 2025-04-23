@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/views/compparepage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -29,10 +29,8 @@ class MyApp extends StatelessWidget {
 class Folder {
   final String name;
   final DateTime creationDate;
-  final String category;
 
-  Folder({required this.name, required this.category})
-      : creationDate = DateTime.now();
+  Folder({required this.name}) : creationDate = DateTime.now();
 }
 
 class PrincipalPage extends StatefulWidget {
@@ -44,20 +42,17 @@ class _PrincipalPageState extends State<PrincipalPage> {
   List<Folder> _folders = [];
   String _searchQuery = '';
   final TextEditingController folderNameController = TextEditingController();
-  String selectedCategory = 'SubAlbum 1';
-  List<String> categories = ['SubAlbum 1', 'SubAlbum 2', 'SubAlbum 3'];
 
-  void _addFolder(
-      String folderName, String selectedCategory, DateTime dateTime) {
+  void _addFolder(String folderName, DateTime dateTime) {
     setState(() {
       // Altere a chamada do método no onPressed
       if (folderName.isNotEmpty) {
-        _folders.add(Folder(name: folderName, category: selectedCategory));
+        _folders.add(Folder(name: folderName));
       }
     });
 
     // Chame a função para criar a pasta no servidor
-    _createFolder(folderName, selectedCategory).then((_) {
+    _createFolder(folderName).then((_) {
       // Sucesso ao criar no servidor
       print('Pasta criada no servidor.');
     }).catchError((error) {
@@ -84,7 +79,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  Future<void> _createFolder(String folderName, String selectedCategory) async {
+  Future<void> _createFolder(
+    String folderName,
+  ) async {
     final url = Uri.parse("https://api.comppare.com.br/api/pasta/create");
 
     final int userId = 1;
@@ -96,7 +93,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       },
       body: jsonEncode({
         'idUsuario': userId,
-        'nomePasta': '$folderName/$selectedCategory',
+        'nomePasta': '$folderName',
       }),
     );
 
@@ -109,8 +106,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
   }
 
   Future<void> _showAModal() async {
-    String selectedCategory = categories.isNotEmpty ? categories[0] : '';
-    String newCategory = '';
     DateTime? selectedDate;
 
     showDialog(
@@ -125,61 +120,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
               children: [
                 TextField(
                   controller: folderNameController,
-                  decoration: InputDecoration(hintText: "Nome da Pasta"),
-                ),
-                DropdownButton<String>(
-                  value: selectedCategory.isNotEmpty ? selectedCategory : null,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedCategory = newValue!;
-                    });
-                  },
-                  items:
-                      categories.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // Adicionar nova categoria
-                    if (newCategory.isNotEmpty) {
-                      setState(() {
-                        categories.add(newCategory);
-                        newCategory = '';
-                        _categoryModal(); // Limpar o campo após adicionar
-                      });
-                    }
-                  },
-                  child: Text('Adicionar SubAlbum'),
-                ),
-                TextField(
-                  onChanged: (value) {
-                    newCategory = value;
-                  },
-                  decoration: InputDecoration(hintText: "Novo SubAlbum"),
-                ),
-                // Exibir categorias com Chips
-                Wrap(
-                  spacing: 8.0,
-                  children: categories.map((category) {
-                    return Chip(
-                      label: Text(category),
-                      deleteIcon: Icon(Icons.close),
-                      onDeleted: () {
-                        setState(() {
-                          categories.remove(category);
-                          // Atualizar a categoria selecionada se a categoria removida era a selecionada
-                          if (selectedCategory == category) {
-                            selectedCategory =
-                                categories.isNotEmpty ? categories[0] : '';
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
+                  decoration: InputDecoration(hintText: "Nome do Album"),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -211,7 +152,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
               onPressed: () {
                 String folderName = folderNameController.text.trim();
                 if (folderName.isNotEmpty && selectedDate != null) {
-                  _addFolder(folderName, selectedCategory, selectedDate!);
+                  _addFolder(folderName, selectedDate!);
                   Navigator.of(context).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -234,7 +175,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Categoria Criada!'),
+          title: Text('SubAlbum Criado'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -340,32 +281,56 @@ class _PrincipalPageState extends State<PrincipalPage> {
               child: ListView.builder(
                 itemCount: _folders.length,
                 itemBuilder: (context, index) {
-                  return Column(
-                    children: [
-                      ListTile(
-                        title: Text(
-                          _folders[index].name,
-                          style: TextStyle(color: Colors.white),
+                  return GestureDetector(
+                    onTap: () {
+                      // Navegar para a CompparePage ao clicar na pasta
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AlbunsCriados(
+                            folderName: _folders[index].name,
+                            images: [],
+                          ),
                         ),
-                        subtitle: Text(_folders[index].category,
-                            style: TextStyle(
-                                color:
-                                    const Color.fromARGB(108, 255, 255, 255))),
-                        onTap: () {
-                          // Navegar para a CompparePage ao clicar na pasta
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CompparePage(
-                                folderName: _folders[index].name,
-                                category: _folders[index].category,
-                                images: [],
+                      );
+                    },
+                    child: Card(
+                      color: Colors.grey[900], // cor de fundo do card
+                      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Ícone acima do nome
+                            Icon(
+                              _folders[index].creationDate == 'imagem'
+                                  ? Icons.image
+                                  : Icons.folder,
+                              size: 40,
+                              color: Colors.white,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              _folders[index].name,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          );
-                        },
-                      )
-                    ],
+                            SizedBox(height: 4),
+                            Text(
+                              _folders[index].name,
+                              style: TextStyle(
+                                color: Color.fromARGB(108, 255, 255, 255),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
