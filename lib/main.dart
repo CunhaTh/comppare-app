@@ -7,8 +7,10 @@ import 'package:application_progress/views/compparepage.dart';
 import 'package:application_progress/views/pagamento.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -40,6 +42,31 @@ class MyHomePage extends StatefulWidget {
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _HintArrowButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _HintArrowButton({Key? key, required this.onPressed}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      iconSize: 48.0,
+      tooltip: 'Down Arrow', // equivalente ao aria-label
+      icon: SvgPicture.string(
+        '''
+        <svg class="daq0j418" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+          <rect width="48" height="48" fill="none"></rect>
+          <path d="M36.63,18.37a1.37,1.37,0,0,1,2.15.37,1.7,1.7,0,0,1-.3,2.06L25.4,32.64a1.37,1.37,0,0,1-1.85,0l-13-11.84a1.71,1.71,0,0,1-.29-2.06,1.37,1.37,0,0,1,2.15-.37l12.11,11ZM24.25,31.42a.38.38,0,0,1,.46,0l-.23-.21ZM11.71,19.55s0,.06,0,0Zm25.61,0h0Z"></path>
+        </svg>
+        ''',
+        // É necessário usar o pacote flutter_svg para renderizar SVGs
+        // Certifique-se de adicioná-lo ao seu pubspec.yaml
+      ),
+      onPressed: onPressed,
+    );
+  }
 }
 
 
@@ -133,34 +160,15 @@ class _MyHomePageState extends State<MyHomePage> {
       "answer": "Para mudar seu plano, entre em contato com o suporte ao cliente."
     },
   ];
-  // Lista de planos
-  /*final List<Map<String, dynamic>> plans = [
-    {
-      "idPlano": 1,
-      "nome": "Plano Básico",
-      "descricao": "Descrição do plano básico.",
-      "valor": 19.0,
-    },
-    {
-      "idPlano": 2,
-      "nome": "Plano Intermediário",
-      "descricao": "Descrição do plano intermediário.",
-      "valor": 99.0,
-    },
-    {
-      "idPlano": 3,
-      "nome": "Plano Avançado",
-      "descricao": "Descrição do plano avançado.",
-      "valor": 49.0,
-    },
-  ];*/
+  
    void selectPlan(int index) {
     setState(() {
       selectedPlan = index;
     });
   }
+
 // Widget principal com todo conteudo
-  @override
+ /* @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
@@ -227,17 +235,19 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 30),
                     child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          for (int i = 0; i < plans.length; i++)
-                            _buildPlanButton(plans[i].nome, i + 1),
-                        ],
-                      ),
-                      Column(children: [_buildPlanDetails()]),
-                    ],
-                  ),
+                          children: [
+                            for (int i = 0; i < plans.length; i++)
+                              _buildPlanCard(
+                                plans[i], // passa o plano individual
+                                selectedPlan == plans[i], // exemplo: verifica se é o plano selecionado
+                                () => setState(() {
+                                  selectedPlan = plans[i] as int; // define o plano selecionado
+                                }),
+                                () {} /* lógica para cadastrar */,
+                                context,
+                              ),
+                          ],
+                        ),
                   ),
                     Padding(padding: EdgeInsets.only(top: 20,bottom: 20)),
                    Padding(padding: const EdgeInsets.all(16.0),
@@ -271,14 +281,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                   Text(faqs[index]["answer"]!)
                                 ]
                               ],
-                            ),),
+                            ),
+                            ),
                           );
                         },
                        )
                     ],
-                   ),),
-                   
-                   
+                   ),
+                   ), 
                 ],
               ),
             Padding(
@@ -299,9 +309,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             'comppare-app@comppare.com.br',
                             style: TextStyle(color: Color(0xFF637700)),
                           ),
-                        ),
-                      
-                                       ],),),
+                        ), 
+                      ],
+                      ),
+                    ),
                    )
               ],
             ),
@@ -311,110 +322,205 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       
     );
-  }
+  }  */
 
-   /*Widget _buildPlanDetails() {
-    final selectedPlanDetails = plans[selectedPlan - 1];
-    return Card(
-      color: const Color(0xFF99cc00),
-      elevation: 10,
-      margin: EdgeInsets.only(left: 44,right: 44,),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Column(
-          children: [
-            Text(
-              '\$${selectedPlanDetails['valor']}',
-              style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
-            ),
-            Text(selectedPlanDetails['descricao']),
-            SizedBox(height: 10.0),
-            ...selectedPlanDetails.entries.where((entry) =>
-                entry.key != 'nome' &&
-                entry.key != 'descricao' &&
-                entry.key != 'valor').map<Widget>((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(left: 30,top: 10,bottom: 300),
-                child: Column(
-                  children: [
-                    Column(children: [
-                      Row(children: [
-                        Icon(FontAwesomeIcons.check, color: Colors.black),
-                        SizedBox(width: 10.0),
-                        Text(
-                        '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
-                      ),
-                      ],),
-                      Row(children: [
-                        Icon(FontAwesomeIcons.check, color: Colors.black),
-                        SizedBox(width: 10.0),
-                    Text(
-                        '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
-                      ),
-                      ],),
-                      Row(children: [
-                        Icon(FontAwesomeIcons.check, color: Colors.black),
-                        SizedBox(width: 10.0),
-                      Text(
-                        '${entry.key}: ${entry.value}',style: TextStyle(fontSize: 16),
-                      ),
-                        ],
-                          ),
-                            ],
-                            ),
-                            
-                          ],
-                ),
-              );
-            }).toList(),
-            Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                         foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(horizontal: 100, vertical: 25),
-                              textStyle: TextStyle(fontSize: 18),
-                              ),
-                                onPressed: isLoading ? null : navigateToCadastro,
-                                  child: isLoading ? CircularProgressIndicator(color: Colors.white) : Text('ASSINE'),
-                                ),
-                              ),
-                            ),
-          ],
-        ),
-      ),
-    );
-  }*/
-
-  Widget _buildPlanDetails() {
-  final selectedPlanDetails = plans[selectedPlan - 1];
-  return Card(
-    color: const Color(0xFF99cc00),
-    elevation: 10,
-    margin: EdgeInsets.only(left: 44, right: 44,),
-    child: Padding(
-      padding: const EdgeInsets.only(top: 10),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: SingleChildScrollView(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
-          ),
-          Text(selectedPlanDetails.descricao),
-          SizedBox(height: 10.0),
-          // Exibir outros detalhes do plano
-          Text('Quantidade de Tags: ${selectedPlanDetails.quantidadeTags}'),
-          Text('Quantidade de Fotos: ${selectedPlanDetails.quantidadeFotos}'),
-          // Adicione outros detalhes conforme necessário
+          // Seção de destaque com imagem e textos
+           _buildHeroSection(),
+           SizedBox(height: 10,),
+            Column(children: [
+              Text('VER PLANOS',style: TextStyle(fontSize: 13),),
+              IconButton(
+              iconSize: 48.0,
+              tooltip: 'Down Arrow', // equivalente ao aria-label
+              icon: SvgPicture.string(
+                '''
+                <svg class="daq0j418" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                  <rect width="48" height="48" fill="none"></rect>
+                  <path d="M36.63,18.37a1.37,1.37,0,0,1,2.15.37,1.7,1.7,0,0,1-.3,2.06L25.4,32.64a1.37,1.37,0,0,1-1.85,0l-13-11.84a1.71,1.71,0,0,1-.29-2.06,1.37,1.37,0,0,1,2.15-.37l12.11,11ZM24.25,31.42a.38.38,0,0,1,.46,0l-.23-.21ZM11.71,19.55s0,.06,0,0Zm25.61,0h0Z"></path>
+                </svg>
+                ''',
+                // É necessário usar o pacote flutter_svg para renderizar SVGs
+                // Certifique-se de adicioná-lo ao seu pubspec.yaml
+              ),
+              onPressed: (){},
+            )
+            ],
+            ),
+           Padding(
+                    padding: const EdgeInsets.only(top: 30),
+                    child: Column(
+                          children: [
+                            for (int i = 0; i < plans.length; i++)
+                              _buildPlanCard(
+                                plans[i], // passa o plano individual
+                                selectedPlan == plans[i], // exemplo: verifica se é o plano selecionado
+                                () => setState(() {
+                                  selectedPlan = plans[i] as int; // define o plano selecionado
+                                }),
+                                () {} /* lógica para cadastrar */,
+                                context,
+                              ),
+                          ],
+                        ),
+                  ),
+          // Seção de planos
+         // _buildPlanDetails(plans,selectedPlan),
+
+          // Seção de perguntas frequentes
+          //_buildFaqSection(),
+
+          // Rodapé
+        Padding(padding: EdgeInsets.only(top: 20,bottom: 20)),
+                   Padding(padding: const EdgeInsets.all(16.0),
+                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Perguntas Frequentes',
+                       style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                       ),
+                       const SizedBox(height: 10,),
+                       ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: faqs.length,
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () {
+                              setState((){
+                                selectedQuestionIndex = selectedQuestionIndex == index ? null : index;
+                              });
+                            },
+                            child: Card(margin: const EdgeInsets.symmetric(vertical: 10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(faqs[index]["question"]!,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                if (selectedQuestionIndex == index) ...[
+                                  const SizedBox(height: 5),
+                                  Text(faqs[index]["answer"]!)
+                                ]
+                              ],
+                            ),
+                            ),
+                          );
+                        },
+                       )
+                    ],
+                   ),
+                   ),
+                   Padding(
+                     padding: const EdgeInsets.all(8.0),
+                     child: Center(
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center,children: [
+                        Center(
+                            child: Text(
+                              'Precisa de ajuda? contate-nos ',
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ),
+                          Padding(padding: EdgeInsets.only(top: 10,bottom: 10, left: 10)),
+                         InkWell(
+                            onTap: () {
+                            },
+                            child: Text(
+                              'comppare-app@comppare.com.br',
+                              style: TextStyle(color: Color(0xFF637700)),
+                            ),
+                          ), 
+                        ],
+                        ),
+                      ),
+                   ),
         ],
       ),
     ),
   );
 }
 
+Widget _buildHeroSection() {
+  return Stack(
+    children: [
+      // Imagem de fundo (substitua pelo seu asset ou rede)
+      Image.asset(
+        'assets/bg-comppare.jpeg', // ou NetworkImage com sua URL
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: 600,
+      ),
+      // Sobreposição com textos e botões
+      Positioned.fill(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: _buildHeader(context),
+            ),
+            SizedBox(height: 230,),
+            Text(
+              'Planos exclusivos para Flamenguistas, e muito mais',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                shadows: [Shadow(blurRadius: 4, color: Colors.black45, offset: Offset(2, 2))]
+              ),
+              textAlign: TextAlign.center,
+            ),
+           
+            Text(
+              '''                                        Planos a partir de R\$ 27,99/mês''',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+         
+          ]
+        )
+      )
+          ]
+          );
+        
+}
 
-  
+
+Widget _buildHeader(BuildContext context) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Botão "ENTRAR"
+        TextButton(
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+          },
+          child:_buildActionButton(context, 'ENTRAR', LoginScreen())
+        ),
+        // Botão "ADM"
+        ElevatedButton(
+          
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => PrincipalPage()));
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.redAccent,
+          ),
+          child: Text('ADM', style: TextStyle(color: Colors.white)),
+        )
+      ],
+    ),
+  );
+}
+
 
    Widget _buildPlanButton(String title, int index) {
     return GestureDetector(
@@ -431,98 +537,6 @@ class _MyHomePageState extends State<MyHomePage> {
             color: selectedPlan == index ? Colors.white : Colors.black,
           ),
         ),
-      ),
-    );
-  }
-  
-
-  Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCallback onCadastrar) {
-  return GestureDetector(
-    onTap: onSelect,
-    child: Card(
-      elevation: isSelected ? 8 : 4,
-      color: isSelected ? Colors.green[100] : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isSelected ? Colors.green : Colors.grey[300]!,
-          width: 2,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              plan.nome,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.green[800] : Colors.black,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              plan.descricao,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[700],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Preço: R\$ ${plan.valor.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.green[900] : Colors.black,
-              ),
-            ),
-            SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: isSelected ? onCadastrar : onSelect,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isSelected ? Colors.green : Colors.grey,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(isSelected ? 'Selecionado' : 'Selecionar'),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-
-  Widget _buildAdmButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 30,right: 20,bottom: 40),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CheckoutScreen(idPlano: null,) //CompparePage(images: [],category: '',folderName: '',),
-            ),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          backgroundColor: const Color.fromARGB(255, 255, 68, 68),
-          textStyle: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        child: const Text('ADM',style: TextStyle(color: Colors.white),),
       ),
     );
   }
@@ -564,6 +578,100 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+
+Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCallback onCadastrar, BuildContext context) {
+  // Define o tamanho do card de acordo com a largura da tela
+  final screenWidth = MediaQuery.of(context).size.width;
+  final cardWidth = screenWidth * 0.9; // ocupa 90% da largura da tela
+
+  return Center(
+    child: GestureDetector(
+      onTap: onSelect,
+      child: Container(
+        width: cardWidth,
+        margin: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.green[50] : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: isSelected ? Colors.green : Colors.grey[300]!,
+            width: 2,
+          ),
+        ),
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Título do plano
+            Text(
+              plan.nome,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.green[800] : Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 12),
+            // Descrição do plano
+            Text(
+              plan.descricao,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            // Preço
+            Text(
+              'Preço: R\$ ${plan.valor.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.green[900] : Colors.black,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20),
+            // Botão de seleção
+            ElevatedButton(
+              onPressed: isSelected ? onCadastrar : onSelect,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSelected ? Colors.green : Colors.grey[300],
+                foregroundColor: isSelected ? Colors.white : Colors.black,
+                padding: EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(isSelected ? 'Selecionado' : 'Selecionar'),
+            ),
+            SizedBox(height: 12),
+            // Botão de assinatura
+            TextButton(
+              onPressed: () {
+                // Aqui você pode definir a ação de assinatura
+              },
+              child: Text(
+                'Assinar',
+                style: TextStyle(color: Colors.blue, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 Widget _buildPlanDetails(dynamic plans, dynamic selectedPlan) {
   if (plans.isEmpty || selectedPlan < 1 || selectedPlan > plans.length) {
     return Padding(
@@ -575,19 +683,69 @@ Widget _buildPlanDetails(dynamic plans, dynamic selectedPlan) {
   return Card(
     color: const Color(0xFF99cc00),
     elevation: 10,
-    margin: EdgeInsets.only(left: 44, right: 44),
+    margin: EdgeInsets.only(left: 20, right: 20,),
     child: Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: 30,left: 40,right: 40,bottom: 200),
       child: Column(
         children: [
-          Text(
-            '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              
+                  
+                Column(
+              
+                children: [
+                Text(
+                '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              Text(selectedPlanDetails.descricao),
+              SizedBox(height: 60),
+              Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
+              Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+              ],
+              ),
+
+              Column(
+              
+                children: [
+                Text(
+                '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              Text(selectedPlanDetails.descricao),
+              SizedBox(height: 60),
+              Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
+              Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+              ],
+              ),
+
+              Column(
+              
+                children: [
+                Text(
+                '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              Text(selectedPlanDetails.descricao),
+              SizedBox(height: 60),
+              Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
+              Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+              ],
+              )
+          ],
           ),
-          Text(selectedPlanDetails.descricao),
-          SizedBox(height: 10.0),
-          Text('Quantidade de Tags: ${selectedPlanDetails.quantidadeTags}'),
-          Text('Quantidade de Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+          
+          TextButton(
+              onPressed: () {
+                // Aqui você pode definir a ação de assinatura
+              },
+              child: Text(
+                'Assinar',
+                style: TextStyle(color: Colors.blue, fontSize: 16),
+              ),
+            ),
         ],
       ),
     ),
