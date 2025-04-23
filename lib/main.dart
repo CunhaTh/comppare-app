@@ -13,9 +13,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import 'dialog_ranking.dart';
-import 'views/pagamento_teste.dart';
-
 void main() {
   runApp(const MyApp());
 }
@@ -524,19 +521,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Padding(
       padding: const EdgeInsets.only(top: 30, right: 20, bottom: 40),
       child: ElevatedButton(
-        onPressed: () {
-          // showDialog(
-          //   context: context,
-          //   builder: (context) => const DialogRanking(),
-          // );
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const EfiTokenPage()
-                //  CheckoutScreen(idPlano: null,)
-                //CompparePage(images: [],category: '',folderName: '',),
-                ),
-          );
-        },
+        onPressed: () {},
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           shape: RoundedRectangleBorder(

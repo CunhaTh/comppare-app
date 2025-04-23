@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'infra/repositories/ranking_repository.dart';
+
 class DialogRanking extends StatefulWidget {
   const DialogRanking({super.key});
 
@@ -8,6 +10,14 @@ class DialogRanking extends StatefulWidget {
 }
 
 class _DialogRankingState extends State<DialogRanking> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      RankingRepository.getDataRanking();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
