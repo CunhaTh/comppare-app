@@ -5,9 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:application_progress/views/compparepage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:html' as html;
 
 
@@ -23,8 +20,14 @@ class CompparePage extends StatefulWidget {
 }
 
 class _CompparePageState extends State<CompparePage> {
-  final ImagePicker _picker = ImagePicker();
+ final ImagePicker _picker = ImagePicker();
   List<Folder> _folders = [];
+  String selectedCategory = 'SubAlbum 1';
+  List<String> categories = [
+    'SubAlbum 1',
+    'SubAlbum 2',
+    'SubAlbum 3'
+  ];
 
   Future<void> _addImage() async {
     if (kIsWeb) {
@@ -107,7 +110,7 @@ class _CompparePageState extends State<CompparePage> {
                       Row(
                         children: [
                               Text(
-                                'Pasta:  ',
+                                'Album:  ',
                                 style: TextStyle(color: Colors.black, fontSize: 15),
                                 ),
                                 Container(

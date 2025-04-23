@@ -227,17 +227,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 30),
                     child: Column(
-  children: [
-    Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (int i = 0; i < plans.length; i++)
-          _buildPlanButton(plans[i].nome, i + 1),
-      ],
-    ),
-    Column(children: [_buildPlanDetails()]),
-  ],
-),
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (int i = 0; i < plans.length; i++)
+                            _buildPlanButton(plans[i].nome, i + 1),
+                        ],
+                      ),
+                      Column(children: [_buildPlanDetails()]),
+                    ],
+                  ),
                   ),
                     Padding(padding: EdgeInsets.only(top: 20,bottom: 20)),
                    Padding(padding: const EdgeInsets.all(16.0),
@@ -434,52 +434,69 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+  
 
-  Widget _buildPlanCard(Map<String, dynamic> plan) {
-    return GestureDetector(
-      onTap: () => setState(() {
-        selectedPlan = plan['idPlano'];
-      }),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: selectedPlan == plan['idPlano'] ? Color(0xFF637700) : Colors.white,
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(8.0),
+  Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCallback onCadastrar) {
+  return GestureDetector(
+    onTap: onSelect,
+    child: Card(
+      elevation: isSelected ? 8 : 4,
+      color: isSelected ? Colors.green[100] : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? Colors.green : Colors.grey[300]!,
+          width: 2,
         ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Text(
-              plan['nome'],
+              plan.nome,
               style: TextStyle(
-                color: selectedPlan == plan['idPlano'] ? Colors.white : Colors.black,
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.green[800] : Colors.black,
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 8),
             Text(
-              plan['descricao'],
+              plan.descricao,
               style: TextStyle(
-                color: selectedPlan == plan['idPlano'] ? Colors.white : Colors.black54,
+                fontSize: 16,
+                color: Colors.grey[700],
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 8),
             Text(
-              'Preço: R\$ ${plan['valor'].toStringAsFixed(2)}',
+              'Preço: R\$ ${plan.valor.toStringAsFixed(2)}',
               style: TextStyle(
-                color: selectedPlan == plan['idPlano'] ? Colors.white : Colors.black,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.green[900] : Colors.black,
               ),
+            ),
+            SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: isSelected ? onCadastrar : onSelect,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSelected ? Colors.green : Colors.grey,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(isSelected ? 'Selecionado' : 'Selecionar'),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildAdmButton(BuildContext context) {
     return Padding(
@@ -546,3 +563,34 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+Widget _buildPlanDetails(dynamic plans, dynamic selectedPlan) {
+  if (plans.isEmpty || selectedPlan < 1 || selectedPlan > plans.length) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Text('Nenhum plano disponível no momento.'),
+    );
+  }
+  final selectedPlanDetails = plans[selectedPlan - 1];
+  return Card(
+    color: const Color(0xFF99cc00),
+    elevation: 10,
+    margin: EdgeInsets.only(left: 44, right: 44),
+    child: Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        children: [
+          Text(
+            '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+            style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+          ),
+          Text(selectedPlanDetails.descricao),
+          SizedBox(height: 10.0),
+          Text('Quantidade de Tags: ${selectedPlanDetails.quantidadeTags}'),
+          Text('Quantidade de Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+        ],
+      ),
+    ),
+  );
+}
+
