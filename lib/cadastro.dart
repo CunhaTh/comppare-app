@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:url_launcher/url_launcher.dart';
+
+import 'views/awaiting_payment.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -71,25 +74,27 @@ class _CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
-    try {
-      final cpfExiste = await _checarExistenciaCpf(cpf);
+    await _cadastrarUsuario(nome, cpf, email, telefone, senha);
 
-      if (cpfExiste) {
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog('Usuário já cadastrado com este CPF!');
-      } else {
-        await _cadastrarUsuario(nome, cpf, email, telefone, senha);
-        _navigateToLogin(); // Navega para a tela de login somente após o cadastro bem-sucedido
-      }
-    } catch (e) {
-      _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    // try {
+    //   final cpfExiste = await _checarExistenciaCpf(cpf);
+
+    //   if (cpfExiste) {
+    //     setState(() {
+    //       _isLoading = false;
+    //     });
+    //     _showErrorDialog('Usuário já cadastrado com este CPF!');
+    //   } else {
+    //     await _cadastrarUsuario(nome, cpf, email, telefone, senha);
+    //     _navigateToLogin(); // Navega para a tela de login somente após o cadastro bem-sucedido
+    //   }
+    // } catch (e) {
+    //   _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
+    // } finally {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+    // }
   }
 
   Future<bool> _checarExistenciaCpf(String cpf) async {
@@ -129,6 +134,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
           "senha": senha,
           "telefone": telefone,
           "idPlano": widget.idPlano,
+          'nascimento': '10/10/2000',
         }),
       );
 
@@ -137,7 +143,20 @@ class _CadastroScreenState extends State<CadastroScreen> {
         _showErrorDialog(
             errorResponse['mensagem'] ?? 'Erro ao cadastrar. Tente novamente.');
       }
+
+      var userId = jsonDecode(response.body)['idUser'];
+
+      var redirected = await launchUrl(
+        Uri.parse(
+          'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId',
+        ),
+      );
+
+      if (redirected && mounted) {
+        Navigator.pushNamed(context, AwaitingPayment.route);
+      }
     } catch (e) {
+      debugPrint('ERRO: $e');
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
     }
   }

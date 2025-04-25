@@ -37,8 +37,7 @@ dependencies:
   qr_flutter: ^4.0.0
   uuid: ^3.0.6
   image_picker: ^1.1.2
-  url_launcher: ^6.0.20
-  flutter_secure_storage: ^5.0.2
+  url_launcher: ^6.0.2
   http: ^0.13.3
   flutter_inappwebview: ^6.1.5
   web: ^1.1.0
@@ -83,6 +82,7 @@ flutter:
       - assets/logo_cortada.png
       - assets/profile.jpg
       - assets/bg-comppare.jpeg
+      - assets/awaiting.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

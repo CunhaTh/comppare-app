@@ -8,9 +8,9 @@ import '../token_helper.dart';
 import '../user_helper.dart';
 
 class RankingRepository {
-  static Future<List?> getDataRanking() async {
+  static Future<List<RankingItemModel>> getDataRanking() async {
     try {
-      print('TOKEN> ${TokenHelper.instance.token}');
+      print('TOKEN: ${TokenHelper.instance.token}');
       final response = await http.get(
         Uri.parse(ApiEndpoints.rankingClassification),
         headers: {
@@ -26,22 +26,20 @@ class RankingRepository {
         debugPrint(
           '(Erro ao trazer os dados do ranking) CODE: ${response.statusCode}, MESSAGE: ${response.reasonPhrase}',
         );
-        return null;
+        return [];
       }
 
       final data = json.decode(response.body);
-      final List<dynamic> planosJson = data['data'];
-      // plans = planosJson.map((json) => Plano.fromJson(json)).toList();
-      return [];
+      return data.map((json) => RankingItemModel.fromMap(json)).toList();
     } catch (e) {
       debugPrint('(Erro ao trazer os dados do ranking) $e');
-      return null;
+      return [];
     }
   }
 
   static Future<bool> sendDataRanking({required int points}) async {
     try {
-      var userId = UserHelper.instance.userId;
+      var userId = UserHelper.instance.user?.id;
       if (userId == null) return false;
 
       final response = await http.post(
@@ -64,4 +62,32 @@ class RankingRepository {
       return false;
     }
   }
+}
+
+class RankingItemModel {
+  final String nome;
+  final num pontos;
+  int? position;
+
+  RankingItemModel({
+    required this.nome,
+    required this.pontos,
+  });
+
+  factory RankingItemModel.fromMap(Map<String, dynamic> map) {
+    return RankingItemModel(
+      nome: map['nome'],
+      pontos: map['pontos'],
+    );
+  }
+}
+
+List<RankingItemModel> getPositions(List<RankingItemModel> ranking) {
+  ranking.sort((a, b) => b.pontos.compareTo(a.pontos));
+
+  for (int i = 0; i < ranking.length; i++) {
+    ranking[i].position = i + 1;
+  }
+
+  return ranking;
 }
