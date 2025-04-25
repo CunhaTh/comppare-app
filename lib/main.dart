@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
+import 'views/awaiting_payment.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -31,6 +33,7 @@ class MyApp extends StatelessWidget {
       home: MyHomePage(
         title: '',
       ),
+      routes: {AwaitingPayment.route: (_) => const AwaitingPayment()},
       debugShowCheckedModeBanner: false,
     );
   }
@@ -674,7 +677,12 @@ Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect,
             // Botão de assinatura
             TextButton(
               onPressed: () {
-                // Aqui você pode definir a ação de assinatura
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CadastroScreen(idPlano: plan.id),
+                  ),
+                );
               },
               child: Text(
                 'Assinar',

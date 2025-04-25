@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:url_launcher/url_launcher.dart';
+
+import 'views/awaiting_payment.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -51,7 +54,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     String senha = _passwordController.text.trim();
     String confirmSenha = _confirmPasswordController.text.trim();
 
-    if ([nome, cpf, email, telefone, senha, confirmSenha].any((field) => field.isEmpty)) {
+    if ([nome, cpf, email, telefone, senha, confirmSenha]
+        .any((field) => field.isEmpty)) {
       _showErrorDialog('Por favor, preencha todos os campos!');
       return;
     }
@@ -70,25 +74,27 @@ class _CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
-    try {
-      final cpfExiste = await _checarExistenciaCpf(cpf);
+    await _cadastrarUsuario(nome, cpf, email, telefone, senha);
 
-      if (cpfExiste) {
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog('Usuário já cadastrado com este CPF!');
-      } else {
-        await _cadastrarUsuario(nome, cpf, email, telefone, senha);
-        _navigateToLogin();  // Navega para a tela de login somente após o cadastro bem-sucedido
-      }
-    } catch (e) {
-      _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    // try {
+    //   final cpfExiste = await _checarExistenciaCpf(cpf);
+
+    //   if (cpfExiste) {
+    //     setState(() {
+    //       _isLoading = false;
+    //     });
+    //     _showErrorDialog('Usuário já cadastrado com este CPF!');
+    //   } else {
+    //     await _cadastrarUsuario(nome, cpf, email, telefone, senha);
+    //     _navigateToLogin(); // Navega para a tela de login somente após o cadastro bem-sucedido
+    //   }
+    // } catch (e) {
+    //   _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
+    // } finally {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+    // }
   }
 
   Future<bool> _checarExistenciaCpf(String cpf) async {
@@ -102,18 +108,21 @@ class _CadastroScreenState extends State<CadastroScreen> {
       if (verificaExistenciaResponse.statusCode == 200) {
         final responseData = jsonDecode(verificaExistenciaResponse.body);
         print('Resposta da API: $responseData'); // Adicione este log
-        return responseData['codRetorno'] == 200 && responseData['message'] == 'OK';  // Verifica se o código de retorno e a mensagem indicam existência
+        return responseData['codRetorno'] == 200 &&
+            responseData['message'] ==
+                'OK'; // Verifica se o código de retorno e a mensagem indicam existência
       } else {
         _showErrorDialog('Erro ao verificar CPF. Tente novamente.');
-        return false;  // Considerar o CPF como não existente em caso de erro na verificação
+        return false; // Considerar o CPF como não existente em caso de erro na verificação
       }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
-      return false;  // Considerar o CPF como não existente em caso de erro na verificação
+      return false; // Considerar o CPF como não existente em caso de erro na verificação
     }
   }
 
-  Future<void> _cadastrarUsuario(String nome, String cpf, String email, String telefone, String senha) async {
+  Future<void> _cadastrarUsuario(String nome, String cpf, String email,
+      String telefone, String senha) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/usuarios/cadastrar'),
@@ -125,14 +134,29 @@ class _CadastroScreenState extends State<CadastroScreen> {
           "senha": senha,
           "telefone": telefone,
           "idPlano": widget.idPlano,
+          'nascimento': '10/10/2000',
         }),
       );
 
       if (response.statusCode != 200) {
         final errorResponse = jsonDecode(response.body);
-        _showErrorDialog(errorResponse['mensagem'] ?? 'Erro ao cadastrar. Tente novamente.');
+        _showErrorDialog(
+            errorResponse['mensagem'] ?? 'Erro ao cadastrar. Tente novamente.');
+      }
+
+      var userId = jsonDecode(response.body)['idUser'];
+
+      var redirected = await launchUrl(
+        Uri.parse(
+          'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId',
+        ),
+      );
+
+      if (redirected && mounted) {
+        Navigator.pushNamed(context, AwaitingPayment.route);
       }
     } catch (e) {
+      debugPrint('ERRO: $e');
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
     }
   }
@@ -165,7 +189,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
         children: [
           Center(
             child: Padding(
-              padding: const EdgeInsets.only(left: 20,right: 20),
+              padding: const EdgeInsets.only(left: 20, right: 20),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -175,57 +199,79 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Center(child: 
-        Padding(
-          padding: const EdgeInsets.only(bottom: 100),
-          child: GestureDetector(
-            onTap: (){
-              Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MyHomePage(title: '',),
-                          ),
-                        );
-                        },
-                        child: Image.asset(
-                            "assets/logo_cortada.png",
-                            width: 150,
-                            height: 50,
-                          ),
-                          ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 100),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MyHomePage(
+                                    title: '',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Image.asset(
+                              "assets/logo_cortada.png",
+                              width: 150,
+                              height: 50,
                             ),
-                              ),
-                      Text(
-                          'Registre-se!',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
                         ),
+                      ),
+                      Text(
+                        'Registre-se!',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
                       const SizedBox(height: 10),
                       _buildTextField(_nameController, 'Nome Completo'),
-                      SizedBox(height: 15,),
+                      SizedBox(
+                        height: 15,
+                      ),
                       _buildTextField(_cpfController, 'CPF'),
-                      SizedBox(height: 15,),
+                      SizedBox(
+                        height: 15,
+                      ),
                       _buildTextField(_emailController, 'E-mail'),
-                      SizedBox(height: 15,),
+                      SizedBox(
+                        height: 15,
+                      ),
                       _buildTextField(_phoneController, 'Celular'),
-                      SizedBox(height: 15,),
-                      _buildTextField(_passwordController, 'Senha', obscureText: true),
-                      SizedBox(height: 15,),
-                      _buildTextField(_confirmPasswordController, 'Confirmar Senha', obscureText: true),
+                      SizedBox(
+                        height: 15,
+                      ),
+                      _buildTextField(_passwordController, 'Senha',
+                          obscureText: true),
+                      SizedBox(
+                        height: 15,
+                      ),
+                      _buildTextField(
+                          _confirmPasswordController, 'Confirmar Senha',
+                          obscureText: true),
                       const SizedBox(height: 10),
                       _isLoading
                           ? const CircularProgressIndicator()
                           : Padding(
-                            padding: const EdgeInsets.only(top: 100),
-                            child: ElevatedButton(
+                              padding: const EdgeInsets.only(top: 100),
+                              child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                foregroundColor: Color.fromARGB(255, 251, 255, 250), backgroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
-                                textStyle: TextStyle(fontSize: 18),
+                                  foregroundColor:
+                                      Color.fromARGB(255, 251, 255, 250),
+                                  backgroundColor: Colors.black,
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 80, vertical: 20),
+                                  textStyle: TextStyle(fontSize: 18),
                                 ),
                                 onPressed: _sendCadastroData,
-                                child: const Text('Avançar', style: TextStyle(color: Colors.white)),
+                                child: const Text('Avançar',
+                                    style: TextStyle(color: Colors.white)),
                               ),
-                          ),
+                            ),
                     ],
                   ),
                 ),
@@ -241,7 +287,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {bool obscureText = false}) {
+  Widget _buildTextField(TextEditingController controller, String label,
+      {bool obscureText = false}) {
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: TextField(
@@ -251,7 +298,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
           labelText: label,
           labelStyle: const TextStyle(color: Colors.black),
           border: const OutlineInputBorder(),
-          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+          focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.black)),
         ),
       ),
     );
@@ -261,7 +309,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
     return Container(
       width: 100,
       height: 60,
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(30)),
+      decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(30)),
     );
   }
 }
