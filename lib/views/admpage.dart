@@ -3,10 +3,6 @@ import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
