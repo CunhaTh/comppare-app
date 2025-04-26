@@ -329,7 +329,7 @@ packages:
     source: hosted
     version: "10.8.0"
   get:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: get
       sha256: c79eeb4339f1f3deffd9ec912f8a923834bec55f7b49c9e882b8fef2c139d425

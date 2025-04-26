@@ -401,10 +401,11 @@ class _PrincipalPageState extends State<PrincipalPage> {
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
                 onTap: () {
-                  // showDialog(
-                  //   context: context,
-                  //   builder: (context) => const DialogRanking(),
-                  // );
+                  Navigator.of(context).pop();
+                  showDialog(
+                    context: context,
+                    builder: (context) => const DialogRanking(),
+                  );
                 },
                 title: Row(children: [
                   Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),

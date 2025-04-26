@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/utils.dart';
 
 import 'infra/repositories/ranking_repository.dart';
+import 'infra/user_helper.dart';
 
 class DialogRanking extends StatefulWidget {
   const DialogRanking({super.key});
@@ -10,11 +12,23 @@ class DialogRanking extends StatefulWidget {
 }
 
 class _DialogRankingState extends State<DialogRanking> {
+  List<RankingItemModel> items = [];
+
+  RankingItemModel? get positionCurrentUser {
+    return items.firstWhereOrNull(
+      (i) =>
+          i.nome == (UserHelper.instance.user?.nome ?? '') &&
+          (i.position ?? 0) > 5,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      RankingRepository.getDataRanking();
+    Future.microtask(() async {
+      items = await RankingRepository.getDataRanking();
+      items = getPositions(items);
+      setState(() {});
     });
   }
 
@@ -24,43 +38,73 @@ class _DialogRankingState extends State<DialogRanking> {
       width: MediaQuery.of(context).size.width * 0.5,
       height: MediaQuery.of(context).size.height * 0.7,
       child: AlertDialog(
-        title: const Row(
+        title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              'Nosso ranking',
-              style: TextStyle(
-                fontSize: 18,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Image.asset('assets/ranking.png', width: 50),
+                ),
+                const Text(
+                  'Ranking Comppare',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+              ],
             ),
-            Icon(Icons.info_outline),
+            const SizedBox(width: 30),
+            const Tooltip(
+              message: 'Você acumula pontos à medida em '
+                  'que usa os serviços do nosso app',
+              child: Icon(Icons.info_outline, size: 20),
+            )
           ],
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PositionCard(name: 'João', position: 1, points: 10),
-            SizedBox(height: 8),
-            PositionCard(name: 'Maria', position: 2, points: 8),
-            SizedBox(height: 8),
-            PositionCard(name: 'Luis', position: 3, points: 6),
-            SizedBox(height: 8),
-            PositionCard(name: 'Andrew', position: 4, points: 5),
-            SizedBox(height: 8),
-            PositionCard(name: 'Thiago', position: 5, points: 3),
-            Icon(Icons.more_horiz, size: 40),
-            PositionCard(name: 'Você', position: 10, points: 1),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            spacing: 8,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...items.take(5).map((i) {
+                return PositionCard(
+                  position: i.position ?? 0,
+                  name: i.nome,
+                  points: i.pontos,
+                );
+              }),
+              Visibility(
+                visible: positionCurrentUser != null,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 8,
+                  children: [
+                    const Icon(Icons.more_horiz, size: 40),
+                    PositionCard(
+                      position: positionCurrentUser?.position ?? 0,
+                      name: positionCurrentUser?.nome ?? '',
+                      points: positionCurrentUser?.pontos ?? '',
+                    )
+                  ],
+                ),
+              )
+            ],
+          ),
         ),
         actions: [
           Center(
             child: TextButton(
+              onPressed: Navigator.of(context).pop,
               child: const Text(
                 'Fechar',
-                style: TextStyle(color: Colors.black),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              onPressed: () => Navigator.of(context).pop(),
             ),
           ),
         ],
@@ -79,7 +123,7 @@ class PositionCard extends StatelessWidget {
 
   final int position;
   final String name;
-  final int points;
+  final String points;
 
   Color get positionColor {
     switch (position) {
@@ -121,7 +165,7 @@ class PositionCard extends StatelessWidget {
                 Text(name, style: textStyle),
               ],
             ),
-            Text(points.toString(), style: textStyle),
+            Text('$points pts', style: textStyle),
           ],
         ),
       ),

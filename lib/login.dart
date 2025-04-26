@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-
+import 'infra/token_helper.dart';
+import 'infra/user_helper.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -22,7 +23,8 @@ class MyApp extends StatelessWidget {
           bodyLarge: TextStyle(color: Colors.black),
           bodyMedium: TextStyle(color: Colors.black),
         ),
-        colorScheme: ColorScheme.fromSwatch().copyWith(secondary: Color(0xFFaed513)),
+        colorScheme:
+            ColorScheme.fromSwatch().copyWith(secondary: Color(0xFFaed513)),
       ),
       home: LoginScreen(),
     );
@@ -42,45 +44,51 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-  setState(() {
-    _isLoading = true;
-  });
+    setState(() {
+      _isLoading = true;
+    });
 
-  final String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
-  final Map<String, String> headers = {'Content-Type': 'application/json'};
-  final Map<String, dynamic> body = {
-    'cpf': _cpfController.text.trim().replaceAll(RegExp(r'\D'), ''),
-    'senha': _passwordController.text,
-  };
+    final String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
+    final Map<String, String> headers = {'Content-Type': 'application/json'};
+    final Map<String, dynamic> body = {
+      'cpf': _cpfController.text.trim().replaceAll(RegExp(r'\D'), ''),
+      'senha': _passwordController.text,
+    };
 
-  try {
-    final response = await http.post(Uri.parse(url), headers: headers, body: json.encode(body));
+    try {
+      final response = await http.post(Uri.parse(url),
+          headers: headers, body: json.encode(body));
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      if (data.containsKey('original') && data['original'].containsKey('token')) {
-        final String token = data['original']['token'];
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data.containsKey('original') &&
+            data['original'].containsKey('token')) {
+          final String token = data['original']['token'];
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => PrincipalPage()),
-        );
+          TokenHelper.instance.setToken(token);
+          UserHelper.instance.setUser(
+            UserModel.fromMap(data['original']['dados']),
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PrincipalPage()),
+          );
+        } else {
+          _showErrorDialog('Credenciais inválidas. Tente novamente.');
+        }
       } else {
+        final Map<String, dynamic> errorData = json.decode(response.body);
         _showErrorDialog('Credenciais inválidas. Tente novamente.');
       }
-    } else {
-      final Map<String, dynamic> errorData = json.decode(response.body);
-      _showErrorDialog('Credenciais inválidas. Tente novamente.');
+    } catch (error) {
+      _showErrorDialog('Erro de conexão. Tente novamente mais tarde.');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
-  } catch (error) {
-    _showErrorDialog('Erro de conexão. Tente novamente mais tarde.');
-  } finally {
-    setState(() {
-      _isLoading = false;
-    });
   }
-}
-
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -99,8 +107,9 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-  
-  Widget _buildActionButton(BuildContext context, String label, Widget targetPage) {
+
+  Widget _buildActionButton(
+      BuildContext context, String label, Widget targetPage) {
     return ElevatedButton(
       onPressed: () {
         Navigator.push(
@@ -140,20 +149,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     GestureDetector(
-            onTap: (){
-              Navigator.push(
+                      onTap: () {
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => MyHomePage(title: '',),
+                            builder: (context) => MyHomePage(
+                              title: '',
+                            ),
                           ),
                         );
-                        },
-                        child: Image.asset(
-                            "assets/logo_cortada.png",
-                            width: 450,
-                            height: 60,
-                          ),
-                          ),
+                      },
+                      child: Image.asset(
+                        "assets/logo_cortada.png",
+                        width: 450,
+                        height: 60,
+                      ),
+                    ),
                     const SizedBox(height: 50),
                     TextField(
                       controller: _cpfController,
@@ -184,44 +195,59 @@ class _LoginScreenState extends State<LoginScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 20),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.white, backgroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 80, vertical: 20),
                                 textStyle: TextStyle(fontSize: 18),
-                                ),
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('Entrar', style: TextStyle(color: Colors.white)),
-                      ),
-                      const SizedBox(width: 20),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.white, backgroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(horizontal: 60, vertical: 20),
-                                textStyle: TextStyle(fontSize: 18),
-                                ),
-                        onPressed: (){
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CadastroScreen(idPlano: null,),
+                              ),
+                              onPressed: _isLoading ? null : _login,
+                              child: _isLoading
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white)
+                                  : const Text('Entrar',
+                                      style: TextStyle(color: Colors.white)),
                             ),
-                          );
-                        },
-                        child: Text('Cadastrar', style: TextStyle(color: Colors.white)),
-                      ),
-                      ]),
+                            const SizedBox(width: 20),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 60, vertical: 20),
+                                textStyle: TextStyle(fontSize: 18),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CadastroScreen(
+                                      idPlano: null,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Text('Cadastrar',
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                          ]),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: 30),
                       child: GestureDetector(
-                        onTap: (){},
-                        child: Text('Esqueceu a senha?', style: TextStyle(fontWeight: FontWeight.bold,color: const Color.fromARGB(165, 0, 0, 0)),),),
+                        onTap: () {},
+                        child: Text(
+                          'Esqueceu a senha?',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color.fromARGB(165, 0, 0, 0)),
+                        ),
+                      ),
                     )
                   ],
                 ),
@@ -245,7 +271,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-
 class HomeScreen extends StatelessWidget {
   final String token;
   const HomeScreen({super.key, required this.token});
@@ -254,87 +279,84 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 30),
-      child: Stack(
-        children: [
-          Scaffold(
+      child: Stack(children: [
+        Scaffold(
           appBar: AppBar(
             title: const Text('Tela Principal'),
             actions: [
-              
               // Aqui você pode adicionar mais botões no menu superior
               ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF637700), // Cor do botão
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: (){
-                          /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
-                        },
-                        child: const Text(
-                          'Cadastrar',
-                          style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white
-                        ),
-                       ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF637700), // Cor do botão
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: (){
-                        /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
-                        },
-                        child: const Text(
-                          'Cadastrar',
-                          style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white
-                        ),
-                       ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF637700), // Cor do botão
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: (){
-                         /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
-                        },
-                        child: const Text(
-                          'Cadastrar',
-                          style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white
-                        ),
-                       ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF637700), // Cor do botão
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: (){
-                         /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
-                        },
-                        child: const Text(
-                          'Cadastrar',
-                          style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white
-                        ),
-                       ),
-                      ),
-                      
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                },
+                child: const Text(
+                  'Cadastrar',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                },
+                child: const Text(
+                  'Cadastrar',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                },
+                child: const Text(
+                  'Cadastrar',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                },
+                child: const Text(
+                  'Cadastrar',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+              ),
             ],
           ),
           body: Center(
@@ -348,7 +370,10 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => CustomScreen()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => CustomScreen()));
                   },
                   child: Container(
                     padding: EdgeInsets.all(16.0),
@@ -356,15 +381,15 @@ class HomeScreen extends StatelessWidget {
                       color: Color(0xFF637700),
                       borderRadius: BorderRadius.circular(12.0),
                     ),
-                    child: const Text('Ir para Custom Screen', style: TextStyle(color: Colors.white)),
+                    child: const Text('Ir para Custom Screen',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
             ),
           ),
         ),
-        ] 
-      ),
+      ]),
     );
   }
 }
