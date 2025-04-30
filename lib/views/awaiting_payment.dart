@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../app_colors.dart';
 import '../login.dart';
-import '../principal.dart';
 
 class AwaitingPayment extends StatefulWidget {
   const AwaitingPayment({super.key});
@@ -41,6 +40,7 @@ class _AwaitingPaymentState extends State<AwaitingPayment> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

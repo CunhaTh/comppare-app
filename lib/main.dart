@@ -13,6 +13,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
+import 'infra/chat_button.dart';
 import 'views/awaiting_payment.dart';
 
 void main() {
@@ -30,10 +31,21 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
         useMaterial3: true,
       ),
-      home: MyHomePage(
-        title: '',
-      ),
-      routes: {AwaitingPayment.route: (_) => const AwaitingPayment()},
+      initialRoute: Uri.base.path,
+      routes: {
+        '/': (_) => const MyHomePage(title: ''),
+        AwaitingPayment.route: (_) => const AwaitingPayment(),
+      },
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case AwaitingPayment.route:
+            return MaterialPageRoute(builder: (_) => const AwaitingPayment());
+          default:
+            return MaterialPageRoute(
+              builder: (_) => const MyHomePage(title: ''),
+            );
+        }
+      },
       debugShowCheckedModeBanner: false,
     );
   }

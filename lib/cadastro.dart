@@ -128,7 +128,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
         Uri.parse('$_baseUrl/usuarios/cadastrar'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "nome": nome,
+          "primeiroNome": nome,
+          "sobrenome": 'Silva',
           "cpf": cpf,
           "email": email,
           "senha": senha,

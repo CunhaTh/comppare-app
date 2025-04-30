@@ -8,4 +8,6 @@ class ApiEndpoints {
   static String get createSignature => '$baseUrl/vendas/criar-assinatura';
   static String get rankingClassification => '$baseUrl/ranking/classificacao';
   static String get updateRanking => '$baseUrl/ranking/atualizar';
+  static String get getChatQuestions => '$baseUrl/questoes/listar';
+  static String get sendChatQuestion => '$baseUrl/questoes/salvar';
 }

@@ -84,6 +84,7 @@ flutter:
       - assets/bg-comppare.jpeg
       - assets/awaiting.png
       - assets/ranking.png
+      - assets/chat_background.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
