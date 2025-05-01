@@ -23,7 +23,7 @@ class ChatRepository {
         return [];
       }
 
-      final data = json.decode(response.body) as List;
+      final data = json.decode(response.body)['data'] as List;
       return data
           .map<ChatQuestionModel>((json) => ChatQuestionModel.fromMap(json))
           .toList();
@@ -45,6 +45,8 @@ class ChatRepository {
           // 'Authorization': 'Bearer ${TokenHelper.instance.token}',
         },
       );
+
+      print('RESPONSE SEND QUESTION: ${response.body}');
 
       if (response.statusCode != 200) {
         debugPrint(

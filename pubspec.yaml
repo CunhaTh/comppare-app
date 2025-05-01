@@ -52,6 +52,7 @@ dependencies:
   video_player: ^2.9.2
   hive: ^2.2.3
   intl: ^0.20.2
+  flutter_typeahead: ^5.2.0
 
 dev_dependencies:
   flutter_test:

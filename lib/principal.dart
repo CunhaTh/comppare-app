@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
-import 'dialog_ranking.dart'; // Remover se não for mais necessário
+import 'dialog_ranking.dart';
+import 'infra/chat_button.dart'; // Remover se não for mais necessário
 // Certifique-se de que o caminho do arquivo está correto
 
 void main() {
@@ -198,6 +199,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: const ChatButton(),
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Row(
