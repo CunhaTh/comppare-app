@@ -145,16 +145,20 @@ class _CadastroScreenState extends State<CadastroScreen> {
             errorResponse['mensagem'] ?? 'Erro ao cadastrar. Tente novamente.');
       }
 
-      var userId = jsonDecode(response.body)['idUser'];
+      if (widget.idPlano != 1) {
+        var userId = jsonDecode(response.body)['idUser'];
 
-      var redirected = await launchUrl(
-        Uri.parse(
-          'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId',
-        ),
-      );
+        var redirected = await launchUrl(
+          Uri.parse(
+            'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId',
+          ),
+        );
 
-      if (redirected && mounted) {
-        Navigator.pushNamed(context, AwaitingPayment.route);
+        if (redirected && mounted) {
+          Navigator.pushNamed(context, AwaitingPayment.route);
+        }
+      } else {
+        _navigateToLogin();
       }
     } catch (e) {
       debugPrint('ERRO: $e');

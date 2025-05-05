@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import 'dialog_ranking.dart';
-import 'infra/chat_button.dart'; // Remover se não for mais necessário
+import 'chat_button.dart'; // Remover se não for mais necessário
 // Certifique-se de que o caminho do arquivo está correto
 
 void main() {

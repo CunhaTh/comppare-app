@@ -9,14 +9,17 @@ import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
-import 'infra/chat_button.dart';
+import 'chat_button.dart';
 import 'views/awaiting_payment.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await MobileAds.instance.initialize();
   runApp(const MyApp());
 }
 

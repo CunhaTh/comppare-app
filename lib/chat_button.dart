@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
-import '../app_colors.dart';
-import 'repositories/chat_repository.dart';
+import 'app_colors.dart';
+import 'infra/repositories/chat_repository.dart';
 
 class ChatButton extends StatefulWidget {
   const ChatButton({super.key});
@@ -145,20 +145,20 @@ class _ChatButtonState extends State<ChatButton> {
                                     );
                                   },
                                 ),
-                                const Spacer(),
-                                Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: AnimatedScale(
-                                    scale: 1,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOutBack,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: ChatBalloon(
-                                        // key: ValueKey(
-                                        //     selectedQuestion?.question ?? ''),
-                                        message: selectedQuestion?.answer ??
-                                            'Olá, bem vindo ao Comppare App! Digite no campo acima e selecione a sua dúvida',
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.bottomRight,
+                                    child: AnimatedScale(
+                                      scale: 1,
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeOutBack,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: ChatBalloon(
+                                          message: selectedQuestion?.answer ??
+                                              'Olá, bem vindo ao Comppare App! Digite no campo acima e selecione a sua dúvida',
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -204,7 +204,7 @@ class ChatBalloon extends StatelessWidget {
             )
           ],
         ),
-        child: Text(message),
+        child: SingleChildScrollView(child: Text(message)),
       ),
     );
   }
@@ -215,7 +215,6 @@ class BalloonPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.white;
     final path = Path();
-    // Triângulo no canto inferior direito
     path.moveTo(size.width - 10, size.height);
     path.lineTo(size.width - 2, size.height + 10);
     path.lineTo(size.width - 20, size.height);
