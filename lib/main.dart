@@ -1,9 +1,9 @@
+import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/planos.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/admpage.dart';
-import 'package:application_progress/views/compparepage.dart';
 import 'package:application_progress/views/pagamento.dart';
 import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +28,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
         useMaterial3: true,
       ),
-      home: MyHomePage(title: '',),
+     home: AlbunsCriados(images: [], folderName: '',),
+      //home: MyHomePage(title: '',),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -336,25 +337,20 @@ Widget build(BuildContext context) {
            _buildHeroSection(),
            SizedBox(height: 10,),
             Column(children: [
-              Text('VER PLANOS',style: TextStyle(fontSize: 13),),
-              IconButton(
-              iconSize: 48.0,
-              tooltip: 'Down Arrow', // equivalente ao aria-label
-              icon: SvgPicture.string(
-                '''
-                <svg class="daq0j418" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                  <rect width="48" height="48" fill="none"></rect>
-                  <path d="M36.63,18.37a1.37,1.37,0,0,1,2.15.37,1.7,1.7,0,0,1-.3,2.06L25.4,32.64a1.37,1.37,0,0,1-1.85,0l-13-11.84a1.71,1.71,0,0,1-.29-2.06,1.37,1.37,0,0,1,2.15-.37l12.11,11ZM24.25,31.42a.38.38,0,0,1,.46,0l-.23-.21ZM11.71,19.55s0,.06,0,0Zm25.61,0h0Z"></path>
-                </svg>
-                ''',
-                // É necessário usar o pacote flutter_svg para renderizar SVGs
-                // Certifique-se de adicioná-lo ao seu pubspec.yaml
-              ),
-              onPressed: (){},
-            )
+              Text('''Arraste para o lado
+Para ver os planos ''',style: TextStyle(fontSize: 13),),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [ 
+                IconButton(onPressed: (){}, icon: Icon(Icons.arrow_back_ios)),
+                IconButton(onPressed: (){}, icon: Icon(Icons.arrow_forward_ios)),
+                ],
+                ),
+                
             ],
             ),
-           Padding(
+            _buildPlanCardsHorizontal(context),
+         /*  Padding(
                     padding: const EdgeInsets.only(top: 30),
                     child: Column(
                           children: [
@@ -370,7 +366,7 @@ Widget build(BuildContext context) {
                               ),
                           ],
                         ),
-                  ),
+                  ),*/
           // Seção de planos
          // _buildPlanDetails(plans,selectedPlan),
 
@@ -446,6 +442,38 @@ Widget build(BuildContext context) {
     ),
   );
 }
+Widget _buildPlanCardsHorizontal(BuildContext context) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final cardWidth = screenWidth * 0.9; // 90% da largura total
+
+  return SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: plans.asMap().entries.map((entry) {
+        int index = entry.key;
+        Plano plan = entry.value;
+        return Container(
+          width: cardWidth,
+          margin: EdgeInsets.symmetric(horizontal: 8.0),
+          child: _buildPlanCard(
+            plan,
+            selectedPlan == plan.id, // ou outro critério de seleção
+            () {
+              setState(() {
+                selectedPlan = plan.id; // ou a lógica que desejar
+              });
+            },
+            () {
+              
+            },
+            context,
+          ),
+        );
+      }).toList(),
+    ),
+  );
+}
+
 
 Widget _buildHeroSection() {
   return Stack(
@@ -467,7 +495,7 @@ Widget _buildHeroSection() {
             ),
             SizedBox(height: 230,),
             Text(
-              'Planos exclusivos para Flamenguistas, e muito mais',
+              'Planos exclusivos para Influencers, e muito mais',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 17,
@@ -478,7 +506,7 @@ Widget _buildHeroSection() {
             ),
            
             Text(
-              '''                                        Planos a partir de R\$ 27,99/mês''',
+              '''                                        Planos a partir de R\$ 19,90/mês''',
               style: TextStyle(color: Colors.white, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -601,7 +629,7 @@ Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCa
             ),
           ],
           border: Border.all(
-            color: isSelected ? Colors.green : Colors.grey[300]!,
+            color: isSelected ? Color(0xFFaed513) : Colors.grey[300]!,
             width: 2,
           ),
         ),
@@ -615,7 +643,7 @@ Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCa
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.green[800] : Colors.black87,
+                color: isSelected ? Color(0xFFaed513) : Colors.black87,
               ),
               textAlign: TextAlign.center,
             ),
@@ -636,7 +664,7 @@ Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCa
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.green[900] : Colors.black,
+                color: isSelected ? Color(0xFFaed513) : Colors.black,
               ),
               textAlign: TextAlign.center,
             ),
@@ -645,7 +673,7 @@ Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCa
             ElevatedButton(
               onPressed: isSelected ? onCadastrar : onSelect,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isSelected ? Colors.green : Colors.grey[300],
+                backgroundColor: isSelected ? Color(0xFFaed513) : Colors.grey[300],
                 foregroundColor: isSelected ? Colors.white : Colors.black,
                 padding: EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -658,7 +686,7 @@ Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCa
             // Botão de assinatura
             TextButton(
               onPressed: () {
-                // Aqui você pode definir a ação de assinatura
+                Navigator.push(context, MaterialPageRoute(builder: (_) => CadastroScreen(idPlano: null,)));
               },
               child: Text(
                 'Assinar',

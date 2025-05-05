@@ -1,14 +1,9 @@
 import 'dart:convert';
 import 'package:application_progress/albuns_criados.dart';
-import 'package:application_progress/views/compparepage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart'; // Remover se não for mais necessário
  // Certifique-se de que o caminho do arquivo está correto
-
-void main() {
-  runApp(MyApp());
-}
 
 class MyApp extends StatelessWidget {
   @override
@@ -252,21 +247,21 @@ void _categoryModal() {
                    child: Text('Albuns Criados', style: TextStyle(color: Colors.white, fontSize: 30)),
                  ),
                   Padding(
-                padding: const EdgeInsets.only(bottom: 50),
-                child: TextField(
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value; // Atualiza a consulta de busca
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Buscar pastas...',
-                    hintStyle: TextStyle(color: Colors.white54),
-                    filled: true,
-                    fillColor: Colors.white10,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.white),
+                    padding: const EdgeInsets.only(bottom: 50),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value; // Atualiza a consulta de busca
+                        });
+                      },
+                      decoration: InputDecoration(
+                      hintText: 'Buscar pastas...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      filled: true,
+                      fillColor: Colors.white10,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: Colors.white),
                     ),
                   ),
                   style: TextStyle(color: Colors.white),

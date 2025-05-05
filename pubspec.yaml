@@ -32,6 +32,9 @@ dependencies:
   flutter_launcher_icons: "^0.14.2" 
   flutter:
     sdk: flutter
+  share_plus: ^7.2.2
+  image_gallery_saver: ^2.0.3
+  path_provider: ^2.1.4 
   font_awesome_flutter: ^10.0.0
   flutter_riverpod: ^2.0.0
   qr_flutter: ^4.0.0
