@@ -136,6 +136,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                             size: 24,
                           ),
                         ),
+                        Container(child: Text("Aqui"),)
                     ],
                   ),
                 );

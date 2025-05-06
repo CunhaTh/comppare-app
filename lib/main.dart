@@ -6,14 +6,19 @@ import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/admpage.dart';
 import 'package:application_progress/views/pagamento.dart';
 import 'package:application_progress/views/shopping_page.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
-void main() {
+import 'chat_button.dart';
+import 'views/awaiting_payment.dart';
+
+void main(dynamic MobileAds) async {
   runApp(const MyApp());
 }
 
@@ -28,8 +33,21 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
         useMaterial3: true,
       ),
-     home: AlbunsCriados(images: [], folderName: '',),
-      //home: MyHomePage(title: '',),
+      initialRoute: Uri.base.path,
+      routes: {
+        '/': (_) => const MyHomePage(title: ''),
+        AwaitingPayment.route: (_) => const AwaitingPayment(),
+      },
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case AwaitingPayment.route:
+            return MaterialPageRoute(builder: (_) => const AwaitingPayment());
+          default:
+            return MaterialPageRoute(
+              builder: (_) => const MyHomePage(title: ''),
+            );
+        }
+      },
       debugShowCheckedModeBanner: false,
     );
   }
@@ -37,7 +55,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-  
 
   final String title;
 
@@ -70,8 +87,6 @@ class _HintArrowButton extends StatelessWidget {
   }
 }
 
-
-
 class _MyHomePageState extends State<MyHomePage> {
   int selectedPlan = 1;
   bool isLoading = false;
@@ -90,7 +105,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     try {
-      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      final response = await http
+          .get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -108,45 +124,45 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
- Future<void> navigateToCadastro() async {
-  setState(() {
-    isLoading = true;
-  });
-
-  if (plans.isEmpty || selectedPlan < 1 || selectedPlan > plans.length) {
-    showErrorDialog("Nenhum plano disponível para seleção.");
+  Future<void> navigateToCadastro() async {
     setState(() {
-      isLoading = false; // Certifique-se de parar o loading
+      isLoading = true;
     });
-    return; // Retorna para não continuar
+
+    if (plans.isEmpty || selectedPlan < 1 || selectedPlan > plans.length) {
+      showErrorDialog("Nenhum plano disponível para seleção.");
+      setState(() {
+        isLoading = false; // Certifique-se de parar o loading
+      });
+      return; // Retorna para não continuar
+    }
+
+    final selectedPlanDetails = plans[selectedPlan - 1];
+    final int idPlano =
+        selectedPlanDetails.id; // Acesse usando notação de ponto
+
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckoutScreen(idPlano: idPlano),
+        ),
+      );
+    } catch (e) {
+      showErrorDialog("Erro ao navegar para a tela de cadastro.");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
-  final selectedPlanDetails = plans[selectedPlan - 1];
-  final int idPlano = selectedPlanDetails.id; // Acesse usando notação de ponto
-
-  try {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CheckoutScreen(idPlano: idPlano),
-      ),
-    );
-  } catch (e) {
-    showErrorDialog("Erro ao navegar para a tela de cadastro.");
-  } finally {
-    setState(() {
-      isLoading = false;
-    });
-  }
-}
-
-
-  
-   // Lista de perguntas e respostas
+  // Lista de perguntas e respostas
   final List<Map<String, String>> faqs = [
     {
       "question": "Como faço para assinar um plano?",
-      "answer": "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
+      "answer":
+          "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
     },
     {
       "question": "Quais são os métodos de pagamento aceitos?",
@@ -154,22 +170,24 @@ class _MyHomePageState extends State<MyHomePage> {
     },
     {
       "question": "Posso cancelar minha assinatura?",
-      "answer": "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
+      "answer":
+          "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
     },
     {
       "question": "Como posso mudar meu plano?",
-      "answer": "Para mudar seu plano, entre em contato com o suporte ao cliente."
+      "answer":
+          "Para mudar seu plano, entre em contato com o suporte ao cliente."
     },
   ];
-  
-   void selectPlan(int index) {
+
+  void selectPlan(int index) {
     setState(() {
       selectedPlan = index;
     });
   }
 
 // Widget principal com todo conteudo
- /* @override
+  /* @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
@@ -325,159 +343,151 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }  */
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Seção de destaque com imagem e textos
-           _buildHeroSection(),
-           SizedBox(height: 10,),
-            Column(children: [
-              Text('''Arraste para o lado
-Para ver os planos ''',style: TextStyle(fontSize: 13),),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [ 
-                IconButton(onPressed: (){}, icon: Icon(Icons.arrow_back_ios)),
-                IconButton(onPressed: (){}, icon: Icon(Icons.arrow_forward_ios)),
-                ],
-                ),
-                
-            ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      floatingActionButton: const ChatButton(),
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Seção de destaque com imagem e textos
+            _buildHeroSection(),
+            SizedBox(
+              height: 10,
             ),
-            _buildPlanCardsHorizontal(context),
-         /*  Padding(
-                    padding: const EdgeInsets.only(top: 30),
-                    child: Column(
-                          children: [
-                            for (int i = 0; i < plans.length; i++)
-                              _buildPlanCard(
-                                plans[i], // passa o plano individual
-                                selectedPlan == plans[i], // exemplo: verifica se é o plano selecionado
-                                () => setState(() {
-                                  selectedPlan = plans[i] as int; // define o plano selecionado
-                                }),
-                                () {} /* lógica para cadastrar */,
-                                context,
-                              ),
-                          ],
-                        ),
-                  ),*/
-          // Seção de planos
-         // _buildPlanDetails(plans,selectedPlan),
+            Column(
+              children: [
+                Text(
+                  'VER PLANOS',
+                  style: TextStyle(fontSize: 13),
+                ),
+                IconButton(
+                  iconSize: 48.0,
+                  tooltip: 'Down Arrow', // equivalente ao aria-label
+                  icon: SvgPicture.string(
+                    '''
+                <svg class="daq0j418" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                  <rect width="48" height="48" fill="none"></rect>
+                  <path d="M36.63,18.37a1.37,1.37,0,0,1,2.15.37,1.7,1.7,0,0,1-.3,2.06L25.4,32.64a1.37,1.37,0,0,1-1.85,0l-13-11.84a1.71,1.71,0,0,1-.29-2.06,1.37,1.37,0,0,1,2.15-.37l12.11,11ZM24.25,31.42a.38.38,0,0,1,.46,0l-.23-.21ZM11.71,19.55s0,.06,0,0Zm25.61,0h0Z"></path>
+                </svg>
+                ''',
+                    // É necessário usar o pacote flutter_svg para renderizar SVGs
+                    // Certifique-se de adicioná-lo ao seu pubspec.yaml
+                  ),
+                  onPressed: () {},
+                )
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 30),
+              child: Column(
+                children: [
+                  for (int i = 0; i < plans.length; i++)
+                    _buildPlanCard(
+                      plans[i], // passa o plano individual
+                      selectedPlan ==
+                          plans[
+                              i], // exemplo: verifica se é o plano selecionado
+                      () => setState(() {
+                        selectedPlan =
+                            plans[i] as int; // define o plano selecionado
+                      }),
+                      () {} /* lógica para cadastrar */,
+                      context,
+                    ),
+                ],
+              ),
+            ),
+            // Seção de planos
+            // _buildPlanDetails(plans,selectedPlan),
 
-          // Seção de perguntas frequentes
-          //_buildFaqSection(),
+            // Seção de perguntas frequentes
+            //_buildFaqSection(),
 
-          // Rodapé
-        Padding(padding: EdgeInsets.only(top: 20,bottom: 20)),
-                   Padding(padding: const EdgeInsets.all(16.0),
-                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Perguntas Frequentes',
-                       style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                       ),
-                       const SizedBox(height: 10,),
-                       ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: faqs.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              setState((){
-                                selectedQuestionIndex = selectedQuestionIndex == index ? null : index;
-                              });
-                            },
-                            child: Card(margin: const EdgeInsets.symmetric(vertical: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(faqs[index]["question"]!,
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                if (selectedQuestionIndex == index) ...[
-                                  const SizedBox(height: 5),
-                                  Text(faqs[index]["answer"]!)
-                                ]
-                              ],
-                            ),
-                            ),
-                          );
+            // Rodapé
+            Padding(padding: EdgeInsets.only(top: 20, bottom: 20)),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Perguntas Frequentes',
+                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: faqs.length,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedQuestionIndex =
+                                selectedQuestionIndex == index ? null : index;
+                          });
                         },
-                       )
-                    ],
-                   ),
-                   ),
-                   Padding(
-                     padding: const EdgeInsets.all(8.0),
-                     child: Center(
-                        child: Row(mainAxisAlignment: MainAxisAlignment.center,children: [
-                        Center(
-                            child: Text(
-                              'Precisa de ajuda? contate-nos ',
-                              style: TextStyle(color: Colors.black54),
-                            ),
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                faqs[index]["question"]!,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              if (selectedQuestionIndex == index) ...[
+                                const SizedBox(height: 5),
+                                Text(faqs[index]["answer"]!)
+                              ]
+                            ],
                           ),
-                          Padding(padding: EdgeInsets.only(top: 10,bottom: 10, left: 10)),
-                         InkWell(
-                            onTap: () {
-                            },
-                            child: Text(
-                              'comppare-app@comppare.com.br',
-                              style: TextStyle(color: Color(0xFF637700)),
-                            ),
-                          ), 
-                        ],
                         ),
+                      );
+                    },
+                  )
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: Text(
+                        'Precisa de ajuda? contate-nos ',
+                        style: TextStyle(color: Colors.black54),
                       ),
-                   ),
-        ],
+                    ),
+                    Padding(
+                        padding:
+                            EdgeInsets.only(top: 10, bottom: 10, left: 10)),
+                    InkWell(
+                      onTap: () {},
+                      child: Text(
+                        'comppare-app@comppare.com.br',
+                        style: TextStyle(color: Color(0xFF637700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-Widget _buildPlanCardsHorizontal(BuildContext context) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final cardWidth = screenWidth * 0.9; // 90% da largura total
+    );
+  }
 
-  return SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: Row(
-      children: plans.asMap().entries.map((entry) {
-        int index = entry.key;
-        Plano plan = entry.value;
-        return Container(
-          width: cardWidth,
-          margin: EdgeInsets.symmetric(horizontal: 8.0),
-          child: _buildPlanCard(
-            plan,
-            selectedPlan == plan.id, // ou outro critério de seleção
-            () {
-              setState(() {
-                selectedPlan = plan.id; // ou a lógica que desejar
-              });
-            },
-            () {
-              
-            },
-            context,
-          ),
-        );
-      }).toList(),
-    ),
-  );
-}
-
-
-Widget _buildHeroSection() {
-  return Stack(
-    children: [
+  Widget _buildHeroSection() {
+    return Stack(children: [
       // Imagem de fundo (substitua pelo seu asset ou rede)
       Image.asset(
         'assets/bg-comppare.jpeg', // ou NetworkImage com sua URL
@@ -487,70 +497,65 @@ Widget _buildHeroSection() {
       ),
       // Sobreposição com textos e botões
       Positioned.fill(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: _buildHeader(context),
-            ),
-            SizedBox(height: 230,),
-            Text(
-              'Planos exclusivos para Influencers, e muito mais',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                shadows: [Shadow(blurRadius: 4, color: Colors.black45, offset: Offset(2, 2))]
-              ),
-              textAlign: TextAlign.center,
-            ),
-           
-            Text(
-              '''                                        Planos a partir de R\$ 19,90/mês''',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-         
-          ]
-        )
-      )
-          ]
-          );
-        
-}
-
-
-Widget _buildHeader(BuildContext context) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Botão "ENTRAR"
-        TextButton(
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
-          },
-          child:_buildActionButton(context, 'ENTRAR', LoginScreen())
+          child: Column(children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: _buildHeader(context),
         ),
-        // Botão "ADM"
-        ElevatedButton(
-          
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => PrincipalPage()));
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
-          ),
-          child: Text('ADM', style: TextStyle(color: Colors.white)),
-        )
-      ],
-    ),
-  );
-}
+        SizedBox(
+          height: 230,
+        ),
+        Text(
+          'Planos exclusivos para Flamenguistas, e muito mais',
+          style: TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                    blurRadius: 4, color: Colors.black45, offset: Offset(2, 2))
+              ]),
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          '''                                        Planos a partir de R\$ 27,99/mês''',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+      ]))
+    ]);
+  }
 
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Botão "ENTRAR"
+          TextButton(
+              onPressed: () {
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => LoginScreen()));
+              },
+              child: _buildActionButton(context, 'ENTRAR', LoginScreen())),
+          // Botão "ADM"
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => PrincipalPage()));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+            ),
+            child: Text('ADM', style: TextStyle(color: Colors.white)),
+          )
+        ],
+      ),
+    );
+  }
 
-   Widget _buildPlanButton(String title, int index) {
+  Widget _buildPlanButton(String title, int index) {
     return GestureDetector(
       onTap: () => selectPlan(index),
       child: Container(
@@ -569,7 +574,8 @@ Widget _buildHeader(BuildContext context) {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, Widget targetPage) {
+  Widget _buildActionButton(
+      BuildContext context, String label, Widget targetPage) {
     return ElevatedButton(
       onPressed: () {
         Navigator.push(
@@ -588,8 +594,8 @@ Widget _buildHeader(BuildContext context) {
       child: Text(label),
     );
   }
-  
-   void showErrorDialog(String message) {
+
+  void showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -606,8 +612,8 @@ Widget _buildHeader(BuildContext context) {
   }
 }
 
-
-Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCallback onCadastrar, BuildContext context) {
+Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect,
+    VoidCallback onCadastrar, BuildContext context) {
   // Define o tamanho do card de acordo com a largura da tela
   final screenWidth = MediaQuery.of(context).size.width;
   final cardWidth = screenWidth * 0.9; // ocupa 90% da largura da tela
@@ -686,7 +692,12 @@ Widget _buildPlanCard(Plano plan, bool isSelected, VoidCallback onSelect, VoidCa
             // Botão de assinatura
             TextButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => CadastroScreen(idPlano: null,)));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CadastroScreen(idPlano: plan.id),
+                  ),
+                );
               },
               child: Text(
                 'Assinar',
@@ -711,72 +722,66 @@ Widget _buildPlanDetails(dynamic plans, dynamic selectedPlan) {
   return Card(
     color: const Color(0xFF99cc00),
     elevation: 10,
-    margin: EdgeInsets.only(left: 20, right: 20,),
+    margin: EdgeInsets.only(
+      left: 20,
+      right: 20,
+    ),
     child: Padding(
-      padding: const EdgeInsets.only(top: 30,left: 40,right: 40,bottom: 200),
+      padding: const EdgeInsets.only(top: 30, left: 40, right: 40, bottom: 200),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              
-                  
-                Column(
-              
-                children: [
-                Text(
-                '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              Text(selectedPlanDetails.descricao),
-              SizedBox(height: 60),
-              Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
-              Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
-              ],
-              ),
-
               Column(
-              
                 children: [
-                Text(
-                '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  Text(selectedPlanDetails.descricao),
+                  SizedBox(height: 60),
+                  Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
+                  Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+                ],
               ),
-              Text(selectedPlanDetails.descricao),
-              SizedBox(height: 60),
-              Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
-              Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
-              ],
-              ),
-
               Column(
-              
                 children: [
-                Text(
-                '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  Text(selectedPlanDetails.descricao),
+                  SizedBox(height: 60),
+                  Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
+                  Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+                ],
               ),
-              Text(selectedPlanDetails.descricao),
-              SizedBox(height: 60),
-              Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
-              Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
-              ],
+              Column(
+                children: [
+                  Text(
+                    '\$${selectedPlanDetails.valor.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  Text(selectedPlanDetails.descricao),
+                  SizedBox(height: 60),
+                  Text('Tags: ${selectedPlanDetails.quantidadeTags}'),
+                  Text('Fotos: ${selectedPlanDetails.quantidadeFotos}'),
+                ],
               )
-          ],
+            ],
           ),
-          
           TextButton(
-              onPressed: () {
-                // Aqui você pode definir a ação de assinatura
-              },
-              child: Text(
-                'Assinar',
-                style: TextStyle(color: Colors.blue, fontSize: 16),
-              ),
+            onPressed: () {
+              // Aqui você pode definir a ação de assinatura
+            },
+            child: Text(
+              'Assinar',
+              style: TextStyle(color: Colors.blue, fontSize: 16),
             ),
+          ),
         ],
       ),
     ),
   );
 }
-

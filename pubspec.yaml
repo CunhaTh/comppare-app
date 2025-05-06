@@ -40,10 +40,14 @@ dependencies:
   qr_flutter: ^4.0.0
   uuid: ^3.0.6
   image_picker: ^1.1.2
-  url_launcher: ^6.0.20
-  flutter_secure_storage: ^5.0.2
+  url_launcher: ^6.0.2
   http: ^0.13.3
+  flutter_inappwebview: ^6.1.5
+  efipay: ^1.0.6
+  get_storage: ^2.1.1
   flutter_svg: ^1.0.0
+  get: ^4.7.2
+  collection: ^1.17.0
 
   
   # The following adds the Cupertino Icons font to your application.
@@ -52,6 +56,9 @@ dependencies:
   video_player: ^2.9.2
   hive: ^2.2.3
   intl: ^0.20.2
+  flutter_typeahead: ^5.2.0
+  google_mobile_ads: ^6.0.0
+  
 
 dev_dependencies:
   flutter_test:
@@ -82,6 +89,9 @@ flutter:
       - assets/logo_cortada.png
       - assets/profile.jpg
       - assets/bg-comppare.jpeg
+      - assets/awaiting.png
+      - assets/ranking.png
+      - assets/chat_background.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
