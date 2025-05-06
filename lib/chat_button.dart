@@ -157,7 +157,7 @@ class _ChatButtonState extends State<ChatButton> {
                                         padding: const EdgeInsets.all(16.0),
                                         child: ChatBalloon(
                                           message: selectedQuestion?.answer ??
-                                              'Olá, bem vindo ao Comppare App! Digite no campo acima e selecione a sua dúvida',
+                                              'Olá, bem vindo à Comppare! Digite no campo acima e selecione a sua dúvida',
                                         ),
                                       ),
                                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/utils.dart';
 
+import 'app_colors.dart';
 import 'infra/repositories/ranking_repository.dart';
 import 'infra/user_helper.dart';
 
@@ -12,6 +13,8 @@ class DialogRanking extends StatefulWidget {
 }
 
 class _DialogRankingState extends State<DialogRanking> {
+  bool loading = true;
+
   List<RankingItemModel> items = [];
 
   RankingItemModel? get positionCurrentUser {
@@ -28,15 +31,13 @@ class _DialogRankingState extends State<DialogRanking> {
     Future.microtask(() async {
       items = await RankingRepository.getDataRanking();
       items = getPositions(items);
-      setState(() {});
+      setState(() => loading = false);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.5,
-      height: MediaQuery.of(context).size.height * 0.7,
       child: AlertDialog(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -50,7 +51,7 @@ class _DialogRankingState extends State<DialogRanking> {
                   child: Image.asset('assets/ranking.png', width: 50),
                 ),
                 const Text(
-                  'Ranking Comppare',
+                  'Ranking',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
               ],
@@ -63,35 +64,64 @@ class _DialogRankingState extends State<DialogRanking> {
             )
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            spacing: 8,
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ...items.take(5).map((i) {
-                return PositionCard(
-                  position: i.position ?? 0,
-                  name: i.nome,
-                  points: i.pontos,
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.2,
+          height: MediaQuery.of(context).size.height * 0.4,
+          child: Builder(
+            builder: (context) {
+              if (loading) {
+                return const Center(
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator.adaptive(
+                      strokeWidth: 2,
+                      backgroundColor: AppColors.primaryColor,
+                    ),
+                  ),
                 );
-              }),
-              Visibility(
-                visible: positionCurrentUser != null,
+              }
+              if (items.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'Nenhum ponto foi registrado ainda.\n'
+                    'Seja o primeiro a acumular pontos e se destacar!',
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
+              return SingleChildScrollView(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: 8,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.more_horiz, size: 40),
-                    PositionCard(
-                      position: positionCurrentUser?.position ?? 0,
-                      name: positionCurrentUser?.nome ?? '',
-                      points: positionCurrentUser?.pontos ?? '',
+                    ...items.take(5).map((i) {
+                      return PositionCard(
+                        position: i.position ?? 0,
+                        name: i.nome,
+                        points: i.pontos,
+                      );
+                    }),
+                    Visibility(
+                      visible: positionCurrentUser != null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        spacing: 8,
+                        children: [
+                          const Icon(Icons.more_horiz, size: 40),
+                          PositionCard(
+                            position: positionCurrentUser?.position ?? 0,
+                            name: positionCurrentUser?.nome ?? '',
+                            points: positionCurrentUser?.pontos ?? '',
+                          )
+                        ],
+                      ),
                     )
                   ],
                 ),
-              )
-            ],
+              );
+            },
           ),
         ),
         actions: [
@@ -140,7 +170,10 @@ class PositionCard extends StatelessWidget {
 
   TextStyle get textStyle {
     return TextStyle(
-        color: positionColor, fontSize: 16, fontWeight: FontWeight.w700);
+      color: positionColor,
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+    );
   }
 
   @override
@@ -162,7 +195,12 @@ class PositionCard extends StatelessWidget {
               children: [
                 Text('$positionº', style: textStyle),
                 const SizedBox(width: 10),
-                Text(name, style: textStyle),
+                Text(
+                  name == (UserHelper.instance.user?.nome ?? '')
+                      ? 'Você'
+                      : name,
+                  style: textStyle,
+                ),
               ],
             ),
             Text('$points pts', style: textStyle),

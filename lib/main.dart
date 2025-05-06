@@ -18,8 +18,6 @@ import 'chat_button.dart';
 import 'views/awaiting_payment.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
   runApp(const MyApp());
 }
 
