@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart'; // Para usar firstWhereOrNull (opcional)
 
+import 'app_colors.dart';
 import 'infra/repositories/ranking_repository.dart';
 import 'infra/user_helper.dart';
 import 'models/ranking_item_model.dart'; // Importar o modelo centralizado
@@ -13,8 +14,9 @@ class DialogRanking extends StatefulWidget {
 }
 
 class _DialogRankingState extends State<DialogRanking> {
+  bool _isLoading = true; // Única variável de controle de carregamento
+
   List<RankingItemModel> items = [];
-  bool _isLoading = true; // Para controlar o estado de carregamento
 
   // Método para obter a posição do usuário atual
   RankingItemModel? get positionCurrentUser {
@@ -30,18 +32,19 @@ class _DialogRankingState extends State<DialogRanking> {
     _loadRankingData();
   }
 
+  // Método para carregar e atribuir posições aos dados do ranking
   Future<void> _loadRankingData() async {
     setState(() {
       _isLoading = true;
     });
+
     try {
-      items = await RankingRepository.getDataRanking();
+      items = await RankingRepository.getDataRanking() ?? [];
       items = getPositions(items);
     } catch (e) {
-      // Exibir mensagem de erro, se necessário
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar ranking: $e')),
-      );
+      // Log ou tratamento de erro, se necessário
+      print('Erro ao carregar ranking: $e');
+      items = []; // Define uma lista vazia em caso de erro
     } finally {
       setState(() {
         _isLoading = false;
@@ -49,28 +52,21 @@ class _DialogRankingState extends State<DialogRanking> {
     }
   }
 
-  // Método para calcular as posições com base nos pontos
+  // Método para atribuir posições aos itens
   List<RankingItemModel> getPositions(List<RankingItemModel> items) {
-    // Ordenar os itens por pontos (assumindo que pontos é uma String numérica)
-    items.sort((a, b) {
-      final pontosA = int.tryParse(a.pontos ?? '0') ?? 0;
-      final pontosB = int.tryParse(b.pontos ?? '0') ?? 0;
-      return pontosB.compareTo(pontosA); // Ordem decrescente
-    });
-
-    // Atribuir posições
     for (int i = 0; i < items.length; i++) {
-      items[i].position = i + 1;
+      items[i] = RankingItemModel(
+        position: i + 1,
+        nome: items[i].nome,
+        pontos: items[i].pontos,
+      );
     }
-
     return items;
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.5,
-      height: MediaQuery.of(context).size.height * 0.7,
       child: AlertDialog(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -84,7 +80,7 @@ class _DialogRankingState extends State<DialogRanking> {
                   child: Image.asset('assets/ranking.png', width: 50),
                 ),
                 const Text(
-                  'Ranking Comppare',
+                  'Ranking',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
               ],
@@ -96,23 +92,44 @@ class _DialogRankingState extends State<DialogRanking> {
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.2,
+          height: MediaQuery.of(context).size.height * 0.4,
+          child: Builder(
+            builder: (context) {
+              if (_isLoading) {
+                return const Center(
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator.adaptive(
+                      strokeWidth: 2,
+                      backgroundColor: AppColors.primaryColor,
+                    ),
+                  ),
+                );
+              }
+              if (items.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'Nenhum ponto foi registrado ainda.\n'
+                    'Seja o primeiro a acumular pontos e se destacar!',
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
+              return SingleChildScrollView(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ...items.take(5).map((i) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: PositionCard(
-                          position: i.position ?? 0,
-                          name: i.nome ?? 'Usuário Desconhecido',
-                          points: i.pontos ?? '0',
-                        ),
+                      return PositionCard(
+                        position: i.position ?? 0,
+                        name: i.nome ?? 'Desconhecido',
+                        points: i.pontos ?? '0',
                       );
-                    }).toList(),
+                    }),
                     if (positionCurrentUser != null)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,13 +137,16 @@ class _DialogRankingState extends State<DialogRanking> {
                           const Icon(Icons.more_horiz, size: 40),
                           PositionCard(
                             position: positionCurrentUser!.position ?? 0,
-                            name: positionCurrentUser!.nome ?? 'Usuário Desconhecido',
+                            name: positionCurrentUser!.nome ?? 'Você',
                             points: positionCurrentUser!.pontos ?? '0',
                           ),
                         ],
                       ),
                   ],
                 ),
+              );
+            },
+          ),
         ),
         actions: [
           Center(
@@ -156,8 +176,8 @@ class PositionCard extends StatelessWidget {
   });
 
   final int position;
-  final String name;
-  final String points;
+  final String? name; // Tornar name opcional para lidar com null
+  final String? points; // Tornar points opcional para lidar com null
 
   Color get positionColor {
     switch (position) {
@@ -199,10 +219,15 @@ class PositionCard extends StatelessWidget {
               children: [
                 Text('$positionº', style: textStyle),
                 const SizedBox(width: 10),
-                Text(name, style: textStyle),
+                Text(
+                  name == (UserHelper.instance.user?.nome ?? '')
+                      ? 'Você'
+                      : name ?? 'Desconhecido',
+                  style: textStyle,
+                ),
               ],
             ),
-            Text('$points pts', style: textStyle),
+            Text('${points ?? '0'} pts', style: textStyle),
           ],
         ),
       ),

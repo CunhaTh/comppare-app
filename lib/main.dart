@@ -18,7 +18,7 @@ import 'package:http/http.dart' as http;
 import 'chat_button.dart';
 import 'views/awaiting_payment.dart';
 
-void main(dynamic MobileAds) async {
+void main() async {
   runApp(const MyApp());
 }
 
