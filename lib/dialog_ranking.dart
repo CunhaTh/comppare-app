@@ -39,29 +39,28 @@ class _DialogRankingState extends State<DialogRanking> {
   Widget build(BuildContext context) {
     return SizedBox(
       child: AlertDialog(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        title: Stack(
+          alignment: Alignment.bottomCenter,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
-                  child: Image.asset('assets/ranking.png', width: 50),
+                  child: Image.asset('assets/ranking.png', width: 40),
                 ),
-                const Text(
-                  'Ranking',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
+                const Tooltip(
+                  message: 'Você acumula pontos à medida em '
+                      'que usa os serviços do nosso app',
+                  child: Icon(Icons.info_outline, size: 20),
+                )
               ],
             ),
-            const SizedBox(width: 30),
-            const Tooltip(
-              message: 'Você acumula pontos à medida em '
-                  'que usa os serviços do nosso app',
-              child: Icon(Icons.info_outline, size: 20),
-            )
+            const Text(
+              'Ranking',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
         content: SizedBox(
