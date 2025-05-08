@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/utils.dart';
+import 'package:collection/collection.dart';
 
 import 'app_colors.dart';
 import 'infra/repositories/ranking_repository.dart';
@@ -18,10 +18,9 @@ class _DialogRankingState extends State<DialogRanking> {
   List<RankingItemModel> items = [];
 
   RankingItemModel? get positionCurrentUser {
+    final userName = UserHelper.instance.user?.nome ?? '';
     return items.firstWhereOrNull(
-      (i) =>
-          i.nome == (UserHelper.instance.user?.nome ?? '') &&
-          (i.position ?? 0) > 5,
+      (i) => i.nome == userName && (i.position ?? 0) > 5,
     );
   }
 
@@ -33,6 +32,17 @@ class _DialogRankingState extends State<DialogRanking> {
       items = getPositions(items);
       setState(() => loading = false);
     });
+  }
+
+  List<RankingItemModel> getPositions(List<RankingItemModel> items) {
+    for (int i = 0; i < items.length; i++) {
+      items[i] = RankingItemModel(
+        position: i + 1,
+        nome: items[i].nome,
+        pontos: items[i].pontos,
+      );
+    }
+    return items;
   }
 
   @override
@@ -54,7 +64,7 @@ class _DialogRankingState extends State<DialogRanking> {
                   message: 'Você acumula pontos à medida em '
                       'que usa os serviços do nosso app',
                   child: Icon(Icons.info_outline, size: 20),
-                )
+                ),
               ],
             ),
             const Text(
@@ -91,7 +101,6 @@ class _DialogRankingState extends State<DialogRanking> {
               }
               return SingleChildScrollView(
                 child: Column(
-                  spacing: 8,
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -102,21 +111,18 @@ class _DialogRankingState extends State<DialogRanking> {
                         points: i.pontos,
                       );
                     }),
-                    Visibility(
-                      visible: positionCurrentUser != null,
-                      child: Column(
+                    if (positionCurrentUser != null)
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: 8,
                         children: [
                           const Icon(Icons.more_horiz, size: 40),
                           PositionCard(
-                            position: positionCurrentUser?.position ?? 0,
-                            name: positionCurrentUser?.nome ?? '',
-                            points: positionCurrentUser?.pontos ?? '',
-                          )
+                            position: positionCurrentUser!.position ?? 0,
+                            name: positionCurrentUser!.nome,
+                            points: positionCurrentUser!.pontos,
+                          ),
                         ],
                       ),
-                    )
                   ],
                 ),
               );
@@ -126,7 +132,7 @@ class _DialogRankingState extends State<DialogRanking> {
         actions: [
           Center(
             child: TextButton(
-              onPressed: Navigator.of(context).pop,
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text(
                 'Fechar',
                 style: TextStyle(

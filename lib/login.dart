@@ -62,8 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
-        print('RESPONSE DO LOGIN: $data');
-
         if (data.containsKey('original') &&
             data['original'].containsKey('token')) {
           final String token = data['original']['token'];

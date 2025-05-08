@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // Remover se não for mais necessário
-import 'package:application_progress/views/compparepage.dart';
 
 void main() {
   runApp(MyApp());

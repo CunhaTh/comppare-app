@@ -1,0 +1,400 @@
+[33mcommit 778fe45afb692a62403723ff6d71d9dacf6f0734[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m)[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Wed Apr 23 17:38:53 2025 -0300
+
+    att tela main (visual/planos)
+
+[33mcommit aa101ecfd52e545863305c7088e2a18fbaaeb959[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Tue Apr 22 22:34:15 2025 -0300
+
+    att func principal
+
+[33mcommit 3cbe3c4bcbbbc1b89dd8b37ce646f08ce0cbac80[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Apr 18 14:53:54 2025 -0300
+
+    Retira função void main
+
+[33mcommit fe257ce1302ab44847079906945b8aaf022f8b6e[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Wed Apr 16 20:45:57 2025 -0300
+
+    conexões com backend
+
+[33mcommit 9afcdd7a0477ab50963e0d3480bb16010c982f91[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Tue Apr 15 19:59:25 2025 -0300
+
+    salva pasta
+
+[33mcommit 0d3d0bbf2714dc8ce3632ae2aea1fca01cebfe7b[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Mon Apr 14 22:38:23 2025 -0300
+
+    verificação de lista vazinha planos
+
+[33mcommit 2d6da0d4225823121e7ef3438b7c2d59cb6b2295[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Apr 12 20:56:17 2025 -0300
+
+    Att mudal pag_principal
+
+[33mcommit 46603076928765e4c52e2f7bac057077eeedbf9f[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Apr 11 21:40:28 2025 -0300
+
+    Att tela principal, funcionalidades
+
+[33mcommit 71bfa765d8696edc994ceed1e4198797700643ff[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Thu Apr 10 21:03:19 2025 -0300
+
+    Att visual tela principal/comppare
+
+[33mcommit 9f1b949ba14a76da3dcfc5ccb71923af89f71b73[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Tue Apr 8 21:23:01 2025 -0300
+
+    Buscando dados dos planos, da api
+
+[33mcommit f1e1a9200fc995315da16b1e12ccfa40682fe725[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sun Apr 6 19:53:40 2025 -0300
+
+    funcionalidade principal 98%
+
+[33mcommit fa093813d3a39b0515e72337496ba62c82911c16[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sun Apr 6 15:12:00 2025 -0300
+
+    Ajustes da tela principal/ funcionalidade
+
+[33mcommit 8e810ffddcda4ce73606e2e66f9db3a5f732da62[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Apr 5 20:19:01 2025 -0300
+
+    att funcionalidade principal 97%
+
+[33mcommit 108f1946a54615db5d45205dbecd6187565ba768[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Tue Apr 1 21:50:08 2025 -0300
+
+    att funcional/visual 96%
+
+[33mcommit 0e1b6398bb8b8cee517c173c6174b77535296219[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sun Mar 30 19:22:15 2025 -0300
+
+    Att visual geral 95%
+
+[33mcommit 6fca9623aee37b51b81cef452e1655588d6724a6[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Mar 28 20:17:55 2025 -0300
+
+    att funcionalidade principal
+
+[33mcommit 421275c355fa32fac0fdb154f40f33257da2c0e1[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Tue Mar 25 20:50:52 2025 -0300
+
+    att visual, pag principal
+
+[33mcommit beefcbda9fb3bd24271662ea191337eb2176305b[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sun Mar 23 19:17:24 2025 -0300
+
+    Manu lado esquerdo - pag principal
+
+[33mcommit ac8f9cce77d3ea7e4518097a0459152707505fa8[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Mar 22 21:27:57 2025 -0300
+
+    att menu lateral pag principal
+
+[33mcommit 4101eb963b67a8ced6719bdb69bd200efecb12d6[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Mar 22 21:18:24 2025 -0300
+
+    pag main semi pronta
+
+[33mcommit 12d7b1cc83e667be585e4b9c7e14f4742945b02b[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Wed Mar 19 18:49:42 2025 -0300
+
+    visual pag main
+
+[33mcommit 909ffd476abdaa05192cab889881c21cfc1b5588[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Tue Mar 18 21:05:39 2025 -0300
+
+    Estilizando main
+
+[33mcommit 41be110c3807718f0ff83097aa7416a78b6b5215[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sun Mar 16 14:06:29 2025 -0300
+
+    Att visual pre final
+
+[33mcommit 209ad713f867c9ce78dc59d5cd624b81aad77a57[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Mar 15 19:05:58 2025 -0300
+
+    att Visual semi
+
+[33mcommit ca54e53453ba521dfd7ff1f5c880a98d308b1ac9[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Mar 14 21:48:44 2025 -0300
+
+    Atualização visual
+
+[33mcommit 2b2c296c0efe8c0ce0e6d897d9180e651a34f301[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Feb 28 20:22:19 2025 -0300
+
+    iniciando funcionalidade, uplond de imagens
+
+[33mcommit 4a41036ec0c89a4adaec4a4fa1283cfa1d736a0e[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Feb 22 17:39:20 2025 -0300
+
+    Formas de pagamento
+
+[33mcommit 8c0ce7095bc7c5d7d2cbbb2a9f458d7c153abebe[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Feb 21 23:00:01 2025 -0300
+
+    Pagamento
+
+[33mcommit 8edebc6f1c96c7fd0d4274cf20f37a6b9d1f1ffe[m
+Merge: d3f288e 6d6bfc7
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Thu Feb 20 22:07:45 2025 -0300
+
+    Ajusta rotas
+
+[33mcommit d3f288e53820f2da089de4211fb6f791986fe96b[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Thu Feb 20 19:43:15 2025 -0300
+
+    att segurança
+
+[33mcommit 116afc44468f134fabc6e2976d92c2284805c43b[m
+Merge: ab754c3 1c44716
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Thu Feb 20 19:39:08 2025 -0300
+
+    Merge branch 'dev' of https://github.com/CunhaTh/comppare-app into dev
+
+[33mcommit 6d6bfc7687638cdc4570f698474937cc96ebe408[m
+Author: gugaslitoficial <gustavo-romao@hotmail.com>
+Date:   Tue Feb 18 22:33:27 2025 -0300
+
+    Lógica das telas de: Login, Cadastro e Cadastro Plano
+
+[33mcommit 8dc255f976a640fbd144df69a0e8ba8f07087c33[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Thu Feb 13 22:20:54 2025 -0300
+
+    remove backend
+
+[33mcommit 0b27aec604000c0adf498467d7e32e6a00fc1f49[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Thu Feb 13 18:50:25 2025 -0300
+
+    Validações de gratuidade
+
+[33mcommit 2504e06bd0ac25e0f8b46a5e019c7c393ebfa8b7[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Wed Feb 12 23:41:18 2025 -0300
+
+    criação campo de ultimo pagamento
+
+[33mcommit 79c92fc95ba3f2cefd77108731cb32ac0e0e30a7[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Wed Feb 12 23:06:07 2025 -0300
+
+    geração token AWT
+
+[33mcommit 725d7ed6127991dba264ac0861c90eaee530ad17[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Wed Feb 12 22:42:06 2025 -0300
+
+    geração token AWT
+
+[33mcommit ab754c3a3eb1156a5b02c6dfbb7f1a2122a44f5e[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Wed Feb 12 22:24:21 2025 -0300
+
+    Att visual3
+
+[33mcommit 1c447163e8fb37aa1191f38982539aca161cf2f8[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Wed Feb 12 19:58:26 2025 -0300
+
+    Ajustes gerais
+
+[33mcommit add4d3eb1cea883a4f391608d6f84d5a0bea2e89[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Wed Feb 12 18:35:22 2025 -0300
+
+    Ajuste tipo plano
+
+[33mcommit ea74cd55ec6360c33ee5c8d9778879e588291895[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Tue Feb 11 23:08:53 2025 -0300
+
+    ajustes gerais modulo de usuarios
+
+[33mcommit 19071b426c879604b71333e0e5ce14b830de338b[m
+Merge: c3f3cac ecad25c
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Tue Feb 11 22:38:42 2025 -0300
+
+    Merge branch 'dev' of https://github.com/CunhaTh/comppare-app into dev
+
+[33mcommit c3f3cac2bb0014135dc67321b3aee1c123b77eaf[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Tue Feb 11 22:36:08 2025 -0300
+
+    Fix timezone
+
+[33mcommit 6144500fed41a3a30e0e846a8e3bb8b97c96d1d1[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Tue Feb 11 22:22:43 2025 -0300
+
+    Validação periodo de gratuidade
+
+[33mcommit ecad25cfea164da0d6d8b869d01940951edb0a5c[m
+Merge: 06d5c19 a1001a5
+Author: gugaslitoficial <gustavo-romao@hotmail.com>
+Date:   Tue Feb 11 22:13:20 2025 -0300
+
+    Merge branch 'dev' of https://github.com/CunhaTh/comppare-app into dev
+
+[33mcommit a1001a5841db9dc762b04aac198f140cb7168479[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Tue Feb 11 21:57:02 2025 -0300
+
+    Revert funcionamento local
+
+[33mcommit a2b523713e9439e94f6fd91f1e2ea00ed4227890[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Tue Feb 11 20:40:04 2025 -0300
+
+    Att visual
+
+[33mcommit 89a523b9422b1c09225bf87606eecd85a0206f94[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Tue Feb 11 20:36:16 2025 -0300
+
+    moving files to test api connection
+
+[33mcommit ee1857d129c015f4e0fff20b9aabc47b1e96786e[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Mon Feb 10 22:55:24 2025 -0300
+
+    teste servidor
+
+[33mcommit 06d5c1958eac2a0d35c2a4f4f821e4d3e1e02429[m
+Author: gugaslitoficial <gustavo-romao@hotmail.com>
+Date:   Mon Feb 10 20:42:47 2025 -0300
+
+    teste2
+
+[33mcommit ef68944b8cac7abcb82d180215459a196f7c2e57[m
+Author: gugaslitoficial <gustavo-romao@hotmail.com>
+Date:   Mon Feb 10 20:38:08 2025 -0300
+
+    testando
+
+[33mcommit bdb970c2cfa48237b817dd47edfeec282c9fa187[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Mon Feb 10 18:39:48 2025 -0300
+
+    Ajustes gerais
+
+[33mcommit 51cb9a003f187ef19d82b916df7c3a6c5e017103[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Mon Feb 10 15:59:17 2025 -0300
+
+    fix tipagem de retorno
+
+[33mcommit 529ed7f486b4e28aee34be0ecb518f3771df3bdf[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Sun Feb 9 22:13:28 2025 -0300
+
+    Removendo debug
+
+[33mcommit 093a02744ddadbad3f9ee109fe51d3418b7a7826[m
+Author: Seu nome <luisfelipearaujopimenta@gmail.com>
+Date:   Sun Feb 9 18:35:51 2025 -0300
+
+    Campo data
+
+[33mcommit 30baae5e482ac597fb0dc38976f369e918565f6e[m
+Author: Seu nome <luisfelipearaujopimenta@gmail.com>
+Date:   Sun Feb 9 18:08:25 2025 -0300
+
+    Relacionamento plano-user
+
+[33mcommit 6d32fe3a91af483092140d9cac8b0b2f5b7c8f8e[m
+Author: Seu nome <luisfelipearaujopimenta@gmail.com>
+Date:   Sun Feb 9 12:27:13 2025 -0300
+
+    Crud user
+
+[33mcommit ab90ea9b574120bcb4491c5b823dc4cf80d6b2c0[m
+Author: Seu nome <luisfelipearaujopimenta@gmail.com>
+Date:   Sat Feb 8 22:57:01 2025 -0300
+
+    Crud cupons
+
+[33mcommit 32bf3d86c6b2933baf3fcf81d45904842ddf1768[m
+Merge: c4cb5e4 241bf8c
+Author: Seu nome <luisfelipearaujopimenta@gmail.com>
+Date:   Sat Feb 8 20:39:16 2025 -0300
+
+    Merge branch 'feature-login-back' into dev
+
+[33mcommit 241bf8cf3c6fea0d167d7a6d0f2428faba9ec63d[m[33m ([m[1;31morigin/feature-login-back[m[33m)[m
+Author: Seu nome <luisfelipearaujopimenta@gmail.com>
+Date:   Sat Feb 8 20:36:37 2025 -0300
+
+    Feature Login: crud planos
+
+[33mcommit c4cb5e4e1a74d1a63c01150195824136aac18518[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Feb 8 19:44:49 2025 -0300
+
+    att visual--
+
+[33mcommit 71bd189adf02ab3adf1896e96877860fff603036[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Sat Feb 8 19:28:19 2025 -0300
+
+    att visual
+
+[33mcommit 9fe5d2d7310a90fab0bde7209e23b8827b2ed91a[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Sat Feb 8 12:59:57 2025 -0300
+
+    Feature Login: verificações de duplicidade
+
+[33mcommit 306a827901f8698d1d3c1e3e9d54fe6feaf6b981[m
+Author: Luis Pimenta <luisfelipearaujopimenta@gmail.com>
+Date:   Sat Feb 8 01:14:11 2025 -0300
+
+    Feature Login: backend iniciado
+
+[33mcommit 2b3f6e69fd5e922a4d6eda13113b783df289f576[m[33m ([m[1;32mmain[m[33m)[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Feb 7 21:01:20 2025 -0300
+
+    New styles
+
+[33mcommit d836bf036b8f87d68aa701b82590b9419a81ba43[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: unknown <contatodev.thiago@gmail.com>
+Date:   Fri Feb 7 19:28:36 2025 -0300
+
+    Start no Fogete

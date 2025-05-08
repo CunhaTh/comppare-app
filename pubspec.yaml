@@ -32,6 +32,9 @@ dependencies:
   flutter_launcher_icons: "^0.14.2" 
   flutter:
     sdk: flutter
+  share_plus: ^7.2.2
+  image_gallery_saver: ^2.0.3
+  path_provider: ^2.1.4 
   font_awesome_flutter: ^10.0.0
   flutter_riverpod: ^2.0.0
   qr_flutter: ^4.0.0
@@ -44,6 +47,7 @@ dependencies:
   get_storage: ^2.1.1
   flutter_svg: ^1.0.0
   get: ^4.7.2
+  collection: ^1.17.0
 
   
   # The following adds the Cupertino Icons font to your application.
@@ -54,6 +58,7 @@ dependencies:
   intl: ^0.20.2
   flutter_typeahead: ^5.2.0
   google_mobile_ads: ^6.0.0
+  
 
 dev_dependencies:
   flutter_test:

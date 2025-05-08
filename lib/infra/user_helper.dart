@@ -18,6 +18,7 @@ class UserHelper {
 
 class UserModel {
   final int? id;
+  final int? idPlano;
   final String? nome;
   final String? cpf;
   final String? telefone;
@@ -27,11 +28,13 @@ class UserModel {
     required this.nome,
     required this.cpf,
     required this.telefone,
+    required this.idPlano,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'idPlano': idPlano,
       'nome': nome,
       'cpf': cpf,
       'telefone': telefone,
@@ -41,6 +44,7 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       id: map['id'],
+      idPlano: map['idPlano'],
       nome: map['nome'],
       cpf: map['cpf'],
       telefone: map['telefone'],

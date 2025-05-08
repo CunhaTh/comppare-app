@@ -107,7 +107,11 @@ class _ChatButtonState extends State<ChatButton> {
                                       color: Colors.white,
                                       child: InkWell(
                                         hoverColor: const Color.fromARGB(
-                                            45, 174, 213, 19),
+                                          45,
+                                          174,
+                                          213,
+                                          19,
+                                        ),
                                         onTap: () {
                                           FocusScope.of(textFieldContext!)
                                               .unfocus();
@@ -150,15 +154,7 @@ class _ChatButtonState extends State<ChatButton> {
                                       child: TextField(
                                         controller: questionController,
                                         focusNode: fn,
-                                        onChanged: (t) {
-                                          control.text = t;
-                                          print('TEXTO: $t');
-                                          if (questions
-                                              .map((q) => q.question)
-                                              .any((q) => q == t)) {
-                                            fn.unfocus();
-                                          }
-                                        },
+                                        onChanged: (t) => control.text = t,
                                         decoration: InputDecoration(
                                           hintText: 'Digite aqui',
                                           fillColor: Colors.white,

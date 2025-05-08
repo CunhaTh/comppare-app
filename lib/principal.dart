@@ -1,17 +1,13 @@
 import 'dart:convert';
 import 'package:application_progress/albuns_criados.dart';
-import 'package:application_progress/views/compparepage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import 'dialog_ranking.dart';
-import 'chat_button.dart'; // Remover se não for mais necessário
+import 'chat_button.dart';
+import 'infra/user_helper.dart'; // Remover se não for mais necessário
 // Certifique-se de que o caminho do arquivo está correto
-
-void main() {
-  runApp(MyApp());
-}
 
 class MyApp extends StatelessWidget {
   @override
@@ -403,17 +399,39 @@ class _PrincipalPageState extends State<PrincipalPage> {
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
                 onTap: () {
+                  if (UserHelper.instance.user?.idPlano == 1) {
+                    return;
+                  }
                   Navigator.of(context).pop();
                   showDialog(
                     context: context,
                     builder: (context) => const DialogRanking(),
                   );
                 },
-                title: Row(children: [
-                  Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),
-                  SizedBox(width: 15),
-                  Text('Ranking')
-                ]),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),
+                        SizedBox(width: 15),
+                        Text('Ranking'),
+                      ],
+                    ),
+                    Visibility(
+                      visible: UserHelper.instance.user?.idPlano == 1,
+                      child: const Tooltip(
+                        message: 'Essa funcionalidade não está '
+                            'disponível no plano gratuito',
+                        child: Icon(
+                          Icons.lock,
+                          size: 20,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Padding(
@@ -423,23 +441,45 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 title: Row(children: [
                   Icon(Icons.support_agent_outlined, color: Color(0xFFaed513)),
                   SizedBox(width: 15),
-                  Text('Suporte')
+                  Text('Suporte'),
                 ]),
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
-                /*Adicione a navegação da pagina */
-                onTap: () {},
-                title: Row(children: [
-                  Icon(
-                    Icons.analytics,
-                    color: Color(0xFFaed513),
-                  ),
-                  SizedBox(width: 15),
-                  Text('Dados de Uso')
-                ]),
+                onTap: () {
+                  if (UserHelper.instance.user?.idPlano == 1) {
+                    return;
+                  }
+                },
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.analytics,
+                          color: Color(0xFFaed513),
+                        ),
+                        SizedBox(width: 15),
+                        Text('Dados de Uso'),
+                      ],
+                    ),
+                    Visibility(
+                      visible: UserHelper.instance.user?.idPlano == 1,
+                      child: const Tooltip(
+                        message: 'Essa funcionalidade não está '
+                            'disponível no plano gratuito',
+                        child: Icon(
+                          Icons.lock,
+                          size: 20,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Padding(
