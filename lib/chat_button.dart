@@ -197,8 +197,8 @@ class _ChatButtonState extends State<ChatButton> {
           },
         );
       },
-      backgroundColor: AppColors.primaryColor,
-      child: const Icon(Icons.smart_toy, color: Colors.white),
+      backgroundColor: const Color(0xFFaed513),
+      child: const Icon(Icons.smart_toy, color: Colors.black),
     );
   }
 }
