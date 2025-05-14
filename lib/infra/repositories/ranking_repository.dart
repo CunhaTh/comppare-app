@@ -36,12 +36,15 @@ class RankingRepository {
 
   static Future<bool> sendDataRanking({required int points}) async {
     try {
-      var userId = UserHelper.instance.user?.id;
-      if (userId == null) return false;
+      var user = UserHelper.instance.user;
+
+      if (user?.idPlano == 1) return true;
+
+      if (user?.id == null) return false;
 
       final response = await http.post(
         Uri.parse(ApiEndpoints.updateRanking),
-        body: {'usuario': userId.toString(), 'pontos': points.toString()},
+        body: {'usuario': user!.id.toString(), 'pontos': points.toString()},
         headers: {
           // 'Authorization': 'Bearer ${TokenHelper.instance.token}',
         },

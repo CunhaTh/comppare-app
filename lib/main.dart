@@ -34,14 +34,16 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       initialRoute: Uri.base.path,
-      routes: {
-        '/': (_) => const MyHomePage(title: ''),
-        AwaitingPayment.route: (_) => const AwaitingPayment(),
-      },
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case AwaitingPayment.route:
             return MaterialPageRoute(builder: (_) => const AwaitingPayment());
+          case CadastroScreen.route:
+            return MaterialPageRoute(
+              builder: (_) => CadastroScreen(
+                idPlano: int.tryParse(Uri.base.queryParameters['pId'] ?? ''),
+              ),
+            );
           default:
             return MaterialPageRoute(
               builder: (_) => const MyHomePage(title: ''),
@@ -67,7 +69,8 @@ class _MyHomePageState extends State<MyHomePage> {
   int? selectedQuestionIndex;
   List<Plano> plans = [];
   bool showMonthlyPlans = true; // Controla se exibe planos mensais ou anuais
-  Map<int, bool> selectedPlans = {}; // Mapeia o id do plano para o estado de seleção
+  Map<int, bool> selectedPlans =
+      {}; // Mapeia o id do plano para o estado de seleção
 
   @override
   void initState() {
@@ -372,17 +375,22 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      showMonthlyPlans ? const Color(0xFFaed513) : Colors.grey[300],
+                  backgroundColor: showMonthlyPlans
+                      ? const Color(0xFFaed513)
+                      : Colors.grey[300],
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 62, vertical: 20),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 62, vertical: 20),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(topRight: Radius.circular(0),bottomRight: Radius.circular(0), topLeft: Radius.circular(8), bottomLeft: Radius.circular(8)),
+                    borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(0),
+                        bottomRight: Radius.circular(0),
+                        topLeft: Radius.circular(8),
+                        bottomLeft: Radius.circular(8)),
                   ),
                 ),
                 child: const Text('Mensal'),
               ),
-            
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -390,12 +398,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      showMonthlyPlans ? Colors.grey[300] : const Color(0xFFaed513),
+                  backgroundColor: showMonthlyPlans
+                      ? Colors.grey[300]
+                      : const Color(0xFFaed513),
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 72, vertical: 20),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 72, vertical: 20),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(topRight: Radius.circular(8),bottomRight: Radius.circular(8), topLeft: Radius.circular(0), bottomLeft: Radius.circular(0)),
+                    borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                        topLeft: Radius.circular(0),
+                        bottomLeft: Radius.circular(0)),
                   ),
                 ),
                 child: const Text('Anual'),
@@ -428,7 +442,7 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
@@ -447,7 +461,7 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
@@ -466,7 +480,7 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
@@ -515,7 +529,7 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
@@ -532,7 +546,7 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
@@ -596,7 +610,8 @@ class _MyHomePageState extends State<MyHomePage> {
             // Badge "Mais Popular", se aplicável
             if (isPopular)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFaed513),
                   borderRadius: BorderRadius.circular(12),
