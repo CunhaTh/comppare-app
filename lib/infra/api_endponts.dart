@@ -10,4 +10,5 @@ class ApiEndpoints {
   static String get updateRanking => '$baseUrl/ranking/atualizar';
   static String get getChatQuestions => '$baseUrl/questoes/listar';
   static String get sendChatQuestion => '$baseUrl/questoes/salvar';
+  static String get checkUpdatePlan => '$baseUrl/usuarios/atualizar-plano';
 }

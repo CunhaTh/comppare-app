@@ -6,7 +6,8 @@ import 'package:image_picker/image_picker.dart';
 
 import 'dialog_ranking.dart';
 import 'chat_button.dart';
-import 'infra/user_helper.dart'; // Remover se não for mais necessário
+import 'infra/user_helper.dart';
+import 'views/plans_page.dart'; // Remover se não for mais necessário
 // Certifique-se de que o caminho do arquivo está correto
 
 class MyApp extends StatelessWidget {
@@ -386,13 +387,19 @@ class _PrincipalPageState extends State<PrincipalPage> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
-                /*Adicione a navegação da pagina */
-                onTap: () {},
-                title: Row(children: [
-                  Icon(Icons.card_membership, color: Color(0xFFaed513)),
-                  SizedBox(width: 15),
-                  Text('Financeiro')
-                ]),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PlansPage()),
+                  );
+                },
+                title: const Row(
+                  children: [
+                    Icon(Icons.card_membership, color: Color(0xFFaed513)),
+                    SizedBox(width: 15),
+                    Text('Planos')
+                  ],
+                ),
               ),
             ),
             Padding(

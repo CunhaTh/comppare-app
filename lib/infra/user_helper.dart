@@ -14,6 +14,10 @@ class UserHelper {
   Future<void> setUser(UserModel user) async {
     await GetStorage().write('user', user.toMap());
   }
+
+  Future<void> removeUser() async {
+    await GetStorage().remove('user');
+  }
 }
 
 class UserModel {
