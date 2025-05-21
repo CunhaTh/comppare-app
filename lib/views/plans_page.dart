@@ -36,7 +36,7 @@ class _PlansPageState extends State<PlansPage> {
       Uri.parse(ApiEndpoints.checkUpdatePlan),
       body: {
         "cpf": UserHelper.instance.user?.cpf,
-        "plano": newPlanId,
+        "plano": newPlanId.toString(),
       },
     );
 
