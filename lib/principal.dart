@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:application_progress/albuns_criados.dart';
+import 'package:application_progress/infra/user_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import 'dialog_ranking.dart';
-import 'chat_button.dart'; 
+import 'chat_button.dart'; // Remover se não for mais necessário
+// Certifique-se de que o caminho do arquivo está correto
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -469,8 +471,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
+                /*Adicione a navegação da pagina */
                 onTap: () {},
-                title: const Row(children: [
+                title: Row(children: [
                   Icon(Icons.card_membership, color: Color(0xFFaed513)),
                   SizedBox(width: 15),
                   Text('Financeiro')
@@ -481,13 +484,16 @@ class _PrincipalPageState extends State<PrincipalPage> {
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
                 onTap: () {
+                  if (UserHelper.instance.user?.idPlano == 1) {
+                    return;
+                  }
                   Navigator.of(context).pop();
                   showDialog(
                     context: context,
                     builder: (context) => const DialogRanking(),
                   );
                 },
-                title: const Row(children: [
+                title: Row(children: [
                   Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),
                   SizedBox(width: 15),
                   Text('Ranking')
@@ -501,16 +507,20 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 title: const Row(children: [
                   Icon(Icons.support_agent_outlined, color: Color(0xFFaed513)),
                   SizedBox(width: 15),
-                  Text('Suporte')
+                  Text('Suporte'),
                 ]),
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
+                /*Adicione a navegação da pagina */
                 onTap: () {},
-                title: const Row(children: [
-                  Icon(Icons.analytics, color: Color(0xFFaed513)),
+                title: Row(children: [
+                  Icon(
+                    Icons.analytics,
+                    color: Color(0xFFaed513),
+                  ),
                   SizedBox(width: 15),
                   Text('Dados de Uso')
                 ]),

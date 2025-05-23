@@ -71,35 +71,30 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 690),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, snapshot) {
-        return MaterialApp(
-          title: 'comppare',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
-            useMaterial3: true,
-          ),
-          initialRoute: '/',
-          routes: {
-            '/': (_) => const MyHomePage(title: ''),
-            AwaitingPayment.route: (_) => const AwaitingPayment(),
-          },
-          onGenerateRoute: (settings) {
-            switch (settings.name) {
-              case AwaitingPayment.route:
-                return MaterialPageRoute(builder: (_) => const AwaitingPayment());
-              default:
-                return MaterialPageRoute(
-                  builder: (_) => const MyHomePage(title: ''),
-                );
-            }
-          },
-          debugShowCheckedModeBanner: false,
-        );
+    return MaterialApp(
+      title: 'comppare',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
+        useMaterial3: true,
+      ),
+      initialRoute: Uri.base.path,
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case AwaitingPayment.route:
+            return MaterialPageRoute(builder: (_) => const AwaitingPayment());
+          case CadastroScreen.route:
+            return MaterialPageRoute(
+              builder: (_) => CadastroScreen(
+                idPlano: int.tryParse(Uri.base.queryParameters['pId'] ?? ''),
+              ),
+            );
+          default:
+            return MaterialPageRoute(
+              builder: (_) => const MyHomePage(title: ''),
+            );
+        }
       },
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -117,8 +112,9 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isLoading = false;
   int? selectedQuestionIndex;
   List<Plano> plans = [];
-  bool showMonthlyPlans = true;
-  Map<int, bool> selectedPlans = {};
+  bool showMonthlyPlans = true; // Controla se exibe planos mensais ou anuais
+  Map<int, bool> selectedPlans =
+      {}; // Mapeia o id do plano para o estado de seleção
 
   @override
   void initState() {
@@ -394,17 +390,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      showMonthlyPlans ? const Color(0xFFaed513) : Colors.grey[300],
+                  backgroundColor: showMonthlyPlans
+                      ? const Color(0xFFaed513)
+                      : Colors.grey[300],
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 62, vertical: 20),
-                  shape: const RoundedRectangleBorder(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 62, vertical: 20),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(0),
-                      bottomRight: Radius.circular(0),
-                      topLeft: Radius.circular(8),
-                      bottomLeft: Radius.circular(8),
-                    ),
+                        topRight: Radius.circular(0),
+                        bottomRight: Radius.circular(0),
+                        topLeft: Radius.circular(8),
+                        bottomLeft: Radius.circular(8)),
                   ),
                 ),
                 child: const Text('Mensal'),
@@ -416,17 +413,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      showMonthlyPlans ? Colors.grey[300] : const Color(0xFFaed513),
+                  backgroundColor: showMonthlyPlans
+                      ? Colors.grey[300]
+                      : const Color(0xFFaed513),
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 72, vertical: 20),
-                  shape: const RoundedRectangleBorder(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 72, vertical: 20),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(8),
-                      bottomRight: Radius.circular(8),
-                      topLeft: Radius.circular(0),
-                      bottomLeft: Radius.circular(0),
-                    ),
+                        topRight: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                        topLeft: Radius.circular(0),
+                        bottomLeft: Radius.circular(0)),
                   ),
                 ),
                 child: const Text('Anual'),
@@ -665,7 +663,8 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             if (isPopular)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFaed513),
                   borderRadius: BorderRadius.circular(12),

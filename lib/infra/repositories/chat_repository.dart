@@ -46,8 +46,6 @@ class ChatRepository {
         },
       );
 
-      print('RESPONSE SEND QUESTION: ${response.body}');
-
       if (response.statusCode != 200) {
         debugPrint(
           '(Erro ao enviar a pergunta) CODE: ${response.statusCode}, MESSAGE: ${response.reasonPhrase}',

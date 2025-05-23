@@ -26,6 +26,8 @@ class _ChatButtonState extends State<ChatButton> {
     );
   }
 
+  BuildContext? textFieldContext;
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +60,8 @@ class _ChatButtonState extends State<ChatButton> {
                     begin: const Offset(1.0, 1.0),
                     end: Offset.zero,
                   ).animate(
-                      CurvedAnimation(parent: anim1, curve: Curves.easeOut)),
+                    CurvedAnimation(parent: anim1, curve: Curves.easeOut),
+                  ),
                   child: Align(
                     alignment: Alignment.bottomRight,
                     child: Material(
@@ -100,17 +103,34 @@ class _ChatButtonState extends State<ChatButton> {
                                     return result.toList();
                                   },
                                   itemBuilder: (context, question) {
-                                    return Container(
+                                    return Material(
                                       color: Colors.white,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                          horizontal: 16,
+                                      child: InkWell(
+                                        hoverColor: const Color.fromARGB(
+                                          45,
+                                          174,
+                                          213,
+                                          19,
                                         ),
-                                        child: Text(
-                                          question.question,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w500,
+                                        onTap: () {
+                                          FocusScope.of(textFieldContext!)
+                                              .unfocus();
+                                          setDialogState(() {
+                                            selectedQuestion = question;
+                                            questionController.text =
+                                                question.question;
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                            horizontal: 16,
+                                          ),
+                                          child: Text(
+                                            question.question,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -124,7 +144,8 @@ class _ChatButtonState extends State<ChatButton> {
                                           question.question;
                                     });
                                   },
-                                  builder: (context, control, fn) {
+                                  builder: (contextT, control, fn) {
+                                    textFieldContext = contextT;
                                     return Container(
                                       decoration: BoxDecoration(
                                         color: Colors.white,
@@ -176,8 +197,8 @@ class _ChatButtonState extends State<ChatButton> {
           },
         );
       },
-      backgroundColor: AppColors.primaryColor,
-      child: const Icon(Icons.smart_toy, color: Colors.white),
+      backgroundColor: const Color(0xFFaed513),
+      child: const Icon(Icons.smart_toy, color: Colors.black),
     );
   }
 }

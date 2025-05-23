@@ -24,11 +24,13 @@ class CadastroScreen extends StatefulWidget {
 
   const CadastroScreen({super.key, required this.idPlano});
 
+  static const route = '/cadastro';
+
   @override
-  _CadastroScreenState createState() => _CadastroScreenState();
+  CadastroScreenState createState() => CadastroScreenState();
 }
 
-class _CadastroScreenState extends State<CadastroScreen> {
+class CadastroScreenState extends State<CadastroScreen> {
   final _nameController = TextEditingController();
   final _cpfController = TextEditingController();
   final _emailController = TextEditingController();
@@ -72,8 +74,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
   bool _isMaiorDeIdade(DateTime nascimento) {
     final hoje = DateTime.now();
     final idade = hoje.year - nascimento.year;
-    final hasHadBirthdayThisYear =
-        (hoje.month > nascimento.month) || (hoje.month == nascimento.month && hoje.day >= nascimento.day);
+    final hasHadBirthdayThisYear = (hoje.month > nascimento.month) ||
+        (hoje.month == nascimento.month && hoje.day >= nascimento.day);
     return (idade > 18) || (idade == 18 && hasHadBirthdayThisYear);
   }
 
@@ -87,7 +89,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
       if (verificaExistenciaResponse.statusCode == 200) {
         final responseData = jsonDecode(verificaExistenciaResponse.body);
-        return responseData['codRetorno'] == 200 && responseData['message'] == 'OK';
+        return responseData['codRetorno'] == 200 &&
+            responseData['message'] == 'OK';
       } else {
         _showErrorDialog('Erro ao verificar CPF. Tente novamente.');
         return false;
@@ -98,7 +101,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     }
   }
 
-  Future<void> _cadastrarUsuario(String nome, String cpf, String email, String telefone, String senha, String nascimento) async {
+  Future<void> _cadastrarUsuario(String nome, String cpf, String email,
+      String telefone, String senha, String nascimento) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/usuarios/cadastrar'),
@@ -117,11 +121,14 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        if (responseData['sucesso'] == true || responseData['codigoRetorno'] == 200) {
-          if (widget.idPlano != 1) {
+        if (responseData['sucesso'] == true ||
+            responseData['codigoRetorno'] == 200) {
+          if (![1, 2].contains(widget.idPlano)) {
             final userId = responseData['idUser'];
             final redirected = await launchUrl(
-              Uri.parse('https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
+              Uri.parse(
+                'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId',
+              ),
             );
             if (redirected && mounted) {
               Navigator.pushNamed(context, AwaitingPayment.route);
@@ -134,7 +141,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
         }
       } else {
         final errorResponse = jsonDecode(response.body);
-        _showErrorDialog(errorResponse['mensagem'] ?? 'Erro ao conectar com a API.');
+        _showErrorDialog(
+            errorResponse['mensagem'] ?? 'Erro ao conectar com a API.');
       }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
@@ -176,7 +184,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     String confirmSenha = _confirmPasswordController.text.trim();
 
     // Validações
-    if ([nome, cpf, email, nascimento, telefone, senha, confirmSenha].any((field) => field.isEmpty)) {
+    if ([nome, cpf, email, nascimento, telefone, senha, confirmSenha]
+        .any((field) => field.isEmpty)) {
       _showErrorDialog('Por favor, preencha todos os campos!');
       setState(() => _isLoading = false);
       return;
@@ -204,7 +213,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     final parts = nascimento.split('/');
     if (parts.length == 3) {
       try {
-        _nascimentoDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        _nascimentoDate = DateTime(
+            int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
       } catch (e) {
         _showErrorDialog('Data de nascimento inválida!');
         setState(() => _isLoading = false);
@@ -304,15 +314,19 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       GestureDetector(
                         onTap: () => _selectDataNascimento(context),
                         child: AbsorbPointer(
-                          child: _buildTextField(_nasciController, 'Data de Nascimento'),
+                          child: _buildTextField(
+                              _nasciController, 'Data de Nascimento'),
                         ),
                       ),
                       const SizedBox(height: 15),
                       _buildTextField(_phoneController, 'Celular'),
                       const SizedBox(height: 15),
-                      _buildTextField(_passwordController, 'Senha', obscureText: true),
+                      _buildTextField(_passwordController, 'Senha',
+                          obscureText: true),
                       const SizedBox(height: 15),
-                      _buildTextField(_confirmPasswordController, 'Confirmar Senha', obscureText: true),
+                      _buildTextField(
+                          _confirmPasswordController, 'Confirmar Senha',
+                          obscureText: true),
                       const SizedBox(height: 10),
                       _isLoading
                           ? const CircularProgressIndicator()
@@ -320,13 +334,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
                               padding: const EdgeInsets.only(top: 100),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  foregroundColor: const Color.fromARGB(255, 251, 255, 250),
+                                  foregroundColor:
+                                      const Color.fromARGB(255, 251, 255, 250),
                                   backgroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 80, vertical: 20),
                                   textStyle: const TextStyle(fontSize: 18),
                                 ),
                                 onPressed: _sendCadastroData,
-                                child: const Text('Avançar', style: TextStyle(color: Colors.white)),
+                                child: const Text('Avançar',
+                                    style: TextStyle(color: Colors.white)),
                               ),
                             ),
                     ],
@@ -343,7 +360,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {bool obscureText = false}) {
+  Widget _buildTextField(TextEditingController controller, String label,
+      {bool obscureText = false}) {
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: TextField(

@@ -12,4 +12,8 @@ class TokenHelper {
   Future<void> setToken(String? token) async {
     await GetStorage().write('token', token);
   }
+
+  Future<void> removeToken() async {
+    await GetStorage().remove('token');
+  }
 }

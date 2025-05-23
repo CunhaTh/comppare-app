@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:collection/collection.dart'; // Para usar firstWhereOrNull (opcional)
+import 'package:collection/collection.dart';
 
 import 'app_colors.dart';
 import 'infra/repositories/ranking_repository.dart';
@@ -14,11 +14,10 @@ class DialogRanking extends StatefulWidget {
 }
 
 class _DialogRankingState extends State<DialogRanking> {
-  bool _isLoading = true; // Única variável de controle de carregamento
+  bool loading = true;
 
   List<RankingItemModel> items = [];
 
-  // Método para obter a posição do usuário atual
   RankingItemModel? get positionCurrentUser {
     final userName = UserHelper.instance.user?.nome ?? '';
     return items.firstWhereOrNull(
@@ -29,30 +28,13 @@ class _DialogRankingState extends State<DialogRanking> {
   @override
   void initState() {
     super.initState();
-    _loadRankingData();
-  }
-
-  // Método para carregar e atribuir posições aos dados do ranking
-  Future<void> _loadRankingData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      items = await RankingRepository.getDataRanking() ?? [];
+    Future.microtask(() async {
+      items = await RankingRepository.getDataRanking();
       items = getPositions(items);
-    } catch (e) {
-      // Log ou tratamento de erro, se necessário
-      print('Erro ao carregar ranking: $e');
-      items = []; // Define uma lista vazia em caso de erro
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+      setState(() => loading = false);
+    });
   }
 
-  // Método para atribuir posições aos itens
   List<RankingItemModel> getPositions(List<RankingItemModel> items) {
     for (int i = 0; i < items.length; i++) {
       items[i] = RankingItemModel(
@@ -68,27 +50,27 @@ class _DialogRankingState extends State<DialogRanking> {
   Widget build(BuildContext context) {
     return SizedBox(
       child: AlertDialog(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        title: Stack(
+          alignment: Alignment.bottomCenter,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
-                  child: Image.asset('assets/ranking.png', width: 50),
+                  child: Image.asset('assets/ranking.png', width: 40),
                 ),
-                const Text(
-                  'Ranking',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                const Tooltip(
+                  message: 'Você acumula pontos à medida em '
+                      'que usa os serviços do nosso app',
+                  child: Icon(Icons.info_outline, size: 20),
                 ),
               ],
             ),
-            const SizedBox(width: 30),
-            const Tooltip(
-              message: 'Você acumula pontos à medida em que usa os serviços do nosso app',
-              child: Icon(Icons.info_outline, size: 20),
+            const Text(
+              'Ranking',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -97,7 +79,7 @@ class _DialogRankingState extends State<DialogRanking> {
           height: MediaQuery.of(context).size.height * 0.4,
           child: Builder(
             builder: (context) {
-              if (_isLoading) {
+              if (loading) {
                 return const Center(
                   child: SizedBox(
                     width: 50,
@@ -126,8 +108,8 @@ class _DialogRankingState extends State<DialogRanking> {
                     ...items.take(5).map((i) {
                       return PositionCard(
                         position: i.position ?? 0,
-                        name: i.nome ?? 'Desconhecido',
-                        points: i.pontos ?? '0',
+                        name: i.nome,
+                        points: i.pontos,
                       );
                     }),
                     if (positionCurrentUser != null)
@@ -137,8 +119,8 @@ class _DialogRankingState extends State<DialogRanking> {
                           const Icon(Icons.more_horiz, size: 40),
                           PositionCard(
                             position: positionCurrentUser!.position ?? 0,
-                            name: positionCurrentUser!.nome ?? 'Você',
-                            points: positionCurrentUser!.pontos ?? '0',
+                            name: positionCurrentUser!.nome,
+                            points: positionCurrentUser!.pontos,
                           ),
                         ],
                       ),
@@ -176,8 +158,8 @@ class PositionCard extends StatelessWidget {
   });
 
   final int position;
-  final String? name; // Tornar name opcional para lidar com null
-  final String? points; // Tornar points opcional para lidar com null
+  final String name;
+  final String points;
 
   Color get positionColor {
     switch (position) {
@@ -188,7 +170,7 @@ class PositionCard extends StatelessWidget {
       case 3:
         return const Color(0xFFE46E00);
       default:
-        return Colors.black.withOpacity(0.7);
+        return Colors.black.withValues(alpha: 0.7);
     }
   }
 
@@ -222,12 +204,12 @@ class PositionCard extends StatelessWidget {
                 Text(
                   name == (UserHelper.instance.user?.nome ?? '')
                       ? 'Você'
-                      : name ?? 'Desconhecido',
+                      : name,
                   style: textStyle,
                 ),
               ],
             ),
-            Text('${points ?? '0'} pts', style: textStyle),
+            Text('$points pts', style: textStyle),
           ],
         ),
       ),
