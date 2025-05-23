@@ -4,19 +4,63 @@ import 'package:application_progress/login.dart';
 import 'package:application_progress/planos.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/admpage.dart';
+import 'package:application_progress/views/comppareimg.dart';
 import 'package:application_progress/views/pagamento.dart';
-import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
-
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'chat_button.dart';
 import 'views/awaiting_payment.dart';
+
+// Placeholder Plano class (replace with your actual Plano class)
+class Plano {
+  final int id;
+  final String nome;
+  final String descricao;
+  final double valor;
+  final int quantidadeTags;
+  final int quantidadeFotos;
+  final int quantidadeConvites;
+  final int quantidadePastas;
+  final int status;
+  final int frequenciaCobranca;
+  final int tempoGratuidade;
+
+  Plano({
+    required this.id,
+    required this.nome,
+    required this.descricao,
+    required this.valor,
+    required this.quantidadeTags,
+    required this.quantidadeFotos,
+    required this.quantidadeConvites,
+    required this.quantidadePastas,
+    required this.status,
+    required this.frequenciaCobranca,
+    required this.tempoGratuidade,
+  });
+
+  factory Plano.fromJson(Map<String, dynamic> json) {
+    return Plano(
+      id: json['id'] ?? 0,
+      nome: json['nome'] ?? '',
+      descricao: json['descricao'] ?? '',
+      valor: (json['valor'] ?? 0.0).toDouble(),
+      quantidadeTags: json['quantidadeTags'] ?? 0,
+      quantidadeFotos: json['quantidadeFotos'] ?? 0,
+      quantidadeConvites: json['quantidadeConvites'] ?? 0,
+      quantidadePastas: json['quantidadePastas'] ?? 0,
+      status: json['status'] ?? 1,
+      frequenciaCobranca: json['frequenciaCobranca'] ?? 1,
+      tempoGratuidade: json['tempoGratuidade'] ?? 1,
+    );
+  }
+}
 
 void main() async {
   runApp(const MyApp());
@@ -27,28 +71,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'comppare',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
-        useMaterial3: true,
-      ),
-      initialRoute: Uri.base.path,
-      routes: {
-        '/': (_) => const MyHomePage(title: ''),
-        AwaitingPayment.route: (_) => const AwaitingPayment(),
+    return ScreenUtilInit(
+      designSize: const Size(360, 690),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, snapshot) {
+        return MaterialApp(
+          title: 'comppare',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
+            useMaterial3: true,
+          ),
+          initialRoute: '/',
+          routes: {
+            '/': (_) => const MyHomePage(title: ''),
+            AwaitingPayment.route: (_) => const AwaitingPayment(),
+          },
+          onGenerateRoute: (settings) {
+            switch (settings.name) {
+              case AwaitingPayment.route:
+                return MaterialPageRoute(builder: (_) => const AwaitingPayment());
+              default:
+                return MaterialPageRoute(
+                  builder: (_) => const MyHomePage(title: ''),
+                );
+            }
+          },
+          debugShowCheckedModeBanner: false,
+        );
       },
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case AwaitingPayment.route:
-            return MaterialPageRoute(builder: (_) => const AwaitingPayment());
-          default:
-            return MaterialPageRoute(
-              builder: (_) => const MyHomePage(title: ''),
-            );
-        }
-      },
-      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -66,8 +117,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isLoading = false;
   int? selectedQuestionIndex;
   List<Plano> plans = [];
-  bool showMonthlyPlans = true; // Controla se exibe planos mensais ou anuais
-  Map<int, bool> selectedPlans = {}; // Mapeia o id do plano para o estado de seleção
+  bool showMonthlyPlans = true;
+  Map<int, bool> selectedPlans = {};
 
   @override
   void initState() {
@@ -79,17 +130,15 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       isLoading = true;
     });
-
     try {
-      final response = await http
-          .get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
-
+      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];
-        plans = planosJson.map((json) => Plano.fromJson(json)).toList();
-        // Inicializa o estado de seleção para todos os planos como falso
-        selectedPlans = {for (var plan in plans) plan.id: false};
+        setState(() {
+          plans = planosJson.map((json) => Plano.fromJson(json)).toList();
+          selectedPlans = {for (var plan in plans) plan.id: false};
+        });
       } else {
         showErrorDialog("Erro ao buscar planos: ${response.reasonPhrase}");
       }
@@ -106,7 +155,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       isLoading = true;
     });
-
     try {
       Navigator.push(
         context,
@@ -123,12 +171,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // Lista de perguntas e respostas
   final List<Map<String, String>> faqs = [
     {
       "question": "Como faço para assinar um plano?",
-      "answer":
-          "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
+      "answer": "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
     },
     {
       "question": "Quais são os métodos de pagamento aceitos?",
@@ -136,19 +182,16 @@ class _MyHomePageState extends State<MyHomePage> {
     },
     {
       "question": "Posso cancelar minha assinatura?",
-      "answer":
-          "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
+      "answer": "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
     },
     {
       "question": "Como posso mudar meu plano?",
-      "answer":
-          "Para mudar seu plano, entre em contato com o suporte ao cliente."
+      "answer": "Para mudar seu plano, entre em contato com o suporte ao cliente."
     },
   ];
 
   void selectPlan(int id) {
     setState(() {
-      // Desmarca todos os planos e marca apenas o selecionado
       selectedPlans.updateAll((key, value) => false);
       selectedPlans[id] = true;
     });
@@ -163,12 +206,9 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Seção de destaque com imagem e textos
             _buildHeroSection(),
             const SizedBox(height: 20),
-            // Seção de planos com botões de filtro
             _buildPlansSection(),
-            // Seção de perguntas frequentes
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -187,8 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       return GestureDetector(
                         onTap: () {
                           setState(() {
-                            selectedQuestionIndex =
-                                selectedQuestionIndex == index ? null : index;
+                            selectedQuestionIndex = selectedQuestionIndex == index ? null : index;
                           });
                         },
                         child: Card(
@@ -200,8 +239,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               children: [
                                 Text(
                                   faqs[index]["question"]!,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 if (selectedQuestionIndex == index) ...[
                                   const SizedBox(height: 5),
@@ -217,7 +255,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
             ),
-            // Rodapé
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Center(
@@ -249,14 +286,12 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildHeroSection() {
     return Stack(
       children: [
-        // Imagem de fundo
         Image.asset(
           'assets/bg-comppare.jpeg',
           fit: BoxFit.cover,
           width: double.infinity,
           height: 600,
         ),
-        // Sobreposição com textos e botões
         Positioned.fill(
           child: Column(
             children: [
@@ -266,7 +301,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const SizedBox(height: 230),
               const Text(
-                'Planos exclusivos para Flamenguistas, e muito mais',
+                '''Quer acompanhar a evolução de clientes e projetos de forma prática e interativa? Aqui é o lugar''',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 17,
@@ -282,24 +317,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 textAlign: TextAlign.center,
               ),
               const Text(
-                'Planos a partir de R\$ 27,99/mês',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+                '''                                  Planos a partir de R\$ 27,99/mês''',
+                style: TextStyle(color: Colors.white, fontSize: 15),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              IconButton(
-                iconSize: 48.0,
-                tooltip: 'Down Arrow',
-                icon: SvgPicture.string(
-                  '''
-                  <svg class="daq0j418" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                    <rect width="48" height="48" fill="none"></rect>
-                    <path d="M36.63,18.37a1.37,1.37,0,0,1,2.15.37,1.7,1.7,0,0,1-.3,2.06L25.4,32.64a1.37,1.37,0,0,1-1.85,0l-13-11.84a1.71,1.71,0,0,1-.29-2.06,1.37,1.37,0,0,1,2.15-.37l12.11,11ZM24.25,31.42a.38.38,0,0,1,.46,0l-.23-.21ZM11.71,19.55s0,.06,0,0Zm25.61,0h0Z"></path>
-                  </svg>
-                  ''',
-                ),
-                onPressed: () {},
-              ),
             ],
           ),
         ),
@@ -340,7 +362,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildPlansSection() {
-    // Filtrar planos mensais e anuais
     final monthlyPlans = plans
         .where((plan) =>
             plan.nome.toLowerCase().contains('mensal') ||
@@ -350,18 +371,19 @@ class _MyHomePageState extends State<MyHomePage> {
         .where((plan) => plan.nome.toLowerCase().contains('anual'))
         .toList();
 
+    final allMonthlyPlans = _buildMonthlyPlans(monthlyPlans);
+    final allAnnualPlans = _buildAnnualPlans(annualPlans);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Título da seção
           const Text(
             'Nossos Planos',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          // Botões de filtro
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -376,13 +398,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       showMonthlyPlans ? const Color(0xFFaed513) : Colors.grey[300],
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(horizontal: 62, vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(topRight: Radius.circular(0),bottomRight: Radius.circular(0), topLeft: Radius.circular(8), bottomLeft: Radius.circular(8)),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(0),
+                      bottomRight: Radius.circular(0),
+                      topLeft: Radius.circular(8),
+                      bottomLeft: Radius.circular(8),
+                    ),
                   ),
                 ),
                 child: const Text('Mensal'),
               ),
-            
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -394,8 +420,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       showMonthlyPlans ? Colors.grey[300] : const Color(0xFFaed513),
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(horizontal: 72, vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(topRight: Radius.circular(8),bottomRight: Radius.circular(8), topLeft: Radius.circular(0), bottomLeft: Radius.circular(0)),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(8),
+                      bottomRight: Radius.circular(8),
+                      topLeft: Radius.circular(0),
+                      bottomLeft: Radius.circular(0),
+                    ),
                   ),
                 ),
                 child: const Text('Anual'),
@@ -403,19 +434,25 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           const SizedBox(height: 20),
-          // Exibir planos com base no filtro
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : showMonthlyPlans
-                  ? _buildMonthlyPlans(monthlyPlans)
-                  : _buildAnnualPlans(annualPlans),
+                  ? (allMonthlyPlans.isNotEmpty
+                      ? Column(children: allMonthlyPlans)
+                      : const Center(child: Text('Nenhum plano mensal disponível')))
+                  : (allAnnualPlans.isNotEmpty
+                      ? Column(children: allAnnualPlans)
+                      : const Center(child: Text('Nenhum plano anual disponível'))),
         ],
       ),
     );
   }
 
-  Widget _buildMonthlyPlans(List<Plano> monthlyPlans) {
-    // Filtrar planos específicos com lógica mais robusta
+  List<Widget> _buildMonthlyPlans(List<Plano> monthlyPlans) {
+    // Initialize list to hold plan cards
+    List<Widget> planCards = [];
+
+    // Try to find the "Gratuito" plan
     final gratuito = monthlyPlans.firstWhere(
       (plan) => plan.nome.toLowerCase().contains('gratuito'),
       orElse: () => Plano(
@@ -428,11 +465,12 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
 
+    // Try to find the "Básico Mensal" plan
     final basico = monthlyPlans.firstWhere(
       (plan) =>
           plan.nome.toLowerCase().contains('básico') &&
@@ -441,17 +479,18 @@ class _MyHomePageState extends State<MyHomePage> {
         id: 1,
         nome: 'Básico Mensal',
         descricao: 'Plano básico mensal com acesso a mais funcionalidades',
-        valor: 27.99,
+        valor: 24.90,
         quantidadeTags: 5,
         quantidadeFotos: 50,
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
 
+    // Try to find the "Avançado Mensal" plan
     final avancado = monthlyPlans.firstWhere(
       (plan) =>
           plan.nome.toLowerCase().contains('avançado') &&
@@ -460,49 +499,68 @@ class _MyHomePageState extends State<MyHomePage> {
         id: 2,
         nome: 'Avançado Mensal',
         descricao: 'Plano avançado mensal com todos os recursos',
-        valor: 49.99,
+        valor: 39.90,
         quantidadeTags: 10,
         quantidadeFotos: 100,
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
 
-    return Column(
-      children: [
-        _buildPlanCard(
-          gratuito,
-          selectedPlans[gratuito.id] ?? false,
-          () => selectPlan(gratuito.id),
-          () => navigateToCadastro(gratuito.id),
-          context,
-          isPopular: false,
-        ),
-        _buildPlanCard(
-          basico,
-          selectedPlans[basico.id] ?? false,
-          () => selectPlan(basico.id),
-          () => navigateToCadastro(basico.id),
-          context,
-          isPopular: false,
-        ),
-        _buildPlanCard(
-          avancado,
-          selectedPlans[avancado.id] ?? false,
-          () => selectPlan(avancado.id),
-          () => navigateToCadastro(avancado.id),
-          context,
-          isPopular: true,
-        ),
-      ],
+    // Add plans to selectedPlans if not already present
+    if (!selectedPlans.containsKey(gratuito.id)) {
+      selectedPlans[gratuito.id] = false;
+    }
+    if (!selectedPlans.containsKey(basico.id)) {
+      selectedPlans[basico.id] = false;
+    }
+    if (!selectedPlans.containsKey(avancado.id)) {
+      selectedPlans[avancado.id] = false;
+    }
+
+    // Add plan cards only for plans that were found or have valid fallbacks
+    planCards.add(
+      _buildPlanCard(
+        gratuito,
+        selectedPlans[gratuito.id] ?? false,
+        () => selectPlan(gratuito.id),
+        () => navigateToCadastro(gratuito.id),
+        context,
+        isPopular: false,
+      ),
     );
+    planCards.add(
+      _buildPlanCard(
+        basico,
+        selectedPlans[basico.id] ?? false,
+        () => selectPlan(basico.id),
+        () => navigateToCadastro(basico.id),
+        context,
+        isPopular: false,
+      ),
+    );
+    planCards.add(
+      _buildPlanCard(
+        avancado,
+        selectedPlans[avancado.id] ?? false,
+        () => selectPlan(avancado.id),
+        () => navigateToCadastro(avancado.id),
+        context,
+        isPopular: true,
+      ),
+    );
+
+    return planCards;
   }
 
-  Widget _buildAnnualPlans(List<Plano> annualPlans) {
-    // Filtrar planos anuais
+  List<Widget> _buildAnnualPlans(List<Plano> annualPlans) {
+    // Initialize list to hold plan cards
+    List<Widget> planCards = [];
+
+    // Try to find the "Básico Anual" plan
     final basicoAnual = annualPlans.firstWhere(
       (plan) => plan.nome.toLowerCase().contains('básico'),
       orElse: () => Plano(
@@ -515,11 +573,12 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
 
+    // Try to find the "Avançado Anual" plan
     final avancadoAnual = annualPlans.firstWhere(
       (plan) => plan.nome.toLowerCase().contains('avançado'),
       orElse: () => Plano(
@@ -532,31 +591,42 @@ class _MyHomePageState extends State<MyHomePage> {
         quantidadeConvites: 1,
         quantidadePastas: 1,
         status: 1,
-        frequenciaCobranca: 1, 
+        frequenciaCobranca: 1,
         tempoGratuidade: 1,
       ),
     );
 
-    return Column(
-      children: [
-        _buildPlanCard(
-          basicoAnual,
-          selectedPlans[basicoAnual.id] ?? false,
-          () => selectPlan(basicoAnual.id),
-          () => navigateToCadastro(basicoAnual.id),
-          context,
-          isPopular: false,
-        ),
-        _buildPlanCard(
-          avancadoAnual,
-          selectedPlans[avancadoAnual.id] ?? false,
-          () => selectPlan(avancadoAnual.id),
-          () => navigateToCadastro(avancadoAnual.id),
-          context,
-          isPopular: true,
-        ),
-      ],
+    // Add plans to selectedPlans if not already present
+    if (!selectedPlans.containsKey(basicoAnual.id)) {
+      selectedPlans[basicoAnual.id] = false;
+    }
+    if (!selectedPlans.containsKey(avancadoAnual.id)) {
+      selectedPlans[avancadoAnual.id] = false;
+    }
+
+    // Add plan cards only for plans that were found or have valid fallbacks
+    planCards.add(
+      _buildPlanCard(
+        basicoAnual,
+        selectedPlans[basicoAnual.id] ?? false,
+        () => selectPlan(basicoAnual.id),
+        () => navigateToCadastro(basicoAnual.id),
+        context,
+        isPopular: false,
+      ),
     );
+    planCards.add(
+      _buildPlanCard(
+        avancadoAnual,
+        selectedPlans[avancadoAnual.id] ?? false,
+        () => selectPlan(avancadoAnual.id),
+        () => navigateToCadastro(avancadoAnual.id),
+        context,
+        isPopular: true,
+      ),
+    );
+
+    return planCards;
   }
 
   Widget _buildPlanCard(
@@ -573,15 +643,15 @@ class _MyHomePageState extends State<MyHomePage> {
     return Center(
       child: Container(
         width: cardWidth,
-        margin: const EdgeInsets.symmetric(vertical: 1),
+        margin: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? Colors.green[50] : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Colors.black12,
               blurRadius: 8,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
           border: Border.all(
@@ -593,7 +663,6 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Badge "Mais Popular", se aplicável
             if (isPopular)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -612,7 +681,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             if (isPopular) const SizedBox(height: 12),
-            // Título do plano
             Text(
               plan.nome,
               style: TextStyle(
@@ -621,9 +689,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 color: isSelected ? const Color(0xFFaed513) : Colors.black87,
               ),
               textAlign: TextAlign.center,
+
             ),
             const SizedBox(height: 12),
-            // Descrição do plano
             Text(
               plan.descricao,
               style: TextStyle(
@@ -633,7 +701,6 @@ class _MyHomePageState extends State<MyHomePage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            // Preço
             Text(
               'R\$ ${plan.valor.toStringAsFixed(2)}',
               style: TextStyle(
@@ -644,9 +711,56 @@ class _MyHomePageState extends State<MyHomePage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            // Detalhes adicionais
             Text(
-              'Tags: ${plan.quantidadeTags} | Fotos: ${plan.quantidadeFotos}',
+              'Tags: ${plan.quantidadeTags}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Fotos: ${plan.quantidadeFotos}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Convites: ${plan.quantidadeConvites}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Pastas: ${plan.quantidadePastas}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Status: ${plan.status == 1 ? 'Ativo' : 'Inativo'}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Frequência: ${plan.frequenciaCobranca} mês(es)',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Gratuidade: ${plan.tempoGratuidade} mês(es)',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -654,7 +768,6 @@ class _MyHomePageState extends State<MyHomePage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-            // Botão de seleção
             ElevatedButton(
               onPressed: onSelect,
               style: ElevatedButton.styleFrom(
@@ -669,7 +782,6 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Text(isSelected ? 'Selecionado' : 'Selecionar'),
             ),
             const SizedBox(height: 12),
-            // Botão de assinatura
             TextButton(
               onPressed: onCadastrar,
               child: const Text(

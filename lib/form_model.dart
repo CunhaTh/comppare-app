@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 class FormModel extends ChangeNotifier {
   String _name = '';
   String _email = '';
-  String _celular = '';
-  String _cpf = '';
+  final String _celular = '';
+  final String _cpf = '';
 
   String get name => _name;
   String get email => _email;

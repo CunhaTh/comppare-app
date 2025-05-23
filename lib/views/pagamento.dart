@@ -10,24 +10,26 @@ import 'package:uuid/uuid.dart';
 import 'package:application_progress/cartao-token.dart';
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Checkout',
       theme: ThemeData(
-        primaryColor: Color(0xFFaed513),
-        hintColor: Color(0xFF3483FA),
-        appBarTheme: AppBarTheme(
+        primaryColor: const Color(0xFFaed513),
+        hintColor: const Color(0xFF3483FA),
+        appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFaed513),
           titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             foregroundColor: Colors.white,
-            backgroundColor: Color(0xFF3483FA),
+            backgroundColor: const Color(0xFF3483FA),
           ),
         ),
-        textTheme: TextTheme(
+        textTheme: const TextTheme(
           titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           bodyLarge: TextStyle(fontSize: 16),
         ),
@@ -40,7 +42,7 @@ class MyApp extends StatelessWidget {
 class CheckoutScreen extends StatefulWidget {
   final int? idPlano;
 
-  const CheckoutScreen({Key? key, required this.idPlano}) : super(key: key);
+  const CheckoutScreen({super.key, required this.idPlano});
 
   @override
   _CheckoutScreenState createState() => _CheckoutScreenState();
@@ -55,7 +57,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _qrCodeData;
 
   Future<String?> _generatePaymentToken() async {
-    final url =
+    const url =
         'https://seu-backend.com/generate_payment_token'; // Altere para o seu endpoint
     final response = await http.post(
       Uri.parse(url),
@@ -83,7 +85,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     String value = '80.00'; // Valor da compra (ajuste conforme necessário)
 
     _qrCodeData =
-        '00020101021129370014BR.GOV.BCB.PIX0136$pixCode5204000053039865405${(value.replaceAll('.', '') + '0000')}';
+        '00020101021129370014BR.GOV.BCB.PIX0136$pixCode5204000053039865405${('${value.replaceAll('.', '')}0000')}';
 
     setState(() {});
   }
@@ -126,13 +128,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => MyHomePage(
+                                  builder: (context) => const MyHomePage(
                                     title: '',
                                   ),
                                 ),
                               );
                             },
-                            child: Icon(Icons.logout)),
+                            child: const Icon(Icons.logout)),
                       );
                     },
                   ),
@@ -152,13 +154,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               'Resumo do Pedido',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            SizedBox(height: 10),
-            Text('Produto 1: R\$ 50,00'),
-            Text('Produto 2: R\$ 30,00'),
-            Divider(),
-            Text('Total: R\$ 80,00',
+            const SizedBox(height: 10),
+            const Text('Produto 1: R\$ 50,00'),
+            const Text('Produto 2: R\$ 30,00'),
+            const Divider(),
+            const Text('Total: R\$ 80,00',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               'Método de Pagamento',
               style: Theme.of(context).textTheme.titleLarge,
@@ -167,7 +169,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 ListTile(
-                  title: Text('Cartão de Crédito/Débito'),
+                  title: const Text('Cartão de Crédito/Débito'),
                   leading: Radio<String>(
                     value: 'cartao',
                     groupValue: _selectedPaymentMethod,
@@ -180,13 +182,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 ListTile(
-                  title: Text('PIX'),
+                  title: const Text('PIX'),
                   leading: Radio<String>(
                     value: 'pix',
                     groupValue: _selectedPaymentMethod,
                     onChanged: (value) {
                       // Método para gerar o QR Code
-                      void _generatePixQRCode(String pixCode) {
+                      void generatePixQRCode(String pixCode) {
                         setState(() {
                           _qrCodeData =
                               pixCode; // Defina a chave PIX ou o código que deseja usar para gerar o QR Code
@@ -195,59 +197,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                       setState(() {
                         _selectedPaymentMethod = value;
-                        _generatePixQRCode(
+                        generatePixQRCode(
                             'pixCode5204000053039865405'); // Gerar QR Code imediatamente
                       });
                     },
                   ),
                 ),
                 if (_selectedPaymentMethod == 'pix' && _qrCodeData != null) ...[
-                  SizedBox(height: 20),
-                  Text('Escaneie o QR Code para pagar:'),
+                  const SizedBox(height: 20),
+                  const Text('Escaneie o QR Code para pagar:'),
                   QrImageView(
                     data: _qrCodeData!,
                     version: QrVersions.auto,
                     size: 200.0,
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text('Código PIX: $_qrCodeData'),
                 ],
                 if (_selectedPaymentMethod == 'cartao') ...[
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _cardNumberController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Número do Cartão',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: _cardHolderController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Nome do Titular',
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _expiryDateController,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Data de Validade (MM/AA)',
                             border: OutlineInputBorder(),
                           ),
                           keyboardType: TextInputType.datetime,
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: _cvvController,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'CVV',
                             border: OutlineInputBorder(),
                           ),
@@ -259,7 +261,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -270,16 +272,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
-                backgroundColor: Color(0xFF637700),
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 25),
-                textStyle: TextStyle(fontSize: 17),
+                backgroundColor: const Color(0xFF637700),
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 25),
+                textStyle: const TextStyle(fontSize: 17),
               ),
               onPressed: () async {
                 if (_selectedPaymentMethod != null) {
                   if (_selectedPaymentMethod == 'cartao' &&
                       !_validateCreditCardFields()) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
+                      const SnackBar(
                           content: Text(
                               'Por favor, preencha todos os campos do cartão.')),
                     );
@@ -292,7 +294,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           context: context,
                           builder: (context) {
                             return AlertDialog(
-                              title: Text('Pagamento Realizado'),
+                              title: const Text('Pagamento Realizado'),
                               content: Text(
                                   'Pagamento realizado com sucesso. Token: $paymentToken'),
                               actions: [
@@ -306,7 +308,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       ),
                                     );
                                   },
-                                  child: Text('OK'),
+                                  child: const Text('OK'),
                                 ),
                               ],
                             );
@@ -322,20 +324,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                         content: Text(
                             'Por favor, selecione um método de pagamento.')),
                   );
                 }
               },
-              child: Text('Finalizar Compra'),
+              child: const Text('Finalizar Compra'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
-                backgroundColor: Color(0xFF3483FA),
-                padding: EdgeInsets.symmetric(horizontal: 45, vertical: 25),
-                textStyle: TextStyle(fontSize: 18),
+                backgroundColor: const Color(0xFF3483FA),
+                padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 25),
+                textStyle: const TextStyle(fontSize: 18),
               ),
               onPressed: () async {
                 const url =
@@ -346,7 +348,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   throw 'Não foi possível abrir o URL: $url';
                 }
               },
-              child: Text(
+              child: const Text(
                 'Mercado Pago',
                 style: TextStyle(fontSize: 16),
               ),

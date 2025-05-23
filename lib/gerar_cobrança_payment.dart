@@ -3,7 +3,7 @@
 import 'package:http/http.dart' as http;
 
   Future<String?> gerarPaymentToken(String numeroCartao, String codigoSeguranca, String validade) async {
-  final url = 'https://dev.efipay.com.br/docs/api-cobrancas/cartao'; // URL fictícia, substitua pela correta
+  const url = 'https://dev.efipay.com.br/docs/api-cobrancas/cartao'; // URL fictícia, substitua pela correta
   final response = await http.post(
     Uri.parse(url),
     headers: {
@@ -35,7 +35,7 @@ import 'package:http/http.dart' as http;
 }
 
 Future<bool> criarCobranca(String paymentToken, double valor) async {
-  final url = 'https://dev.efipay.com.br/docs/api-cobrancas/cartao'; // URL fictícia, substitua pela correta
+  const url = 'https://dev.efipay.com.br/docs/api-cobrancas/cartao'; // URL fictícia, substitua pela correta
   final response = await http.post(
     Uri.parse(url),
     headers: {

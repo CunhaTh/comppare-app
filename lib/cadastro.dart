@@ -257,7 +257,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             child: Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                 ),
                 padding: const EdgeInsets.all(20.0),
@@ -273,7 +273,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => MyHomePage(
+                                  builder: (context) => const MyHomePage(
                                     title: '',
                                   ),
                                 ),
@@ -287,7 +287,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                           ),
                         ),
                       ),
-                      Text(
+                      const Text(
                         'Registre-se!',
                         style: TextStyle(
                             fontSize: 18,

@@ -1,7 +1,6 @@
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/principal.dart';
-import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -18,15 +17,15 @@ class MyApp extends StatelessWidget {
       title: 'Login',
       theme: ThemeData(
         primaryColor: Colors.white,
-        scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206),
+        scaffoldBackgroundColor: const Color.fromARGB(255, 212, 213, 206),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.black),
           bodyMedium: TextStyle(color: Colors.black),
         ),
         colorScheme:
-            ColorScheme.fromSwatch().copyWith(secondary: Color(0xFFaed513)),
+            ColorScheme.fromSwatch().copyWith(secondary: const Color(0xFFaed513)),
       ),
-      home: LoginScreen(),
+      home: const LoginScreen(),
     );
   }
 }
@@ -48,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    final String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
+    const String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
     final Map<String, String> headers = {'Content-Type': 'application/json'};
     final Map<String, dynamic> body = {
       'cpf': _cpfController.text.trim().replaceAll(RegExp(r'\D'), ''),
@@ -123,10 +122,10 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       },
       style: ElevatedButton.styleFrom(
-        foregroundColor: Color.fromARGB(255, 251, 255, 250),
-        backgroundColor: Color(0xFF637700),
-        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-        textStyle: TextStyle(fontSize: 18),
+        foregroundColor: const Color.fromARGB(255, 251, 255, 250),
+        backgroundColor: const Color(0xFF637700),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+        textStyle: const TextStyle(fontSize: 18),
       ),
       child: Text(label),
     );
@@ -144,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                 ),
                 padding: const EdgeInsets.all(20.0),
@@ -156,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => MyHomePage(
+                            builder: (context) => const MyHomePage(
                               title: '',
                             ),
                           ),
@@ -205,9 +204,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                     horizontal: 80, vertical: 20),
-                                textStyle: TextStyle(fontSize: 18),
+                                textStyle: const TextStyle(fontSize: 18),
                               ),
                               onPressed: _isLoading ? null : _login,
                               child: _isLoading
@@ -221,21 +220,21 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                     horizontal: 60, vertical: 20),
-                                textStyle: TextStyle(fontSize: 18),
+                                textStyle: const TextStyle(fontSize: 18),
                               ),
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => CadastroScreen(
+                                    builder: (context) => const CadastroScreen(
                                       idPlano: null,
                                     ),
                                   ),
                                 );
                               },
-                              child: Text('Cadastrar',
+                              child: const Text('Cadastrar',
                                   style: TextStyle(color: Colors.white)),
                             ),
                           ]),
@@ -244,11 +243,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.only(top: 30),
                       child: GestureDetector(
                         onTap: () {},
-                        child: Text(
+                        child: const Text(
                           'Esqueceu a senha?',
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: const Color.fromARGB(165, 0, 0, 0)),
+                              color: Color.fromARGB(165, 0, 0, 0)),
                         ),
                       ),
                     )
@@ -290,7 +289,7 @@ class HomeScreen extends StatelessWidget {
               // Aqui você pode adicionar mais botões no menu superior
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  backgroundColor: const Color(0xFF637700), // Cor do botão
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -308,7 +307,7 @@ class HomeScreen extends StatelessWidget {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  backgroundColor: const Color(0xFF637700), // Cor do botão
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -326,7 +325,7 @@ class HomeScreen extends StatelessWidget {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  backgroundColor: const Color(0xFF637700), // Cor do botão
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -344,7 +343,7 @@ class HomeScreen extends StatelessWidget {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF637700), // Cor do botão
+                  backgroundColor: const Color(0xFF637700), // Cor do botão
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -376,12 +375,12 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => CustomScreen()));
+                            builder: (context) => const CustomScreen()));
                   },
                   child: Container(
-                    padding: EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      color: Color(0xFF637700),
+                      color: const Color(0xFF637700),
                       borderRadius: BorderRadius.circular(12.0),
                     ),
                     child: const Text('Ir para Custom Screen',
@@ -407,8 +406,8 @@ class CustomScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Tela de Customização'),
       ),
-      body: Center(
-        child: const Text('Aqui é a tela de customização!'),
+      body: const Center(
+        child: Text('Aqui é a tela de customização!'),
       ),
     );
   }

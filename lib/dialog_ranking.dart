@@ -4,7 +4,7 @@ import 'package:collection/collection.dart'; // Para usar firstWhereOrNull (opci
 import 'app_colors.dart';
 import 'infra/repositories/ranking_repository.dart';
 import 'infra/user_helper.dart';
-import 'models/ranking_item_model.dart'; // Importar o modelo centralizado
+// Importar o modelo centralizado
 
 class DialogRanking extends StatefulWidget {
   const DialogRanking({super.key});

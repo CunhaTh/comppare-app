@@ -6,6 +6,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -29,12 +31,14 @@ class Folder {
 }
 
 class PrincipalPage extends StatefulWidget {
+  const PrincipalPage({super.key});
+
   @override
   _PrincipalPageState createState() => _PrincipalPageState();
 }
 
 class _PrincipalPageState extends State<PrincipalPage> {
-  List<Folder> _folders = [];
+  final List<Folder> _folders = [];
   String _searchQuery = '';
 
   TextEditingController folderNameController = TextEditingController();
@@ -59,14 +63,14 @@ class _PrincipalPageState extends State<PrincipalPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Criar Album'),
+          title: const Text('Criar Album'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: folderNameController,
-                  decoration: InputDecoration(hintText: "Nome da Pasta"),
+                  decoration: const InputDecoration(hintText: "Nome da Pasta"),
                 ),
                 DropdownButton<String>(
                   value: selectedCategory,
@@ -82,7 +86,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     );
                   }).toList(),
                 ),
-                SizedBox(height: 10)
+                const SizedBox(height: 10)
               ],
             ),
           ),
@@ -99,11 +103,11 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Por favor, insira um nome para a pasta.')),
+                    const SnackBar(content: Text('Por favor, insira um nome para a pasta.')),
                   );
                 }
               },
-              child: Text('Salvar'),
+              child: const Text('Salvar'),
             ),
           ],
         );
@@ -135,34 +139,34 @@ class _PrincipalPageState extends State<PrincipalPage> {
       body: Padding(
         padding: const EdgeInsets.only(),
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.black,
           ),
           child: Column(
             children: [
-              SizedBox(height: 49),
+              const SizedBox(height: 49),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
                     onPressed: _showAModal,
-                    child: Icon(Icons.add_a_photo, size: 50),
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.black,
-                      backgroundColor: Color(0xFFaed513),
-                      padding: EdgeInsets.symmetric(horizontal: 25, vertical: 30),
+                      backgroundColor: const Color(0xFFaed513),
+                      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
                     ),
+                    child: Icon(Icons.add_a_photo, size: 50),
                   ),
                   GestureDetector(
                     onTap: _showAModal,
-                    child: Text(
+                    child: const Text(
                       'Aperte aqui para criar um novo álbum',
                       style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.only(bottom: 100),
                 child: TextField(
@@ -173,15 +177,15 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   },
                   decoration: InputDecoration(
                     hintText: 'Buscar pastas...',
-                    hintStyle: TextStyle(color: Colors.white54),
+                    hintStyle: const TextStyle(color: Colors.white54),
                     filled: true,
                     fillColor: Colors.white10,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.white),
+                      borderSide: const BorderSide(color: Colors.white),
                     ),
                   ),
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ],
@@ -206,7 +210,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     onTap: () {
                       Navigator.of(context).pop();
                     },
-                    child: CircleAvatar(
+                    child: const CircleAvatar(
                       backgroundColor: Colors.black,
                       child: Icon(
                         Icons.close,
@@ -218,7 +222,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 ),
               ],
             ),
-            Divider(color: Colors.black),
+            const Divider(color: Colors.black),
             // Outros itens do Drawer...
           ],
         ),
