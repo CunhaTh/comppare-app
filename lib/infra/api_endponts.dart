@@ -12,4 +12,5 @@ class ApiEndpoints {
   static String get getChatQuestions => '$baseUrl/questoes/listar';
   static String get sendChatQuestion => '$baseUrl/questoes/salvar';
   static String get checkUpdatePlan => '$baseUrl/usuarios/atualizar-plano';
+  static String get getPlans => '$baseUrl/planos/listar';
 }
