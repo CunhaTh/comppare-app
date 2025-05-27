@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/comppareimg.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'dart:html' as html;
 
 class AlbunsCriados extends StatefulWidget {
@@ -41,22 +44,182 @@ class ImageGroup {
   final String subAlbumName;
   final List<ImageItem> images;
   List<String> tags;
+  final DateTime? creationDate;
 
   ImageGroup({
     required this.subAlbumName,
     required this.images,
     this.tags = const [],
+    this.creationDate,
   });
 }
 
 class _AlbunsCriados extends State<AlbunsCriados> {
   final ImagePicker _picker = ImagePicker();
   List<SubAlbum> subAlbums = [];
-  List<Folder> _folders = [];
   List<ImageGroup> imageGroups = [];
+  bool isLoading = false;
+
+  Future<void> _createSubAlbum(String folderName, String subAlbumName, List<String> tags, List<String> imageUrls) async {
+    final url = Uri.parse("https://api.comppare.com.br/api/pasta/create");
+    const int userId = 2;
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'idUsuario': userId,
+          'nomePasta': '$folderName/$subAlbumName',
+          'tags': tags,
+          'imagens': imageUrls,
+        }),
+      ).timeout(const Duration(seconds: 30), onTimeout: () {
+        throw TimeoutException('A requisição demorou muito para responder.');
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic> && data['data'] != null) {
+          return;
+        }
+        throw Exception('Dados inválidos retornados pela API: ${response.body}');
+      } else {
+        throw Exception('Falha ao criar subálbum: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Erro na requisição: $e');
+    }
+  }
+
+  Future<String> _uploadImage(Uint8List imageData, String subAlbumName) async {
+    final url = Uri.parse("https://api.comppare.com.br/api/imagem/upload"); // Ajuste o endpoint conforme sua API
+    const int userId = 2;
+
+    try {
+      var request = http.MultipartRequest('POST', url)
+        ..fields['idUsuario'] = userId.toString()
+        ..fields['subAlbumName'] = subAlbumName
+        ..files.add(http.MultipartFile.fromBytes(
+          'imagem',
+          imageData,
+          filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ));
+
+      final response = await request.send().timeout(const Duration(seconds: 30));
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(responseBody);
+        if (data is Map<String, dynamic> && data['data'] != null && data['data']['url'] != null) {
+          return data['data']['url'];
+        }
+        throw Exception('URL da imagem não retornada pela API: $responseBody');
+      } else {
+        throw Exception('Falha ao fazer upload da imagem: ${response.statusCode} - $responseBody');
+      }
+    } catch (e) {
+      throw Exception('Erro ao fazer upload da imagem: $e');
+    }
+  }
+
+  Future<void> _addMultipleImages() async {
+    SubAlbumData? subAlbumData = await _promptSubAlbumName();
+    if (subAlbumData == null || subAlbumData.name.isEmpty) return;
+
+    List<ImageItem> newImages = [];
+    List<String> imageUrls = [];
+
+    // Armazenar o BuildContext antes da operação assíncrona
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      if (kIsWeb) {
+        final uploadInput = html.FileUploadInputElement()..multiple = true;
+        uploadInput.accept = 'image/*';
+        uploadInput.click();
+
+        await uploadInput.onChange.first;
+        final files = uploadInput.files;
+        if (files == null || files.isEmpty) return;
+
+        for (var file in files) {
+          final reader = html.FileReader();
+          reader.readAsArrayBuffer(file);
+          await reader.onLoadEnd.first;
+          final data = reader.result;
+          if (data != null && data is Uint8List) {
+            final imageUrl = await _uploadImage(data, subAlbumData.name);
+            newImages.add(ImageItem(
+              imageData: data,
+              subAlbumName: subAlbumData.name,
+            ));
+            imageUrls.add(imageUrl);
+          }
+        }
+      } else {
+        final List<XFile>? images = await _picker.pickMultiImage();
+        if (images == null || images.isEmpty) return;
+
+        for (var image in images) {
+          final bytes = await File(image.path).readAsBytes();
+          final imageUrl = await _uploadImage(bytes, subAlbumData.name);
+          newImages.add(ImageItem(
+            imageData: bytes,
+            subAlbumName: subAlbumData.name,
+          ));
+          imageUrls.add(imageUrl);
+        }
+      }
+
+      if (newImages.isEmpty) return;
+
+      await _createSubAlbum(
+        widget.folderName,
+        subAlbumData.name,
+        subAlbumData.tags,
+        imageUrls,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        imageGroups.add(ImageGroup(
+          subAlbumName: subAlbumData.name,
+          images: newImages,
+          tags: subAlbumData.tags,
+          creationDate: DateTime.now(),
+        ));
+      });
+
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Subálbum e imagens salvos com sucesso!')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      // Logar o erro para depuração
+      debugPrint('Erro ao salvar subálbum ou imagens: $error');
+      // Garantir que a mensagem de erro seja uma string
+      final errorMessage = error.toString().replaceFirst('Exception: ', '');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Erro ao salvar subálbum ou imagens: $errorMessage')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   void _showSaveDialog(Uint8List imageData) {
-    final TextEditingController _nameController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
 
     showDialog(
       context: context,
@@ -67,7 +230,7 @@ class _AlbunsCriados extends State<AlbunsCriados> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nameController,
+                controller: nameController,
                 decoration: const InputDecoration(labelText: 'Nome do Subálbum'),
               ),
               const SizedBox(height: 10),
@@ -82,31 +245,39 @@ class _AlbunsCriados extends State<AlbunsCriados> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
-                String name = _nameController.text.trim();
+              onPressed: () async {
+                String name = nameController.text.trim();
                 if (name.isNotEmpty) {
-                  setState(() {
-                    SubAlbum? existing = subAlbums.firstWhere(
-                      (sub) => sub.name == name,
-                      orElse: () => SubAlbum(name: name, images: []),
-                    );
+                  try {
+                    final imageUrl = await _uploadImage(imageData, name);
+                    setState(() {
+                      SubAlbum? existing = subAlbums.firstWhere(
+                        (sub) => sub.name == name,
+                        orElse: () => SubAlbum(name: name, images: []),
+                      );
 
-                    if (subAlbums.contains(existing)) {
-                      existing.images.add(
-                        ImageItem(imageData: imageData, subAlbumName: name),
-                      );
-                    } else {
-                      subAlbums.add(
-                        SubAlbum(
-                          name: name,
-                          images: [
-                            ImageItem(imageData: imageData, subAlbumName: name),
-                          ],
-                        ),
-                      );
-                    }
-                  });
-                  Navigator.of(context).pop();
+                      if (subAlbums.contains(existing)) {
+                        existing.images.add(
+                          ImageItem(imageData: imageData, subAlbumName: name),
+                        );
+                      } else {
+                        subAlbums.add(
+                          SubAlbum(
+                            name: name,
+                            images: [
+                              ImageItem(imageData: imageData, subAlbumName: name),
+                            ],
+                          ),
+                        );
+                      }
+                    });
+                    await _createSubAlbum(widget.folderName, name, [], [imageUrl]);
+                    Navigator.of(context).pop();
+                  } catch (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erro ao salvar subálbum: $error')),
+                    );
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('O nome do subálbum não pode estar vazio.')),
@@ -114,6 +285,54 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                 }
               },
               child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _addMoreTags(BuildContext context, ImageGroup group) async {
+    TextEditingController tagsController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Adicionar Tags'),
+          content: TextField(
+            controller: tagsController,
+            decoration: const InputDecoration(
+              labelText: 'Digite novas tags (separadas por vírgula)',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                List<String> newTags = tagsController.text
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .where((tag) => tag.isNotEmpty)
+                    .toList();
+                setState(() {
+                  group.tags.addAll(newTags.where((tag) => !group.tags.contains(tag)));
+                });
+                try {
+                  await _createSubAlbum(widget.folderName, group.subAlbumName, group.tags, []);
+                  Navigator.of(context).pop();
+                } catch (error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao atualizar tags: $error')),
+                  );
+                }
+              },
+              child: const Text('Adicionar'),
             ),
           ],
         );
@@ -179,75 +398,7 @@ class _AlbunsCriados extends State<AlbunsCriados> {
     );
   }
 
-  Future<void> _addMultipleImages() async {
-    SubAlbumData? subAlbumData;
-    List<Uint8List> savedImages = [];
-
-    if (kIsWeb) {
-      html.FileUploadInputElement uploadInput = html.FileUploadInputElement()..multiple = true;
-      uploadInput.accept = 'image/*';
-      uploadInput.click();
-
-      uploadInput.onChange.listen((e) async {
-        final files = uploadInput.files;
-        if (files == null || files.isEmpty) return;
-
-        if (subAlbumData == null) {
-          subAlbumData = await _promptSubAlbumName();
-          if (subAlbumData == null || subAlbumData!.name.isEmpty) {
-            return;
-          }
-        }
-
-        List<ImageItem> newImages = [];
-
-        for (var file in files) {
-          final reader = html.FileReader();
-          reader.readAsArrayBuffer(file);
-          await reader.onLoadEnd.first;
-          final data = reader.result;
-          if (data != null && data is Uint8List) {
-            newImages.add(ImageItem(imageData: data, subAlbumName: subAlbumData!.name));
-          }
-        }
-
-        setState(() {
-          imageGroups.add(ImageGroup(
-            subAlbumName: subAlbumData!.name,
-            images: newImages,
-            tags: subAlbumData!.tags,
-          ));
-        });
-      });
-    } else {
-      final List<XFile>? images = await _picker.pickMultiImage();
-      if (images != null && images.isNotEmpty) {
-        if (subAlbumData == null) {
-          subAlbumData = await _promptSubAlbumName();
-          if (subAlbumData == null || subAlbumData!.name.isEmpty) {
-            return;
-          }
-        }
-
-        List<ImageItem> newImages = [];
-
-        for (var image in images) {
-          final bytes = await File(image.path).readAsBytes();
-          newImages.add(ImageItem(imageData: bytes, subAlbumName: subAlbumData!.name));
-        }
-
-        setState(() {
-          imageGroups.add(ImageGroup(
-            subAlbumName: subAlbumData!.name,
-            images: newImages,
-            tags: subAlbumData!.tags,
-          ));
-        });
-      }
-    }
-  }
-
-Future<void> _editSubAlbum(int groupIndex) async {
+  Future<void> _editSubAlbum(int groupIndex) async {
     TextEditingController tagsController = TextEditingController(
       text: imageGroups[groupIndex].tags.join(', '),
     );
@@ -264,34 +415,32 @@ Future<void> _editSubAlbum(int groupIndex) async {
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Botão para adicionar fotos
                     if (kIsWeb)
                       ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           html.FileUploadInputElement uploadInput = html.FileUploadInputElement()
                             ..multiple = true;
                           uploadInput.accept = 'image/*';
                           uploadInput.click();
 
-                          uploadInput.onChange.listen((e) async {
-                            final files = uploadInput.files;
-                            if (files != null && files.isNotEmpty) {
-                              for (var file in files) {
-                                final reader = html.FileReader();
-                                reader.readAsArrayBuffer(file);
-                                await reader.onLoadEnd.first;
-                                final data = reader.result;
-                                if (data != null && data is Uint8List) {
-                                  setState(() {
-                                    newImages.add(ImageItem(
-                                      imageData: data,
-                                      subAlbumName: imageGroups[groupIndex].subAlbumName,
-                                    ));
-                                  });
-                                }
+                          await uploadInput.onChange.first;
+                          final files = uploadInput.files;
+                          if (files != null && files.isNotEmpty) {
+                            for (var file in files) {
+                              final reader = html.FileReader();
+                              reader.readAsArrayBuffer(file);
+                              await reader.onLoadEnd.first;
+                              final data = reader.result;
+                              if (data != null && data is Uint8List) {
+                                setState(() {
+                                  newImages.add(ImageItem(
+                                    imageData: data,
+                                    subAlbumName: imageGroups[groupIndex].subAlbumName,
+                                  ));
+                                });
                               }
                             }
-                          });
+                          }
                         },
                         child: const Text('Adicionar Fotos (Web)'),
                       )
@@ -314,7 +463,6 @@ Future<void> _editSubAlbum(int groupIndex) async {
                         child: const Text('Adicionar Fotos (Mobile)'),
                       ),
                     const SizedBox(height: 16),
-                    // Pré-visualização das novas imagens
                     if (newImages.isNotEmpty) ...[
                       const Text(
                         'Novas Imagens:',
@@ -323,7 +471,7 @@ Future<void> _editSubAlbum(int groupIndex) async {
                       const SizedBox(height: 8),
                       Container(
                         constraints: const BoxConstraints(
-                          maxHeight: 150, // Limita a altura da pré-visualização
+                          maxHeight: 150,
                         ),
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -368,7 +516,6 @@ Future<void> _editSubAlbum(int groupIndex) async {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    // Campo para editar tags
                     TextField(
                       controller: tagsController,
                       decoration: const InputDecoration(
@@ -389,17 +536,34 @@ Future<void> _editSubAlbum(int groupIndex) async {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 List<String> updatedTags = tagsController.text
                     .split(',')
                     .map((tag) => tag.trim())
                     .where((tag) => tag.isNotEmpty)
                     .toList();
-                setState(() {
-                  imageGroups[groupIndex].images.addAll(newImages);
-                  imageGroups[groupIndex].tags = updatedTags;
-                });
-                Navigator.of(context).pop();
+                List<String> imageUrls = [];
+                try {
+                  for (var image in newImages) {
+                    final imageUrl = await _uploadImage(image.imageData, imageGroups[groupIndex].subAlbumName);
+                    imageUrls.add(imageUrl);
+                  }
+                  setState(() {
+                    imageGroups[groupIndex].images.addAll(newImages);
+                    imageGroups[groupIndex].tags = updatedTags;
+                  });
+                  await _createSubAlbum(
+                    widget.folderName,
+                    imageGroups[groupIndex].subAlbumName,
+                    updatedTags,
+                    imageUrls,
+                  );
+                  Navigator.of(context).pop();
+                } catch (error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao atualizar subálbum: $error')),
+                  );
+                }
               },
               child: const Text('Salvar'),
             ),
@@ -411,6 +575,8 @@ Future<void> _editSubAlbum(int groupIndex) async {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -463,7 +629,7 @@ Future<void> _editSubAlbum(int groupIndex) async {
                           child: Padding(
                             padding: const EdgeInsets.only(left: 30, top: 5),
                             child: Text(
-                              '${widget.folderName}',
+                              widget.folderName,
                               style: const TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -473,67 +639,144 @@ Future<void> _editSubAlbum(int groupIndex) async {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 50),
               Expanded(
-                child: GestureDetector(
-                  child: Card(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            child: GridView.builder(
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 0.95,
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        itemCount: imageGroups.length,
+                        itemBuilder: (context, index) {
+                          final group = imageGroups[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ImagemDetalhesPage(
+                                    images: group.images.map((img) => img.imageData).toList(),
+                                    tags: group.tags,
+                                    subAlbumName: group.subAlbumName,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              color: Colors.grey[900],
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    group.images.isNotEmpty
+                                        ? Image.memory(
+                                            group.images.first.imageData,
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : const Icon(
+                                            Icons.photo_album,
+                                            size: 40,
+                                            color: Colors.white,
+                                          ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'subalbum: ${group.subAlbumName}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            group.creationDate != null
+                                                ? group.creationDate!.toLocal().toString().split(' ')[0]
+                                                : 'Sem data',
+                                            style: const TextStyle(
+                                              color: Color.fromARGB(108, 255, 255, 255),
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          if (group.tags.isNotEmpty)
+                                            Wrap(
+                                              spacing: 4.0,
+                                              runSpacing: 4.0,
+                                              children: group.tags
+                                                  .map((tag) => Chip(
+                                                        label: Text(
+                                                          tag,
+                                                          style: const TextStyle(fontSize: 12),
+                                                        ),
+                                                        backgroundColor: Colors.grey[300],
+                                                        padding:
+                                                            const EdgeInsets.symmetric(horizontal: 8.0),
+                                                      ))
+                                                  .toList(),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 48,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.start,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Color(0xFFaed513),
+                                            ),
+                                            onPressed: () => _editSubAlbum(index),
+                                            tooltip: 'Editar subálbum',
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.add_circle,
+                                              color: Color(0xFFaed513),
+                                            ),
+                                            onPressed: () => _addMoreTags(context, group),
+                                            tooltip: 'Adicionar mais tags',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              itemCount: imageGroups.length,
-                              itemBuilder: (context, index) {
-                                final group = imageGroups[index];
-                                return ImageGroupWidget(
-                                  group: group,
-                                  onEdit: () => _editSubAlbum(index),
-                                );
-                              },
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  onTap: () {
-                    if (imageGroups.isNotEmpty) {
-                      final selectedGroup = imageGroups[0];
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ImagemDetalhesPage(
-                            images: selectedGroup.images.map((img) => img.imageData).toList(),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
-          Positioned(
-            left: 220,
-            right: 220,
-            bottom: 120,
-            child: FloatingActionButton(
-              backgroundColor: const Color(0xFFaed513),
-              onPressed: () async {
-                await _addMultipleImages();
-              },
-              child: const Icon(
-                Icons.add_a_photo,
-                color: Colors.black,
-                size: 30,
+          Padding(
+            padding: const EdgeInsets.only(top: 600),
+            child: Center(
+              child: ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  await _addMultipleImages();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFaed513),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                  ),
+                  elevation: 5,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                ),
+                child: const Icon(
+                  Icons.add_a_photo,
+                  size: 35,
+                ),
               ),
             ),
           ),
@@ -547,14 +790,13 @@ class ImageGroupWidget extends StatefulWidget {
   final ImageGroup group;
   final VoidCallback onEdit;
 
-  const ImageGroupWidget({Key? key, required this.group, required this.onEdit}) : super(key: key);
+  const ImageGroupWidget({super.key, required this.group, required this.onEdit});
 
   @override
   State<ImageGroupWidget> createState() => _ImageGroupWidgetState();
 }
 
 class _ImageGroupWidgetState extends State<ImageGroupWidget> {
-  // Função para adicionar mais tags
   Future<void> _addMoreTags(BuildContext context) async {
     TextEditingController tagsController = TextEditingController();
 
@@ -577,17 +819,31 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 List<String> newTags = tagsController.text
                     .split(',')
                     .map((tag) => tag.trim())
                     .where((tag) => tag.isNotEmpty)
                     .toList();
                 setState(() {
-                  // Adiciona novas tags à lista existente, evitando duplicatas
                   widget.group.tags.addAll(newTags.where((tag) => !widget.group.tags.contains(tag)));
                 });
-                Navigator.of(context).pop();
+                try {
+                  final albunsCriadosState = context.findAncestorStateOfType<_AlbunsCriados>();
+                  if (albunsCriadosState != null) {
+                    await albunsCriadosState._createSubAlbum(
+                      albunsCriadosState.widget.folderName,
+                      widget.group.subAlbumName,
+                      widget.group.tags,
+                      [],
+                    );
+                  }
+                  Navigator.of(context).pop();
+                } catch (error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao atualizar tags: $error')),
+                  );
+                }
               },
               child: const Text('Adicionar'),
             ),
@@ -599,176 +855,216 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: [
-        Card(
-          color: const Color.fromARGB(255, 223, 223, 223),
-          margin: const EdgeInsets.all(12).copyWith(top: 30),
-          elevation: 4,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.group.images.length == 1) ...[
-                Expanded(
-                  child: Image.memory(
-                    widget.group.images.first.imageData,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (widget.group.tags.isNotEmpty)
-                            Expanded(
-                              child: Wrap(
-                                alignment: WrapAlignment.center,
-                                spacing: 4.0,
-                                children: widget.group.tags.map((tag) => Chip(
-                                      label: Text(tag),
-                                      backgroundColor: Colors.grey[300],
-                                    )).toList(),
-                              ),
-                            ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle, color: Color(0xFFaed513)),
-                            onPressed: () => _addMoreTags(context),
-                            tooltip: 'Adicionar mais tags',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFaed513),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onPressed: widget.onEdit,
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('Adicionar', style: TextStyle(fontWeight: FontWeight.bold)),
-                            SizedBox(width: 8),
-                            Icon(Icons.add),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else ...[
-                Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(4),
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 4,
-                      mainAxisSpacing: 4,
-                      childAspectRatio: 1,
-                    ),
-                    itemCount: widget.group.images.length,
-                    itemBuilder: (context, index) {
-                      final imageItem = widget.group.images[index];
-                      return Image.memory(
-                        imageItem.imageData,
+    final screenWidth = MediaQuery.of(context).size.width;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = (constraints.maxWidth / (screenWidth * 0.33)).floor().clamp(1, 4);
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Card(
+              color: const Color.fromARGB(255, 223, 223, 223),
+              margin: EdgeInsets.all(screenWidth * 0.033).copyWith(top: screenWidth * 0.083),
+              elevation: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.group.images.length == 1) ...[
+                    Expanded(
+                      child: Image.memory(
+                        widget.group.images.first.imageData,
                         fit: BoxFit.cover,
-                      );
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(screenWidth * 0.033),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          if (widget.group.tags.isNotEmpty)
-                            Expanded(
-                              child: Wrap(
-                                alignment: WrapAlignment.center,
-                                spacing: 4.0,
-                                children: widget.group.tags.map((tag) => Chip(
-                                      label: Text(tag),
-                                      backgroundColor: Colors.grey[300],
-                                    )).toList(),
+                          SizedBox(height: screenWidth * 0.022),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (widget.group.tags.isNotEmpty)
+                                Expanded(
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    spacing: screenWidth * 0.011,
+                                    runSpacing: screenWidth * 0.011,
+                                    children: widget.group.tags
+                                        .map((tag) => Chip(
+                                              label: Text(
+                                                tag,
+                                                style: TextStyle(fontSize: 12 * MediaQuery.of(context).textScaleFactor),
+                                              ),
+                                              backgroundColor: Colors.grey[300],
+                                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.022),
+                                            ))
+                                        .toList(),
+                                  ),
+                                ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.add_circle,
+                                  color: const Color(0xFFaed513),
+                                  size: screenWidth * 0.067,
+                                ),
+                                onPressed: () => _addMoreTags(context),
+                                tooltip: 'Adicionar mais tags',
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: screenWidth * 0.033),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFaed513),
+                              foregroundColor: Colors.black,
+                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.044, vertical: screenWidth * 0.033),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(screenWidth * 0.022),
                               ),
                             ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle, color: Color(0xFFaed513)),
-                            onPressed: () => _addMoreTags(context),
-                            tooltip: 'Adicionar mais tags',
+                            onPressed: widget.onEdit,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Editar',
+                                  style: TextStyle(
+                                    fontSize: 15 * MediaQuery.of(context).textScaleFactor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: screenWidth * 0.022),
+                                Icon(Icons.edit, size: screenWidth * 0.056),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFaed513),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                    ),
+                  ] else ...[
+                    Expanded(
+                      child: GridView.builder(
+                        padding: EdgeInsets.all(screenWidth * 0.011),
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: screenWidth * 0.011,
+                          mainAxisSpacing: screenWidth * 0.011,
+                          childAspectRatio: 1,
                         ),
-                        onPressed: widget.onEdit,
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('Adicionar', style: TextStyle(fontWeight: FontWeight.bold)),
-                            SizedBox(width: 8),
-                            Icon(Icons.add),
-                          ],
-                        ),
+                        itemCount: widget.group.images.length,
+                        itemBuilder: (context, index) {
+                          final imageItem = widget.group.images[index];
+                          return Image.memory(
+                            imageItem.imageData,
+                            fit: BoxFit.cover,
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        Positioned(
-          top: -15,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFaed513),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              widget.group.subAlbumName,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(screenWidth * 0.033),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(height: screenWidth * 0.022),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (widget.group.tags.isNotEmpty)
+                                Expanded(
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    spacing: screenWidth * 0.011,
+                                    runSpacing: screenWidth * 0.011,
+                                    children: widget.group.tags
+                                        .map((tag) => Chip(
+                                              label: Text(
+                                                tag,
+                                                style: TextStyle(fontSize: 12 * MediaQuery.of(context).textScaleFactor),
+                                              ),
+                                              backgroundColor: Colors.grey[300],
+                                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.022),
+                                            ))
+                                        .toList(),
+                                  ),
+                                ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.add_circle,
+                                  color: const Color(0xFFaed513),
+                                  size: screenWidth * 0.067,
+                                ),
+                                onPressed: () => _addMoreTags(context),
+                                tooltip: 'Adicionar mais tags',
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: screenWidth * 0.033),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFaed513),
+                              foregroundColor: Colors.black,
+                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.044, vertical: screenWidth * 0.033),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(screenWidth * 0.022),
+                              ),
+                            ),
+                            onPressed: widget.onEdit,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Editar',
+                                  style: TextStyle(
+                                    fontSize: 15 * MediaQuery.of(context).textScaleFactor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: screenWidth * 0.022),
+                                Icon(Icons.edit, size: screenWidth * 0.056),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
-        ),
-      ],
+            Positioned(
+              top: -(screenWidth * 0.042),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.033, vertical: screenWidth * 0.011),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFaed513),
+                  borderRadius: BorderRadius.circular(screenWidth * 0.022),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: screenWidth * 0.011,
+                      offset: Offset(0, screenWidth * 0.0056),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  widget.group.subAlbumName,
+                  style: TextStyle(
+                    fontSize: 16 * MediaQuery.of(context).textScaleFactor,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

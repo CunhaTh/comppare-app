@@ -8,6 +8,8 @@ import 'dart:html' as html;
 
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -32,13 +34,15 @@ class Folder {
 }
 
 class PrincipalPage extends StatefulWidget {
+  const PrincipalPage({super.key});
+
   @override
   _PrincipalPage createState() => _PrincipalPage();
 }
 
 class _PrincipalPage extends State<PrincipalPage> {
-  List<Uint8List?> _images = [];
-  List<Folder> _folders = [];
+  final List<Uint8List?> _images = [];
+  final List<Folder> _folders = [];
   final ImagePicker _picker = ImagePicker();
   String _searchQuery = '';
 
@@ -65,14 +69,14 @@ class _PrincipalPage extends State<PrincipalPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Criar Album'),
+          title: const Text('Criar Album'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: folderNameController,
-                  decoration: InputDecoration(hintText: "Nome da Pasta"),
+                  decoration: const InputDecoration(hintText: "Nome da Pasta"),
                 ),
                 DropdownButton<String>(
                   value: selectedCategory,
@@ -88,10 +92,10 @@ class _PrincipalPage extends State<PrincipalPage> {
                     );
                   }).toList(),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: _addImage,
-                  child: Text('Selecionar Imagem'),
+                  child: const Text('Selecionar Imagem'),
                 ),
               ],
             ),
@@ -105,11 +109,11 @@ class _PrincipalPage extends State<PrincipalPage> {
                   Navigator.of(context).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Por favor, adicione imagens antes de salvar.')),
+                    const SnackBar(content: Text('Por favor, adicione imagens antes de salvar.')),
                   );
                 }
               },
-              child: Text('Salvar'),
+              child: const Text('Salvar'),
             ),
           ],
         );
@@ -147,7 +151,7 @@ class _PrincipalPage extends State<PrincipalPage> {
   void _compareImages(List<Uint8List> images) {
     if (images.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Adicione pelo menos dez fotos para comparar')),
+        const SnackBar(content: Text('Adicione pelo menos dez fotos para comparar')),
       );
       return;
     }
@@ -171,7 +175,7 @@ class _PrincipalPage extends State<PrincipalPage> {
             onPressed: () {
               Navigator.of(ctx).pop();
             },
-            child: Icon(Icons.close),
+            child: const Icon(Icons.close),
           ),
         ],
       ),
@@ -186,7 +190,7 @@ class _PrincipalPage extends State<PrincipalPage> {
           _compareImages(images);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Esta pasta não contém imagens.')),
+            const SnackBar(content: Text('Esta pasta não contém imagens.')),
           );
         }
       },
@@ -203,7 +207,7 @@ class _PrincipalPage extends State<PrincipalPage> {
           child: Center(
             child: Text(
               folderName,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
               textAlign: TextAlign.center,
             ),
           ),
@@ -246,7 +250,7 @@ class _PrincipalPage extends State<PrincipalPage> {
                       ),
                     );
                   },
-                  child: Icon(Icons.logout),
+                  child: const Icon(Icons.logout),
                 ),
               );
             },
@@ -254,7 +258,7 @@ class _PrincipalPage extends State<PrincipalPage> {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.black,
         ),
         child: Padding(
@@ -273,17 +277,17 @@ class _PrincipalPage extends State<PrincipalPage> {
                               padding: const EdgeInsets.only(right: 20, top: 10, bottom: 10),
                               child: ElevatedButton(
                                 onPressed: _showAModal,
-                                child: Icon(Icons.add_a_photo, size: 50,),
                                 style: ElevatedButton.styleFrom(
                                   foregroundColor: Colors.black,
-                                  backgroundColor: Color(0xFFaed513),
-                                  padding: EdgeInsets.symmetric(horizontal: 25, vertical: 30),
+                                  backgroundColor: const Color(0xFFaed513),
+                                  padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
                                 ),
+                                child: Icon(Icons.add_a_photo, size: 50,),
                               ),
                             ),
                             GestureDetector(
                               onTap: _showAModal,
-                              child: Text(
+                              child: const Text(
                                 ''' Aperte aqui 
 para criar um 
 novo álbum''',
@@ -293,7 +297,7 @@ novo álbum''',
                           ],
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Wrap(
                         spacing: 10,
                         children: _images.map((image) {
@@ -308,12 +312,12 @@ novo álbum''',
                           );
                         }).toList(),
                       ),
-              SizedBox(height: 60),
+              const SizedBox(height: 60),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text('Álbuns Criados', style: TextStyle(fontSize: 30, color: Colors.white70)),
-                  SizedBox(height: 20),
+                  const Text('Álbuns Criados', style: TextStyle(fontSize: 30, color: Colors.white70)),
+                  const SizedBox(height: 20),
                   TextField(
                     onChanged: (value) {
                       setState(() {
@@ -322,18 +326,18 @@ novo álbum''',
                     },
                     decoration: InputDecoration(
                       hintText: 'Buscar pastas...',
-                      hintStyle: TextStyle(color: Colors.white54),
+                      hintStyle: const TextStyle(color: Colors.white54),
                       filled: true,
                       fillColor: Colors.white10,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Colors.white),
+                        borderSide: const BorderSide(color: Colors.white),
                       ),
                     ),
-                    style: TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white),
                   ),
-                  SizedBox(height: 20),
-                  Container(
+                  const SizedBox(height: 20),
+                  SizedBox(
                     height: 150,
                     child: ListView.builder(
                       shrinkWrap: true,
@@ -386,7 +390,7 @@ novo álbum''',
                     onTap: () {
                       Navigator.of(context).pop();
                     },
-                    child: Icon(
+                    child: const Icon(
                       Icons.close,
                       color: Colors.white,
                       size: 25,
@@ -395,14 +399,14 @@ novo álbum''',
             ),
           ],
         ),
-        Divider(color: Colors.black),
+        const Divider(color: Colors.black),
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: ListTile(
             onTap: () {
               _showErrorDialog('Perfil do Usuário');
             },
-            title: Row(children: [
+            title: const Row(children: [
               Icon(Icons.person,color: Color(0xFFaed513),),
               SizedBox(width: 18),
               Text('Perfil')
@@ -414,7 +418,7 @@ novo álbum''',
           child: ListTile(
             /*Adicione a navegação da pagina */
             onTap: () {},
-            title: Row(children: [
+            title: const Row(children: [
               Icon(Icons.card_membership, color: Color(0xFFaed513)),
               SizedBox(width: 15),
               Text('Financeiro')
@@ -425,7 +429,7 @@ novo álbum''',
           padding: const EdgeInsets.all(8.0),
           child: ListTile(
             onTap: () {},
-            title: Row(children: [
+            title: const Row(children: [
               Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),
               SizedBox(width: 15),
               Text('Ranking')
@@ -436,7 +440,7 @@ novo álbum''',
           padding: const EdgeInsets.all(8.0),
           child: ListTile(
             onTap: () {},
-            title: Row(children: [
+            title: const Row(children: [
               Icon(Icons.support_agent_outlined, color: Color(0xFFaed513)),
               SizedBox(width: 15),
               Text('Suporte')
@@ -448,7 +452,7 @@ novo álbum''',
           child: ListTile(
             /*Adicione a navegação da pagina */
             onTap: () {},
-            title: Row(children: [
+            title: const Row(children: [
               Icon(Icons.analytics, color: Color(0xFFaed513),),
               SizedBox(width: 15),
               Text('Dados de Uso')
@@ -460,7 +464,7 @@ novo álbum''',
           child: ListTile(
             /*Adicione a navegação da pagina */
             onTap: () {},
-            title: Row(children: [
+            title: const Row(children: [
               Icon(Icons.settings, color: Color(0xFFaed513),),
               SizedBox(width: 15),
               Text('Configurações')
@@ -478,7 +482,7 @@ novo álbum''',
 class ComparisonPage extends StatelessWidget {
   final List<Uint8List> images;
 
-  ComparisonPage({required this.images});
+  const ComparisonPage({super.key, required this.images});
 
   @override
   Widget build(BuildContext context) {
@@ -492,7 +496,7 @@ class ComparisonPage extends StatelessWidget {
                   Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MyHomePage(title: '',),
+                                builder: (context) => const MyHomePage(title: '',),
                               ),
                             );
                             },
@@ -507,7 +511,7 @@ class ComparisonPage extends StatelessWidget {
         backgroundColor: Colors.white,
       ),
       body: GridView.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 1,
         ),

@@ -29,13 +29,17 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter_native_splash: ^2.4.3
-  flutter_launcher_icons: "^0.14.2" 
+  flutter_launcher_icons: any 
+  flutter_screenutil: ^5.9.0
+  device_preview: ^1.1.0
+  
   flutter:
     sdk: flutter
-  share_plus: ^7.2.2
+    http: ^1.2.1
+  font_awesome_flutter: ^10.7.0
+  share_plus: any
   image_gallery_saver: ^2.0.3
   path_provider: ^2.1.4 
-  font_awesome_flutter: ^10.0.0
   flutter_riverpod: ^2.0.0
   qr_flutter: ^4.0.0
   uuid: ^3.0.6
@@ -55,9 +59,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   video_player: ^2.9.2
   hive: ^2.2.3
-  intl: ^0.20.2
+  intl: 0.20.2
   flutter_typeahead: ^5.2.0
   google_mobile_ads: ^6.0.0
+  mockito: ^5.4.6
+  test: ^1.21.0
   
 
 dev_dependencies:

@@ -1,6 +1,5 @@
 import 'package:application_progress/main.dart';
 import 'package:application_progress/principal.dart';
-import 'package:application_progress/views/shopping_page.dart';
 import 'package:flutter/material.dart';
 
 class MyApp extends StatelessWidget {
@@ -11,15 +10,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ADM',
       theme: ThemeData(
-        primaryColor: Color(0xFF637700), // Cor primária
-        scaffoldBackgroundColor: Color.fromARGB(255, 212, 213, 206), // Cor de fundo
+        primaryColor: const Color(0xFF637700), // Cor primária
+        scaffoldBackgroundColor: const Color.fromARGB(255, 212, 213, 206), // Cor de fundo
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.black),
           bodyMedium: TextStyle(color: Colors.black),
         ),
-        colorScheme: ColorScheme.fromSwatch().copyWith(secondary: Color(0xFFaed513)),
+        colorScheme: ColorScheme.fromSwatch().copyWith(secondary: const Color(0xFFaed513)),
       ),
-      home: AdmPage(),
+      home: const AdmPage(),
     );
   }
 }
@@ -88,11 +87,11 @@ class _AdmPageState extends State<AdmPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MyHomePage(title: '',),
+                                builder: (context) => const MyHomePage(title: '',),
                               ),
                             );
                           },
-                          child: Icon(Icons.logout)
+                          child: const Icon(Icons.logout)
                         ),
                       );
                     },
@@ -115,12 +114,12 @@ class _AdmPageState extends State<AdmPage> {
             GestureDetector(
               onTap: () {},
               child: Container(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: Color(0xFF637700),
+                  color: const Color(0xFF637700),
                   borderRadius: BorderRadius.circular(12.0),
                 ),
-                child: Text(
+                child: const Text(
                   'BOTÂO',
                   style: TextStyle(
                     fontSize: 18,
@@ -140,40 +139,40 @@ class _AdmPageState extends State<AdmPage> {
               child: ListView(
                 children: [
                   ListTile(
-                    title: Text('Permissões'),
-                    trailing: Icon(Icons.arrow_forward_ios),
+                    title: const Text('Permissões'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
                       // Lógica para abrir a tela de permissões
                     },
                   ),
-                  Divider(),
+                  const Divider(),
                   ListTile(
-                    title: Text('Tags'),
-                    trailing: Icon(Icons.arrow_forward_ios),
+                    title: const Text('Tags'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
                       // Lógica para abrir a tela de tags
                     },
                   ),
-                  Divider(),
+                  const Divider(),
                   ListTile(
-                    title: Text('Notificações'),
-                    trailing: Icon(Icons.arrow_forward_ios),
+                    title: const Text('Notificações'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
                       // Lógica para abrir a tela de notificações
                     },
                   ),
-                  Divider(),
+                  const Divider(),
                   ListTile(
-                    title: Text('Sobre'),
-                    trailing: Icon(Icons.arrow_forward_ios),
+                    title: const Text('Sobre'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
                       // Lógica para abrir a tela 'Sobre'
                     },
                   ),
-                  Divider(),
+                  const Divider(),
                   ListTile(
-                    title: Text('FAQs'),
-                    trailing: Icon(Icons.arrow_forward_ios),
+                    title: const Text('FAQs'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
                       setState(() {
                         selectedTileIndex = selectedTileIndex == 0 ? null : 0; // Alterna a visibilidade do ListView
@@ -181,11 +180,11 @@ class _AdmPageState extends State<AdmPage> {
                     },
                   ),
                   if (selectedTileIndex == 0) ...[
-                    Container(
+                    SizedBox(
                       height: 200, // Definindo uma altura fixa para o ListView
                       child: ListView.builder(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount: faqs.length,
                         itemBuilder: (context, index) {
                           return GestureDetector(
@@ -201,7 +200,7 @@ class _AdmPageState extends State<AdmPage> {
                                 children: [
                                   Text(
                                     faqs[index]["question"]!,
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   if (selectedQuestionIndex == index) ...[
                                     const SizedBox(height: 5),

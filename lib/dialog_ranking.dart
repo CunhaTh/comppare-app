@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'app_colors.dart';
 import 'infra/repositories/ranking_repository.dart';
 import 'infra/user_helper.dart';
+// Importar o modelo centralizado
 
 class DialogRanking extends StatefulWidget {
   const DialogRanking({super.key});
