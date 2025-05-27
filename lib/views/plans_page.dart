@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../infra/api_endponts.dart';
+import '../infra/token_helper.dart';
 import '../planos.dart';
 import 'awaiting_payment.dart';
 
@@ -23,6 +24,9 @@ class _PlansPageState extends State<PlansPage> {
   void getPlans() async {
     final response = await http.get(
       Uri.parse('https://api.comppare.com.br/api/planos/listar'),
+      headers: {
+        'Authorization': 'Bearer ${TokenHelper.instance.token}',
+      },
     );
 
     final data = json.decode(response.body);
@@ -37,6 +41,9 @@ class _PlansPageState extends State<PlansPage> {
       body: {
         "cpf": UserHelper.instance.user?.cpf,
         "plano": newPlanId.toString(),
+      },
+      headers: {
+        'Authorization': 'Bearer ${TokenHelper.instance.token}',
       },
     );
 

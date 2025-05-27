@@ -28,6 +28,7 @@ class _DialogRankingState extends State<DialogRanking> {
   void initState() {
     super.initState();
     Future.microtask(() async {
+      await RankingRepository.sendDataRanking(points: 1);
       items = await RankingRepository.getDataRanking();
       items = getPositions(items);
       setState(() => loading = false);
