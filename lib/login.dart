@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'infra/token_helper.dart';
 import 'infra/user_helper.dart';
 
 class MyApp extends StatelessWidget {
@@ -48,46 +47,69 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     const String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
-    final Map<String, String> headers = {'Content-Type': 'application/json'};
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    };
     final Map<String, dynamic> body = {
       'cpf': _cpfController.text.trim().replaceAll(RegExp(r'\D'), ''),
       'senha': _passwordController.text,
     };
 
     try {
-      final response = await http.post(Uri.parse(url),
-          headers: headers, body: json.encode(body));
+      final response = await http.post(
+        Uri.parse(url),
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
-        if (data.containsKey('original') &&
-            data['original'].containsKey('token')) {
-          final String token = data['original']['token'];
+        if (data.containsKey('token') && data.containsKey('dados') && data['dados'] is Map) {
+          final String token = data['token'];
+          final Map<String, dynamic> userData = data['dados'];
 
-          TokenHelper.instance.setToken(token);
-          UserHelper.instance.setUser(
-            UserModel.fromMap(data['original']['dados']),
+          final user = UserModel(
+            id: userData['id'],
+            nome: '${userData['primeiroNome']} ${userData['sobrenome']}', // Combine first and last name
+            cpf: userData['cpf'],
+            telefone: userData['telefone'],
+            idPlano: userData['idPlano'],
+            token: token,
           );
 
-          Navigator.push(
+          await UserHelper.instance.setUser(user);
+          print('User saved: ${user.toMap()}'); // Debug user data
+
+          Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => PrincipalPage()),
+            MaterialPageRoute(builder: (context) => const PrincipalPage()),
           );
         } else {
-          _showErrorDialog('Credenciais inválidas. Tente novamente.');
+          _showErrorDialog('Resposta da API inválida ou estrutura inesperada. Verifique os dados retornados.');
         }
       } else {
-        final Map<String, dynamic> errorData = json.decode(response.body);
-        _showErrorDialog('Credenciais inválidas. Tente novamente.');
+        String errorMessage = 'Credenciais inválidas. Tente novamente.';
+        try {
+          final Map<String, dynamic> errorData = json.decode(response.body);
+          if (errorData.containsKey('message')) {
+            errorMessage = errorData['message'];
+          }
+        } catch (_) {}
+        _showErrorDialog(errorMessage);
       }
     } catch (error) {
-      _showErrorDialog('Erro de conexão. Tente novamente mais tarde.');
+      _showErrorDialog('Erro de conexão: $error. Tente novamente mais tarde.');
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
+    debugPrint('User salvo"Token presente!": ${UserHelper.instance.user?.toMap()}');
   }
 
   void _showErrorDialog(String message) {
@@ -284,73 +306,21 @@ class HomeScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Tela Principal'),
             actions: [
-              // Aqui você pode adicionar mais botões no menu superior
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF637700), // Cor do botão
+                  backgroundColor: const Color(0xFF637700),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () {
-                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const CustomScreen()));
                 },
                 child: const Text(
-                  'Cadastrar',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF637700), // Cor do botão
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
-                },
-                child: const Text(
-                  'Cadastrar',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF637700), // Cor do botão
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
-                },
-                child: const Text(
-                  'Cadastrar',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF637700), // Cor do botão
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  /*  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen())); */
-                },
-                child: const Text(
-                  'Cadastrar',
+                  'Customizar',
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -394,7 +364,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Certifique-se de criar a CustomScreen
 class CustomScreen extends StatelessWidget {
   const CustomScreen({super.key});
 

@@ -1,23 +1,11 @@
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
+import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'views/awaiting_payment.dart';
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Login Gamificado',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const CadastroScreen(idPlano: null),
-    );
-  }
-}
 
 class CadastroScreen extends StatefulWidget {
   final int? idPlano;
@@ -101,7 +89,7 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
   }
 
-  Future<void> _cadastrarUsuario(String nome, String cpf, String email,
+  Future<void> _cadastrarUsuario(String nome, String sobrenome, String cpf, String email,
       String telefone, String senha, String nascimento) async {
     try {
       final response = await http.post(
@@ -109,7 +97,7 @@ class CadastroScreenState extends State<CadastroScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "primeiroNome": nome,
-          "sobrenome": 'Silva',
+          "sobrenome": sobrenome,
           "cpf": cpf,
           "nascimento": nascimento,
           "email": email,
@@ -134,7 +122,25 @@ class CadastroScreenState extends State<CadastroScreen> {
               Navigator.pushNamed(context, AwaitingPayment.route);
             }
           } else {
-            _navigateToLogin();
+            if (mounted) {
+              await showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Sucesso'),
+                  content: const Text('Cadastro realizado com sucesso!'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const PrincipalPage()),
+              );
+            }
           }
         } else {
           _showErrorDialog(responseData['mensagem'] ?? 'Erro ao cadastrar.');
@@ -165,9 +171,26 @@ class CadastroScreenState extends State<CadastroScreen> {
     );
   }
 
-  void _navigateToLogin() {
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+  void _showNoPlanSelectedDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Atenção'),
+        content: const Text('Escolha um plano para cadastrar.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Fecha o diálogo
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MyHomePage(title: '')),
+              );
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _sendCadastroData() async {
@@ -175,7 +198,17 @@ class CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
+    // Verifica se o plano foi selecionado
+    if (widget.idPlano == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showNoPlanSelectedDialog();
+      return;
+    }
+
     String nome = _nameController.text.trim();
+    String sobrenome = _nameController.text.trim();
     String cpf = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
     String email = _emailController.text.trim();
     String nascimento = _nasciController.text.trim();
@@ -184,7 +217,7 @@ class CadastroScreenState extends State<CadastroScreen> {
     String confirmSenha = _confirmPasswordController.text.trim();
 
     // Validações
-    if ([nome, cpf, email, nascimento, telefone, senha, confirmSenha]
+    if ([nome, sobrenome, cpf, email, nascimento, telefone, senha, confirmSenha]
         .any((field) => field.isEmpty)) {
       _showErrorDialog('Por favor, preencha todos os campos!');
       setState(() => _isLoading = false);
@@ -238,11 +271,15 @@ class CadastroScreenState extends State<CadastroScreen> {
         _showErrorDialog('Usuário já cadastrado com este CPF!');
         setState(() => _isLoading = false);
       } else {
-        await _cadastrarUsuario(nome, cpf, email, telefone, senha, nascimento);
+        await _cadastrarUsuario(nome, sobrenome, cpf, email, telefone, senha, nascimento);
       }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
       setState(() => _isLoading = false);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -334,8 +371,6 @@ class CadastroScreenState extends State<CadastroScreen> {
                               padding: const EdgeInsets.only(top: 100),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  foregroundColor:
-                                      const Color.fromARGB(255, 251, 255, 250),
                                   backgroundColor: Colors.black,
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 80, vertical: 20),
@@ -352,9 +387,6 @@ class CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
           ),
-          Positioned(top: 50, left: -50, child: _buildCloud()),
-          Positioned(top: 100, right: -50, child: _buildCloud()),
-          Positioned(bottom: 100, left: 50, child: _buildCloud()),
         ],
       ),
     );
@@ -375,17 +407,6 @@ class CadastroScreenState extends State<CadastroScreen> {
             borderSide: BorderSide(color: Colors.black),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildCloud() {
-    return Container(
-      width: 100,
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(30),
       ),
     );
   }

@@ -1,17 +1,22 @@
-import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/infra/user_helper.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
+import 'package:application_progress/login.dart';
+import 'package:application_progress/dialog_ranking.dart';
+import 'package:application_progress/chat_button.dart';
+import 'dart:convert';
 
-import 'dialog_ranking.dart';
-import 'chat_button.dart'; // Remover se não for mais necessário
-// Certifique-se de que o caminho do arquivo está correto
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,12 +25,29 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: PrincipalPage(),
+      home: AuthWrapper(),
     );
   }
 }
 
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
 
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  Widget build(BuildContext context) {
+    final user = UserHelper.instance.user;
+    if (user == null) {
+      return const LoginScreen();
+    } else {
+      return const PrincipalPage();
+    }
+  }
+}
 
 class PrincipalPage extends StatefulWidget {
   const PrincipalPage({super.key});
@@ -34,41 +56,118 @@ class PrincipalPage extends StatefulWidget {
   _PrincipalPageState createState() => _PrincipalPageState();
 }
 
-class Folder {
-  final String name;
-  final DateTime? creationDate; 
+class ImageItem {
+  final Uint8List imageData;
+  final String subAlbumName;
 
-  Folder({required this.name, this.creationDate});
+  ImageItem({required this.imageData, required this.subAlbumName});
+
+  // Método para converter ImageItem em JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'imageData': imageData.toList(), // Converte Uint8List para List<int>
+      'subAlbumName': subAlbumName,
+    };
+  }
+
+  // Método para criar ImageItem a partir de JSON
+  factory ImageItem.fromJson(Map<String, dynamic> json) {
+    return ImageItem(
+      imageData: Uint8List.fromList(List<int>.from(json['imageData'])),
+      subAlbumName: json['subAlbumName'] as String,
+    );
+  }
+}
+
+class ImageGroup {
+  final String subAlbumName;
+  final List<ImageItem> images;
+  List<String> tags;
+  final DateTime? creationDate;
+
+  ImageGroup({
+    required this.subAlbumName,
+    required this.images,
+    this.tags = const [],
+    this.creationDate,
+  });
+
+  // Método para converter ImageGroup em JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'subAlbumName': subAlbumName,
+      'images': images.map((item) => item.toJson()).toList(),
+      'tags': tags,
+      'creationDate': creationDate?.toIso8601String(),
+    };
+  }
+
+  // Método para criar ImageGroup a partir de JSON
+  factory ImageGroup.fromJson(Map<String, dynamic> json) {
+    return ImageGroup(
+      subAlbumName: json['subAlbumName'] as String,
+      images: (json['images'] as List<dynamic>)
+          .map((item) => ImageItem.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      tags: List<String>.from(json['tags'] ?? []),
+      creationDate: json['creationDate'] != null
+          ? DateTime.parse(json['creationDate'] as String)
+          : null,
+    );
+  }
+}
+
+class Folder {
+  final int? id;
+  final String name;
+  final DateTime? creationDate;
+  final List<ImageGroup> subfolders;
+
+  Folder({
+    this.id,
+    required this.name,
+    this.creationDate,
+    List<ImageGroup>? subfolders,
+  }) : subfolders = subfolders ?? [];
 }
 
 class _PrincipalPageState extends State<PrincipalPage> {
   final List<Folder> _folders = [];
   String _searchQuery = '';
   final TextEditingController folderNameController = TextEditingController();
+  bool _isLoading = false;
+  int _localIdCounter = 1;
 
-  void _addFolder(String folderName, DateTime? dateTime) {
+  @override
+  void initState() {
+    super.initState();
+    _fetchFolders();
+  }
+
+  Future<void> _fetchFolders() async {
     setState(() {
-      if (folderName.isNotEmpty) {
-        _folders.add(Folder(name: folderName, creationDate: dateTime));
-      }
+      _isLoading = true;
     });
-
-   
-    _createFolder(folderName).then((createdFolder) {
-     
-      setState(() {
-        final index = _folders.indexWhere((folder) => folder.name == folderName);
-        if (index != -1 && createdFolder != null) {
-          _folders[index] = createdFolder;
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pasta criada com sucesso!')),
-      );
-    }).catchError((error) {
-      _showErrorDialog('Erro ao criar pasta: $error');
+    setState(() {
+      _isLoading = false;
     });
   }
+  void _addFolder(String folderName, DateTime? dateTime) {
+      setState(() {
+        if (folderName.isNotEmpty) {
+          final newFolder = Folder(
+            id: _localIdCounter++,
+            name: folderName,
+            creationDate: dateTime ?? DateTime.now(),
+            subfolders: [], // Inicializa com subfolders vazios
+          );
+          _folders.add(newFolder);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pasta criada com sucesso!')),
+          );
+        }
+      });
+    }
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -87,65 +186,17 @@ class _PrincipalPageState extends State<PrincipalPage> {
       ),
     );
   }
+
   Future<void> _deleteFolder(String folderName) async {
-  final url = Uri.parse("https://api.comppare.com.br/api/pasta/delete");
-  const int userId = 2;
-
-  try {
-    final response = await http.post( // Use http.delete se o endpoint for DELETE
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'idUsuario': userId,
-        'nomePasta': folderName,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      // Exclusão bem-sucedida
-      return;
-    } else {
-      throw Exception('Falha ao excluir pasta: ${response.body}');
-    }
-  } catch (e) {
-    throw Exception('Erro na requisição: $e');
+    // Deletion handled locally
   }
-}
 
   Future<Folder?> _createFolder(String folderName) async {
-    final url = Uri.parse("https://api.comppare.com.br/api/pasta/create");
-    const int userId = 2;
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'idUsuario': userId,
-          'nomePasta': folderName,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is Map<String, dynamic> && data['data'] != null) {
-          final folderData = data['data'] as Map<String, dynamic>;
-          final creationDate = folderData['dataCriacao'] != null
-              ? DateTime.parse(folderData['dataCriacao'] as String)
-              : null;
-          return Folder(name: folderName, creationDate: creationDate);
-        }
-        return Folder(name: folderName); // Retorna sem data se não houver
-      } else {
-        throw Exception('Falha ao criar pasta: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Erro na requisição: $e');
-    }
+    return Folder(
+      id: _localIdCounter++,
+      name: folderName,
+      creationDate: DateTime.now(),
+    );
   }
 
   Future<void> _showAModal() async {
@@ -195,6 +246,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 String folderName = folderNameController.text.trim();
                 if (folderName.isNotEmpty) {
                   _addFolder(folderName, selectedDate);
+                  folderNameController.clear();
                   Navigator.of(context).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -245,186 +297,298 @@ class _PrincipalPageState extends State<PrincipalPage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
+          GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
               child: Image.asset(
                 "assets/logo_cortada.png",
-                width: 150,
-                height: 50,
-              ),
-            )
-          ],
-        ),
-        backgroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _showAModal,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    backgroundColor: const Color(0xFFaed513),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-                  ),
-                  child: const Icon(Icons.add_sharp, size: 25),
-                ),
-                GestureDetector(
-                  onTap: _showAModal,
-                  child: const Text(
-                    '''   Aperte  aqui 
-     para  criar 
- um novo álbum''',
-                    style: TextStyle(fontSize: 15, color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 80),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 20),
-              child: Text(
-                'Álbuns Criados',
-                style: TextStyle(color: Colors.white, fontSize: 30),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 50),
-              child: TextField(
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value; 
-                  });
-                },
-                decoration: const InputDecoration(
-                  hintText: 'Buscar pastas...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: Colors.white10,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                    borderSide: BorderSide(color: Colors.white),
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-           Expanded(
-              child: ListView.builder(
-                itemCount: _folders.length,
-                itemBuilder: (context, index) {
-                  final folder = _folders[index];
-                  if (_searchQuery.isNotEmpty &&
-                      !folder.name.toLowerCase().contains(_searchQuery.toLowerCase())) {
-                    return const SizedBox.shrink();
-                  }
-                  return Dismissible(
-                    key: Key(folder.name), 
-                    direction: DismissDirection.endToStart, 
-                    background: Container(
-                      color: Colors.red,
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: const Icon(
-                        Icons.delete,
-                        color: Colors.white,
-                      ),
-                    ),
-                    onDismissed: (direction) async {
-                      setState(() {
-                        _folders.removeAt(index);
-                      });
-                      try {
-                        await _deleteFolder(folder.name);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Pasta "${folder.name}" excluída com sucesso.'),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      } catch (e) {
-                        setState(() {
-                          _folders.insert(index, folder);
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Erro ao excluir pasta: $e'),
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
-                      }
-                    },
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AlbunsCriados(
-                              folderName: folder.name,
-                              images: const [],
-                            ),
-                          ),
-                        );
-                      },
-                      child: Card(
-                      color: Colors.grey[900],
-                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2), // Small margin for better spacing
-                      child: Padding(
-                        padding: const EdgeInsets.all(16), // Consistent padding for better layout
-                        child: SizedBox(
-                          width: MediaQuery.of(context).size.width * 0.9, // 80% of screen width
-                          height: MediaQuery.of(context).size.height * 0.1, // Full screen height
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
-                            children: [
-                              const Icon(
-                                Icons.folder,
-                                size: 40,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                folder.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center, // Ensure text is centered
-                              ),
-                              const SizedBox(height: 4),
-                              if (folder.creationDate != null)
-                                Text(
-                                  folder.creationDate!.toLocal().toString().split(' ')[0],
-                                  style: const TextStyle(
-                                    color: Color.fromARGB(108, 255, 255, 255),
-                                    fontSize: 14,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    ),
+                width: 150.w,
+                height: 50.h,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 150.w,
+                    height: 50.h,
+                    color: Colors.grey,
+                    child: const Center(child: Text('Logo não carregado')),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 10),
           ],
         ),
+        backgroundColor: Colors.white,
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _showAModal,
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          backgroundColor: const Color(0xFFaed513),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                        ),
+                        child: const Icon(Icons.add_sharp, size: 25),
+                      ),
+                      GestureDetector(
+                        onTap: _showAModal,
+                        child: const Text(
+                          '''   Aperte  aqui 
+     para  criar 
+ um novo álbum''',
+                          style: TextStyle(fontSize: 15, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 80),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 20),
+                    child: Text(
+                      'Álbuns Criados',
+                      style: TextStyle(color: Colors.white, fontSize: 30),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 50),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Buscar pastas...',
+                        hintStyle: TextStyle(color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.white10,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(20)),
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+            Expanded(
+  child: Stack(
+    children: [
+      ListView.builder(
+        itemCount: _folders.length,
+        itemBuilder: (context, index) {
+          final folder = _folders[index];
+          if (_searchQuery.isNotEmpty &&
+              !folder.name.toLowerCase().contains(_searchQuery.toLowerCase())) {
+            return const SizedBox.shrink();
+          }
+          return Dismissible(
+            key: Key(folder.name),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 16.0),
+              child: const Icon(
+                Icons.delete,
+                color: Colors.white,
+              ),
+            ),
+            onDismissed: (direction) async {
+              final removedFolder = _folders[index];
+              setState(() {
+                _folders.removeAt(index);
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Pasta "${folder.name}" excluída com sucesso.'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AlbunsCriados(
+                      folderName: folder.name,
+                      folderId: folder.id,
+                      subfolders: folder.subfolders,
+                    ),
+                    settings: RouteSettings(
+                      arguments: {
+                        'subfolders': folder.subfolders.map((group) => group.toJson()).toList(),
+                      },
+                    ),
+                  ),
+                );
+              },
+              child: Card(
+                color: Colors.grey[900],
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    height: MediaQuery.of(context).size.height * 0.1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        GestureDetector(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: const Text('Confirmar Exclusão'),
+                                          content: const Text('Tem certeza que deseja excluir esta pasta?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop(); // Fecha o diálogo
+                                              },
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () async {
+                                                Navigator.of(context).pop(); // Fecha o diálogo
+                                                try {
+                                                  // Substitua pela sua chamada à API
+                                                  // await ApiService.deleteFolder(folder.id);
+                                                  setState(() {
+                                                    _folders.removeAt(0); // Ajuste para remover a pasta correta
+                                                  });
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: const Text('Pasta excluída via API.'),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                } catch (e) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Erro ao excluir pasta: $e'),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              child: const Text('Excluir'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                          const Icon(
+                          Icons.folder,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          folder.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        if (folder.creationDate != null)
+                          Text(
+                            folder.creationDate!.toLocal().toString().split(' ')[0],
+                            style: const TextStyle(
+                              color: Color.fromARGB(108, 255, 255, 255),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],)      
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      Positioned(
+        top: 8,
+        right: 8,
+        child: GestureDetector(
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Confirmar Exclusão'),
+                  content: const Text('Tem certeza que deseja excluir esta pasta?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Fecha o diálogo
+                      },
+                      child: const Text('Cancelar'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop(); // Fecha o diálogo
+                        try {
+                          // Substitua pela sua chamada à API
+                          // await ApiService.deleteFolder(folder.id);
+                          setState(() {
+                            _folders.removeAt(0); // Ajuste para remover a pasta correta
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Pasta excluída via API.'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro ao excluir pasta: $e'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text('Excluir'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
+      ),
+    ],
+  ),
+),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
       drawer: Drawer(
         child: ListView(
           children: <Widget>[
@@ -471,9 +635,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ListTile(
-                /*Adicione a navegação da pagina */
                 onTap: () {},
-                title: Row(children: [
+                title: const Row(children: [
                   Icon(Icons.card_membership, color: Color(0xFFaed513)),
                   SizedBox(width: 15),
                   Text('Financeiro')
@@ -493,7 +656,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     builder: (context) => const DialogRanking(),
                   );
                 },
-                title: Row(children: [
+                title: const Row(children: [
                   Icon(Icons.call_split_sharp, color: Color(0xFFaed513)),
                   SizedBox(width: 15),
                   Text('Ranking')
@@ -505,18 +668,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
               child: ListTile(
                 onTap: () {},
                 title: const Row(children: [
-                  Icon(Icons.support_agent_outlined, color: Color(0xFFaed513)),
-                  SizedBox(width: 15),
-                  Text('Suporte'),
-                ]),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListTile(
-                /*Adicione a navegação da pagina */
-                onTap: () {},
-                title: Row(children: [
                   Icon(
                     Icons.analytics,
                     color: Color(0xFFaed513),

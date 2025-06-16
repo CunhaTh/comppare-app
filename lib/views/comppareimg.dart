@@ -35,11 +35,11 @@ class ImagemDetalhesPage extends StatefulWidget {
   final String subAlbumName;
 
   const ImagemDetalhesPage({
-    Key? key,
+    super.key,
     required this.images,
     required this.tags,
     required this.subAlbumName,
-  }) : super(key: key);
+  });
 
   @override
   State<ImagemDetalhesPage> createState() => _ImagemDetalhesPageState();
@@ -49,14 +49,12 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   late List<ImageItem> imageItems;
   late List<String> tags;
   final ScrollController _scrollController = ScrollController();
-  
   int? _selectedIndex;
-
   List<ImageItem> allSelectedImages = [];
 
   void _onThumbnailTap(ImageItem imageItem, int index) {
     setState(() {
-      _selectedIndex = index; // Update selected index
+      _selectedIndex = index;
     });
   }
 
@@ -85,7 +83,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
 
   void _scrollLeft() {
     _scrollController.animateTo(
-      _scrollController.offset - (MediaQuery.of(context).size.width * 0.33), // ~120px proporcional
+      _scrollController.offset - (MediaQuery.of(context).size.width * 0.33),
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
@@ -93,7 +91,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
 
   void _scrollRight() {
     _scrollController.animateTo(
-      _scrollController.offset + (MediaQuery.of(context).size.width * 0.33), // ~120px proporcional
+      _scrollController.offset + (MediaQuery.of(context).size.width * 0.33),
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
@@ -103,6 +101,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
@@ -110,8 +110,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
           child: Center(
             child: Image.asset(
               "assets/logo_cortada.png",
-              width: screenWidth * 0.4, // 40% da largura
-              height: screenHeight * 0.07, // 7% da altura
+              width: isLargeScreen ? screenWidth * 0.3 : screenWidth * 0.4,
+              height: isLargeScreen ? screenHeight * 0.05 : screenHeight * 0.07,
               fit: BoxFit.contain,
             ),
           ),
@@ -119,10 +119,10 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         backgroundColor: Colors.white,
         actions: [
           Padding(
-            padding: EdgeInsets.only(right: screenWidth * 0.05), // 5% da largura
+            padding: EdgeInsets.only(right: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.05),
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
-              child: Icon(Icons.logout, size: screenWidth * 0.067), // ~24px
+              child: Icon(Icons.logout, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
             ),
           ),
         ],
@@ -130,14 +130,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
       body: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.all(screenWidth * 0.022), // ~8px
+            padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
             child: GridView.builder(
-              padding: EdgeInsets.all(screenWidth * 0.028), // ~10px
+              padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: (screenWidth / 150).floor().clamp(1, 3), // Ajusta colunas dinamicamente
+                crossAxisCount: (screenWidth / (isLargeScreen ? 200 : 150)).floor().clamp(1, 3),
                 childAspectRatio: 1,
-                crossAxisSpacing: screenWidth * 0.083, // ~30px
-                mainAxisSpacing: screenWidth * 0.083, // ~30px
+                crossAxisSpacing: isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083,
+                mainAxisSpacing: isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083,
               ),
               itemCount: imageItems.length,
               itemBuilder: (context, index) {
@@ -168,17 +168,17 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                     ),
                     if (imageItem.isSelected)
                       Padding(
-                        padding: EdgeInsets.only(top: screenWidth * 0.014), // ~5px
+                        padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
                         child: Icon(
                           Icons.check_circle,
                           color: Colors.green,
-                          size: screenWidth * 0.067, // ~24px
+                          size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067,
                         ),
                       ),
                     GestureDetector(
                       onTap: () => _showEditDialog(context, index),
                       child: Padding(
-                        padding: EdgeInsets.only(top: screenWidth * 0.014), // ~5px
+                        padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -187,11 +187,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                               'edit',
                               style: TextStyle(fontSize: 17 * MediaQuery.of(context).textScaleFactor),
                             ),
-                            SizedBox(width: screenWidth * 0.017), // ~6px
+                            SizedBox(width: isLargeScreen ? screenWidth * 0.012 : screenWidth * 0.017),
                             Icon(
                               Icons.edit,
                               color: Colors.black,
-                              size: screenWidth * 0.047, // ~17px
+                              size: isLargeScreen ? screenWidth * 0.035 : screenWidth * 0.047,
                             ),
                           ],
                         ),
@@ -203,19 +203,19 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
             ),
           ),
           Positioned(
-            left: screenWidth * 0.042, // ~15px
-            right: screenWidth * 0.042, // ~15px
-            bottom: screenHeight * 0.1, // ~10% da altura
+            left: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
+            right: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
+            bottom: isLargeScreen ? screenHeight * 0.08 : screenHeight * 0.1,
             child: GestureDetector(
               onTap: () => _showComparisonDialog(context, imageItems, tags, widget.subAlbumName),
               child: Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.028, // ~10px
-                  vertical: screenHeight * 0.022, // ~15px
+                  horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                  vertical: isLargeScreen ? screenHeight * 0.015 : screenHeight * 0.022,
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFaed513),
-                  borderRadius: BorderRadius.circular(screenWidth * 0.083), // ~30px
+                  borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -242,6 +242,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   void _showEditDialog(BuildContext context, int index) {
     final imageItem = imageItems[index];
     final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 520 && MediaQuery.of(context).size.height > 889;
     final Map<String, TextEditingController> controllers = {
       for (var tag in tags)
         tag: TextEditingController(
@@ -257,7 +258,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         ),
     };
 
-    void _saveChanges(ImageItem updatedItem) {
+    void saveChanges(ImageItem updatedItem) {
       setState(() {
         imageItems[index] = updatedItem;
       });
@@ -285,11 +286,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                 onTap: () => Navigator.of(context).pop(),
                 child: CircleAvatar(
                   backgroundColor: Colors.black,
-                  radius: screenWidth * 0.033, // ~12px
+                  radius: isLargeScreen ? screenWidth * 0.025 : screenWidth * 0.033,
                   child: Icon(
                     Icons.close,
                     color: Colors.white,
-                    size: screenWidth * 0.044, // ~16px
+                    size: isLargeScreen ? screenWidth * 0.033 : screenWidth * 0.044,
                   ),
                 ),
               ),
@@ -301,28 +302,28 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  height: screenWidth * 0.8, // 80% da largura
+                  height: isLargeScreen ? screenWidth * 0.6 : screenWidth * 0.8,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey, width: 1),
-                    borderRadius: BorderRadius.circular(screenWidth * 0.022), // ~8px
+                    borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                   ),
                   child: Image.memory(
                     imageItem.imageData,
                     fit: BoxFit.cover,
                   ),
                 ),
-                SizedBox(height: screenWidth * 0.044), // ~16px
+                SizedBox(height: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044),
                 if (tags.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: tags.map((tag) {
                       return Padding(
-                        padding: EdgeInsets.symmetric(vertical: screenWidth * 0.022), // ~8px
+                        padding: EdgeInsets.symmetric(vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                         child: Row(
                           children: [
                             SizedBox(
-                              width: screenWidth * 0.28, // ~100px
+                              width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
                               child: Text(
                                 tag,
                                 style: TextStyle(
@@ -338,8 +339,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                   hintText: 'Insira o valor $tag',
                                   border: const OutlineInputBorder(),
                                   contentPadding: EdgeInsets.symmetric(
-                                    horizontal: screenWidth * 0.028, // ~10px
-                                    vertical: screenWidth * 0.022, // ~8px
+                                    horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                                    vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022,
                                   ),
                                 ),
                               ),
@@ -351,7 +352,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                   )
                 else
                   Padding(
-                    padding: EdgeInsets.symmetric(vertical: screenWidth * 0.022), // ~8px
+                    padding: EdgeInsets.symmetric(vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                     child: Text(
                       'Sem Tags no momento.',
                       style: TextStyle(
@@ -372,11 +373,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                     backgroundColor: const Color(0xFFaed513),
                     foregroundColor: Colors.black,
                     padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.044, // ~16px
-                      vertical: screenWidth * 0.033, // ~12px
+                      horizontal: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044,
+                      vertical: isLargeScreen ? screenWidth * 0.025 : screenWidth * 0.033,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(screenWidth * 0.022), // ~8px
+                      borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                     ),
                   ),
                   onPressed: () {
@@ -393,9 +394,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                             tag: controllers[tag]!.text,
                       },
                     );
-                    _saveChanges(updatedItem);
+                    saveChanges(updatedItem);
                   },
-                  icon: Icon(Icons.save, size: screenWidth * 0.056), // ~20px
+                  icon: Icon(Icons.save, size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056),
                   label: Text(
                     'Salvar',
                     style: TextStyle(
@@ -418,317 +419,423 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     });
   }
 
-  void _showComparisonDialog(BuildContext context, List<ImageItem> imageItems, List<String> tags, String subAlbumName) {
-    final GlobalKey _repaintKey = GlobalKey();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+ void _showComparisonDialog(BuildContext context, List<ImageItem> imageItems, List<String> tags, String subAlbumName) {
+  final GlobalKey repaintKey = GlobalKey();
+  final GlobalKey shareRepaintKey = GlobalKey();
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+  final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
-    final List<Map<String, dynamic>> selectedImages = imageItems
-        .asMap()
-        .entries
-        .where((entry) => entry.value.isSelected)
-        .map((entry) => {
-              'index': entry.key,
-              'imageItem': entry.value,
-            })
-        .toList();
+  final List<Map<String, dynamic>> selectedImages = imageItems
+      .asMap()
+      .entries
+      .where((entry) => entry.value.isSelected)
+      .map((entry) => {
+            'index': entry.key,
+            'imageItem': entry.value,
+          })
+      .toList();
 
-    if (selectedImages.length < 2) {
+  if (selectedImages.length < 2) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Selecione pelo menos 2 imagens para comparar.'),
+      ),
+    );
+    return;
+  }
+
+  selectedImages.sort((a, b) {
+    final int indexA = a['index'] as int;
+    final int indexB = b['index'] as int;
+    return indexA.compareTo(indexB);
+  });
+
+  List<ImageItem> displayedImages = [
+    selectedImages[0]['imageItem'] as ImageItem,
+    selectedImages[1]['imageItem'] as ImageItem,
+  ];
+  final List<int> updatedIndices = [selectedImages[0]['index'] as int, selectedImages[1]['index'] as int];
+  final List<ImageItem> allSelectedImages = selectedImages.map((entry) => entry['imageItem'] as ImageItem).toList();
+
+  final Map<String, List<TextEditingController>> controllers = {
+    for (var tag in tags)
+      tag: displayedImages.asMap().entries.map((entry) {
+        final int index = entry.key;
+        final ImageItem item = entry.value;
+        switch (tag) {
+          case 'Data':
+            return TextEditingController(text: item.date ?? '');
+          case 'Peso':
+            return TextEditingController(text: item.weight ?? '');
+          case 'Série':
+            return TextEditingController(text: item.waist ?? '');
+          case 'Obs':
+            return TextEditingController(text: item.observation ?? '');
+          default:
+            return TextEditingController(text: item.customTags[tag] ?? '');
+        }
+      }).toList(),
+  };
+
+  Future<Uint8List?> captureCard() async {
+    try {
+      RenderRepaintBoundary boundary = repaintKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      print("Erro ao capturar o card: $e");
+      return null;
+    }
+  }
+
+  Future<Uint8List?> captureShareImage() async {
+    try {
+      RenderRepaintBoundary boundary = shareRepaintKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      print("Erro ao capturar a imagem para compartilhamento: $e");
+      return null;
+    }
+  }
+
+  Future<void> shareImages() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Compartilhamento'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RepaintBoundary(
+                key: shareRepaintKey,
+                child: Container(
+                  color: Colors.white,
+                  padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: displayedImages.map((imageItem) {
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.zero,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    height: isLargeScreen ? screenWidth * 0.5 : screenWidth * 0.6,
+                                    child: Image.memory(
+                                      imageItem.imageData,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  SizedBox(height: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
+                                  Text(
+                                    imageItem.date ?? '',
+                                    style: TextStyle(
+                                      fontSize: 12 * MediaQuery.of(context).textScaleFactor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                      Image.asset(
+                        "assets/logo_cortada.png",
+                        width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.3,
+                        height: isLargeScreen ? screenWidth * 0.1 : screenWidth * 0.15,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Text('Quer compartilhar essa imagem?'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final Uint8List? imageBytes = await captureShareImage();
+                if (imageBytes == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Erro ao capturar a imagem para compartilhamento.')),
+                  );
+                  return;
+                }
+
+                if (kIsWeb) {
+                  final blob = html.Blob([imageBytes], 'image/png');
+                  final url = html.Url.createObjectUrlFromBlob(blob);
+                  final anchor = html.AnchorElement(href: url)
+                    ..setAttribute('download', 'comparison_share.png')
+                    ..click();
+                  html.Url.revokeObjectUrl(url);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Imagem baixada. Compartilhe manualmente.')),
+                  );
+                } else {
+                  final tempDir = await getTemporaryDirectory();
+                  final file = await File('${tempDir.path}/comparison_share.png').writeAsBytes(imageBytes);
+                  final xFile = XFile(file.path);
+                  await Share.shareXFiles(
+                    [xFile],
+                    text: 'Confira minha comparação de progresso!',
+                    subject: 'Comparação de Imagens',
+                  );
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> saveCard() async {
+    final Uint8List? imageBytes = await captureCard();
+    if (imageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione pelo menos 2 imagens para comparar.'),
-        ),
+        const SnackBar(content: Text('Erro ao capturar o card para salvamento.')),
       );
       return;
     }
 
-    selectedImages.sort((a, b) {
-      final int indexA = a['index'] as int;
-      final int indexB = b['index'] as int;
-      return indexA.compareTo(indexB);
-    });
+    if (kIsWeb) {
+      final blob = html.Blob([imageBytes], 'image/png');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagem baixada com sucesso!')),
+      );
+    } else {
+      final result = await ImageGallerySaver.saveImage(
+        imageBytes,
+        quality: 100,
+        name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
+      );
+      if (result['isSuccess']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
+        );
+      }
+    }
+  }
 
-    List<ImageItem> displayedImages = [
-      selectedImages[0]['imageItem'] as ImageItem,
-      selectedImages[1]['imageItem'] as ImageItem,
+  void saveChanges() {
+    final List<ImageItem> updatedItems = [
+      ImageItem(
+        imageData: displayedImages[0].imageData,
+        date: controllers['Data']?[0].text ?? '',
+        weight: controllers['Peso']?[0].text ?? '',
+        waist: controllers['Série']?[0].text ?? '',
+        observation: controllers['Obs']?[0].text ?? '',
+        customTags: {
+          for (var tag in tags)
+            if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
+              tag: controllers[tag]![0].text,
+        },
+      ),
+      ImageItem(
+        imageData: displayedImages[1].imageData,
+        date: controllers['Data']?[1].text ?? '',
+        weight: controllers['Peso']?[1].text ?? '',
+        waist: controllers['Série']?[1].text ?? '',
+        observation: controllers['Obs']?[1].text ?? '',
+        customTags: {
+          for (var tag in tags)
+            if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
+              tag: controllers[tag]![1].text,
+        },
+      ),
     ];
-    final List<int> updatedIndices = [selectedImages[0]['index'] as int, selectedImages[1]['index'] as int];
-    final List<ImageItem> allSelectedImages = selectedImages.map((entry) => entry['imageItem'] as ImageItem).toList();
+    setState(() {
+      imageItems[updatedIndices[0]] = updatedItems[0];
+      imageItems[updatedIndices[1]] = updatedItems[1];
+    });
+    Navigator.of(context).pop();
+  }
 
-    final Map<String, List<TextEditingController>> controllers = {
-      for (var tag in tags)
-        tag: displayedImages.asMap().entries.map((entry) {
-          final int index = entry.key;
-          final ImageItem item = entry.value;
-          switch (tag) {
-            case 'Data':
-              return TextEditingController(text: item.date ?? '');
-            case 'Peso':
-              return TextEditingController(text: item.weight ?? '');
-            case 'Série':
-              return TextEditingController(text: item.waist ?? '');
-            case 'Obs':
-              return TextEditingController(text: item.observation ?? '');
-            default:
-              return TextEditingController(text: (item.customTags ?? {})[tag] ?? '');
-          }
-        }).toList(),
-    };
-
-    Future<Uint8List?> _captureCard() async {
-      try {
-        RenderRepaintBoundary boundary = _repaintKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-        ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-        ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-        return byteData?.buffer.asUint8List();
-      } catch (e) {
-        print("Erro ao capturar o card: $e");
-        return null;
-      }
-    }
-
-    Future<void> _shareToInstagram() async {
-      final Uint8List? imageBytes = await _captureCard();
-      if (imageBytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao capturar o card para compartilhamento.')),
-        );
-        return;
-      }
-
-      if (kIsWeb) {
-        final blob = html.Blob([imageBytes], 'image/png');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'card.png')
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Imagem baixada. Compartilhe manualmente.')),
-        );
-      } else {
-        final tempDir = await getTemporaryDirectory();
-        final file = await File('${tempDir.path}/card.png').writeAsBytes(imageBytes);
-        await Share.shareFiles(
-          [file.path],
-          text: 'Confira minha comparação!',
-          mimeTypes: ['image/png'],
-        );
-      }
-    }
-
-    Future<void> _saveCard() async {
-      final Uint8List? imageBytes = await _captureCard();
-      if (imageBytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao capturar o card para salvamento.')),
-        );
-        return;
-      }
-
-      if (kIsWeb) {
-        final blob = html.Blob([imageBytes], 'image/png');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Imagem baixada com sucesso!')),
-        );
-      } else {
-        final result = await ImageGallerySaver.saveImage(
-          imageBytes,
-          quality: 100,
-          name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
-        );
-        if (result['isSuccess']) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
-          );
-        }
-      }
-    }
-
-    void _saveChanges() {
-      final List<ImageItem> updatedItems = [
-        ImageItem(
-          imageData: displayedImages[0].imageData,
-          date: controllers['Data']?[0].text ?? '',
-          weight: controllers['Peso']?[0].text ?? '',
-          waist: controllers['Série']?[0].text ?? '',
-          observation: controllers['Obs']?[0].text ?? '',
-          customTags: {
-            for (var tag in tags)
-              if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
-                tag: controllers[tag]![0].text,
-          },
-        ),
-        ImageItem(
-          imageData: displayedImages[1].imageData,
-          date: controllers['Data']?[1].text ?? '',
-          weight: controllers['Peso']?[1].text ?? '',
-          waist: controllers['Série']?[1].text ?? '',
-          observation: controllers['Obs']?[1].text ?? '',
-          customTags: {
-            for (var tag in tags)
-              if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
-                tag: controllers[tag]![1].text,
-          },
-        ),
-      ];
-      setState(() {
-        imageItems[updatedIndices[0]] = updatedItems[0];
-        imageItems[updatedIndices[1]] = updatedItems[1];
-      });
-      Navigator.of(context).pop();
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            void _onThumbnailTap(ImageItem tappedImage, int index) {
-              setState(() {
-                final ImageItem currentFirstImage = displayedImages[0];
-                displayedImages[0] = tappedImage;
-                displayedImages[1] = currentFirstImage;
-                controllers.forEach((tag, controllerList) {
-                  controllerList[0].text = displayedImages[0].customTags?[tag] ?? '';
-                  controllerList[1].text = displayedImages[1].customTags?[tag] ?? '';
-                  switch (tag) {
-                    case 'Data':
-                      controllerList[0].text = displayedImages[0].date ?? '';
-                      controllerList[1].text = displayedImages[1].date ?? '';
-                      break;
-                    case 'Peso':
-                      controllerList[0].text = displayedImages[0].weight ?? '';
-                      controllerList[1].text = displayedImages[1].weight ?? '';
-                      break;
-                    case 'Série':
-                      controllerList[0].text = displayedImages[0].waist ?? '';
-                      controllerList[1].text = displayedImages[1].waist ?? '';
-                      break;
-                    case 'Obs':
-                      controllerList[0].text = displayedImages[0].observation ?? '';
-                      controllerList[1].text = displayedImages[1].observation ?? '';
-                      break;
-                  }
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        insetPadding: EdgeInsets.all(8.0),
+        content: Container(
+          width: screenWidth * 0.98,
+          height: screenHeight * 0.90,
+          decoration: BoxDecoration(
+          //  border: Border.all(color: Colors.grey.withOpacity(0.5), width: 1.0),
+          ),
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              void onThumbnailTap(ImageItem tappedImage, int index) {
+                setState(() {
+                  final ImageItem currentFirstImage = displayedImages[0];
+                  displayedImages[0] = tappedImage;
+                  displayedImages[1] = currentFirstImage;
+                  controllers.forEach((tag, controllerList) {
+                    if (controllerList.length > 1) {
+                      controllerList[0].text = displayedImages[0].customTags[tag] ?? '';
+                      controllerList[1].text = displayedImages[1].customTags[tag] ?? '';
+                      switch (tag) {
+                        case 'Data':
+                          controllerList[0].text = displayedImages[0].date ?? '';
+                          controllerList[1].text = displayedImages[1].date ?? '';
+                          break;
+                        case 'Peso':
+                          controllerList[0].text = displayedImages[0].weight ?? '';
+                          controllerList[1].text = displayedImages[1].weight ?? '';
+                          break;
+                        case 'Série':
+                          controllerList[0].text = displayedImages[0].waist ?? '';
+                          controllerList[1].text = displayedImages[1].waist ?? '';
+                          break;
+                        case 'Obs':
+                          controllerList[0].text = displayedImages[0].observation ?? '';
+                          controllerList[1].text = displayedImages[1].observation ?? '';
+                          break;
+                      }
+                    }
+                  });
                 });
-              });
-            }
+              }
 
-            return AlertDialog(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              return Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Text(
-                      subAlbumName,
-                      style: TextStyle(
-                        fontSize: 18 * MediaQuery.of(context).textScaleFactor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black,
-                      radius: screenWidth * 0.033, // ~12px
-                      child: Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: screenWidth * 0.044, // ~16px
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    RepaintBoundary(
-                      key: _repaintKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: displayedImages.map((imageItem) {
-                              return Expanded(
-                                child: Container(
-                                  height: screenWidth * 0.9, // 90% da largura
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey, width: 1),
-                                    borderRadius: BorderRadius.circular(screenWidth * 0.022), // ~8px
-                                  ),
-                                  child: Image.memory(
-                                    imageItem.imageData,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                    color: Colors.white,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            subAlbumName,
+                            style: TextStyle(
+                              fontSize: 18 * MediaQuery.of(context).textScaleFactor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          SizedBox(height: screenWidth * 0.028), // ~10px
-                          if (tags.isNotEmpty)
-                            Table(
-                              border: TableBorder.all(color: Colors.black54, width: 1),
-                              columnWidths: {
-                                0: const FlexColumnWidth(1),
-                                for (int i = 0; i < displayedImages.length; i++)
-                                  (i + 1): const FlexColumnWidth(1),
-                              },
-                              children: tags.asMap().entries.map((entry) {
-                                final int tagIndex = entry.key;
-                                final String tag = entry.value;
-                                return TableRow(
-                                  decoration: tagIndex == 0 ? BoxDecoration(color: Colors.grey[300]) : null,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        top: screenWidth * 0.014, // ~5px
-                                        left: screenWidth * 0.028, // ~10px
-                                      ),
-                                      child: Text(
-                                        tag,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12 * MediaQuery.of(context).textScaleFactor,
-                                        ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black,
+                            radius: isLargeScreen ? screenWidth * 0.025 : screenWidth * 0.033,
+                            child: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: isLargeScreen ? screenWidth * 0.033 : screenWidth * 0.044,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: RepaintBoundary(
+                      key: repaintKey,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: displayedImages.map((imageItem) {
+                                return Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.zero,
+                                    child: Container(
+                                      height: double.infinity,
+                                      child: Image.memory(
+                                        imageItem.imageData,
+                                        fit: BoxFit.cover,
                                       ),
                                     ),
-                                    ...displayedImages.asMap().entries.map((imageEntry) {
-                                      final int imageIndex = imageEntry.key;
-                                      return Padding(
-                                        padding: EdgeInsets.all(screenWidth * 0.0056), // ~2px
-                                        child: TextField(
-                                          controller: controllers[tag]![imageIndex],
-                                          decoration: const InputDecoration(
-                                            border: InputBorder.none,
-                                          ),
-                                          style: TextStyle(
-                                            fontSize: 12 * MediaQuery.of(context).textScaleFactor,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      );
-                                    }),
-                                  ],
+                                  ),
                                 );
                               }).toList(),
+                            ),
+                          ),
+                          SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                          if (tags.isNotEmpty)
+                            Container(
+                              padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                              child: Table(
+                                border: TableBorder.all(color: Colors.black54, width: 1),
+                                columnWidths: {
+                                  0: const FlexColumnWidth(1),
+                                  for (int i = 0; i < displayedImages.length; i++)
+                                    (i + 1): const FlexColumnWidth(1),
+                                },
+                                children: tags.asMap().entries.map((entry) {
+                                  final int tagIndex = entry.key;
+                                  final String tag = entry.value;
+                                  return TableRow(
+                                    decoration: tagIndex == 0 ? BoxDecoration(color: Colors.grey[300]) : null,
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                          top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014,
+                                          left: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                                        ),
+                                        child: Text(
+                                          tag,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12 * MediaQuery.of(context).textScaleFactor,
+                                          ),
+                                        ),
+                                      ),
+                                      ...displayedImages.asMap().entries.map((imageEntry) {
+                                        final int imageIndex = imageEntry.key;
+                                        return Padding(
+                                          padding: EdgeInsets.all((isLargeScreen ? screenWidth * 0.006 : screenWidth * 0.008).clamp(1.0, 10.0)),
+                                          child: TextField(
+                                            controller: controllers[tag]![imageIndex],
+                                            decoration: InputDecoration(border: InputBorder.none),
+                                            style: TextStyle(
+                                              fontSize: 12 * MediaQuery.of(context).textScaleFactor,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
                             )
                           else
                             Padding(
-                              padding: EdgeInsets.all(screenWidth * 0.022), // ~8px
+                              padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                               child: Text(
                                 'Nenhuma tag disponível.',
                                 style: TextStyle(
@@ -739,60 +846,61 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                         ],
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: screenWidth * 0.028), // ~10px
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFaed513),
-                              foregroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.044, // ~16px
-                                vertical: screenWidth * 0.033, // ~12px
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(screenWidth * 0.022), // ~8px
-                              ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFaed513),
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044,
+                              vertical: isLargeScreen ? screenWidth * 0.025 : screenWidth * 0.033,
                             ),
-                            onPressed: _shareToInstagram,
-                            icon: Icon(Icons.share, size: screenWidth * 0.056), // ~20px
-                            label: Text(
-                              'Compartilhar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14 * MediaQuery.of(context).textScaleFactor,
-                              ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                             ),
                           ),
-                          SizedBox(width: screenWidth * 0.056), // ~20px
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFaed513),
-                              foregroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.044, // ~16px
-                                vertical: screenWidth * 0.033, // ~12px
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(screenWidth * 0.022), // ~8px
-                              ),
-                            ),
-                            onPressed: _saveCard,
-                            icon: Icon(Icons.download, size: screenWidth * 0.056), // ~20px
-                            label: Text(
-                              'Baixar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14 * MediaQuery.of(context).textScaleFactor,
-                              ),
+                          onPressed: shareImages,
+                          icon: Icon(Icons.share, size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056),
+                          label: Text(
+                            'Compartilhar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14 * MediaQuery.of(context).textScaleFactor,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        SizedBox(width: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFaed513),
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044,
+                              vertical: isLargeScreen ? screenWidth * 0.025 : screenWidth * 0.033,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                            ),
+                          ),
+                          onPressed: saveCard,
+                          icon: Icon(Icons.download, size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056),
+                          label: Text(
+                            'Baixar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14 * MediaQuery.of(context).textScaleFactor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                   Stack(
+                  ),
+                  Stack(
                     children: [
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -802,17 +910,22 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                             final int index = entry.key;
                             final ImageItem imageItem = entry.value;
                             return GestureDetector(
-                              onTap: () => _onThumbnailTap(imageItem, index),
+                              onTap: () {
+                                setState(() {
+                                  _selectedIndex = index;
+                                });
+                                onThumbnailTap(imageItem, index);
+                              },
                               child: Container(
-                                width: screenWidth * 0.28, // ~100px
-                                height: screenWidth * 0.28, // ~100px
-                                margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.022), // ~8px
+                                width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
+                                height: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
+                                margin: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: _selectedIndex == index ? Colors.blue : Colors.grey, // Highlight selected image
-                                    width: _selectedIndex == index ? 3 : 1, // Thicker border for selected
+                                    color: _selectedIndex == index ? Colors.blue : Colors.grey,
+                                    width: _selectedIndex == index ? 3 : 1,
                                   ),
-                                  borderRadius: BorderRadius.circular(screenWidth * 0.022), // ~8px
+                                  borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                                 ),
                                 child: Image.memory(
                                   imageItem.imageData,
@@ -825,12 +938,12 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                       ),
                       Positioned(
                         left: 0,
-                        top: screenWidth * 0.11, // Centraliza verticalmente
+                        top: isLargeScreen ? screenWidth * 0.08 : screenWidth * 0.11,
                         child: IconButton(
                           icon: Icon(
                             Icons.arrow_back_ios,
                             color: Colors.black,
-                            size: screenWidth * 0.056, // ~20px
+                            size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
                           onPressed: _scrollLeft,
                           tooltip: 'Rolar para a esquerda',
@@ -838,26 +951,26 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                       ),
                       Positioned(
                         right: 0,
-                        top: screenWidth * 0.11, // Centraliza verticalmente
+                        top: isLargeScreen ? screenWidth * 0.08 : screenWidth * 0.11,
                         child: IconButton(
                           icon: Icon(
                             Icons.arrow_forward_ios,
                             color: Colors.black,
-                            size: screenWidth * 0.056, // ~20px
+                            size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
                           onPressed: _scrollRight,
                           tooltip: 'Rolar para a direita',
                         ),
                       ),
                     ],
-                  )
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+    },
+  );
+}
 }

@@ -26,6 +26,7 @@ class UserModel {
   final String? nome;
   final String? cpf;
   final String? telefone;
+  final String? token; // Adicionado para armazenar o token
 
   UserModel({
     required this.id,
@@ -33,6 +34,7 @@ class UserModel {
     required this.cpf,
     required this.telefone,
     required this.idPlano,
+    this.token, // Pode ser nulo se o token ainda não estiver disponível
   });
 
   Map<String, dynamic> toMap() {
@@ -42,6 +44,7 @@ class UserModel {
       'nome': nome,
       'cpf': cpf,
       'telefone': telefone,
+      'token': token, // Inclui o token no mapa
     };
   }
 
@@ -52,6 +55,7 @@ class UserModel {
       nome: map['nome'],
       cpf: map['cpf'],
       telefone: map['telefone'],
+      token: map['token'], // Recupera o token do mapa
     );
   }
 }

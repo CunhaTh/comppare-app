@@ -304,7 +304,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         .pop(); // Fechar o diálogo
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (context) => PrincipalPage(),
+                                        builder: (context) => const PrincipalPage(),
                                       ),
                                     );
                                   },

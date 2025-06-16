@@ -1,36 +1,32 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'package:application_progress/principal.dart';
-import 'package:application_progress/views/comppareimg.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
-import 'dart:html' as html;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:application_progress/infra/user_helper.dart';
+import 'package:application_progress/login.dart';
+import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/comppareimg.dart' hide ImageItem;
+import 'package:collection/collection.dart';
+import 'file_picker_helper.dart'; // Nova importação
+// Alias para evitar conflitos
+import 'dart:io' as dart_io show File;
+import 'dart:html' as dart_html;
 
 class AlbunsCriados extends StatefulWidget {
-  final List<Uint8List> images;
   final String folderName;
-  const AlbunsCriados({super.key, required this.images, required this.folderName});
+  final int? folderId;
+  final List<ImageGroup> subfolders;
+
+  const AlbunsCriados({
+    super.key,
+    required this.folderName,
+    this.folderId,
+    this.subfolders = const [],
+  });
 
   @override
   State<AlbunsCriados> createState() => _AlbunsCriados();
-}
-
-class ImageItem {
-  final Uint8List imageData;
-  final String subAlbumName;
-
-  ImageItem({required this.imageData, required this.subAlbumName});
-}
-
-class SubAlbum {
-  final String name;
-  final List<ImageItem> images;
-
-  SubAlbum({required this.name, required this.images});
 }
 
 class SubAlbumData {
@@ -40,251 +36,168 @@ class SubAlbumData {
   SubAlbumData({required this.name, required this.tags});
 }
 
-class ImageGroup {
-  final String subAlbumName;
-  final List<ImageItem> images;
-  List<String> tags;
-  final DateTime? creationDate;
-
-  ImageGroup({
-    required this.subAlbumName,
-    required this.images,
-    this.tags = const [],
-    this.creationDate,
-  });
-}
-
 class _AlbunsCriados extends State<AlbunsCriados> {
-  final ImagePicker _picker = ImagePicker();
-  List<SubAlbum> subAlbums = [];
-  List<ImageGroup> imageGroups = [];
+  late List<ImageGroup> imageGroups;
   bool isLoading = false;
 
-  Future<void> _createSubAlbum(String folderName, String subAlbumName, List<String> tags, List<String> imageUrls) async {
-    final url = Uri.parse("https://api.comppare.com.br/api/pasta/create");
-    const int userId = 2;
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'idUsuario': userId,
-          'nomePasta': '$folderName/$subAlbumName',
-          'tags': tags,
-          'imagens': imageUrls,
-        }),
-      ).timeout(const Duration(seconds: 30), onTimeout: () {
-        throw TimeoutException('A requisição demorou muito para responder.');
-      });
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        if (data is Map<String, dynamic> && data['data'] != null) {
-          return;
-        }
-        throw Exception('Dados inválidos retornados pela API: ${response.body}');
-      } else {
-        throw Exception('Falha ao criar subálbum: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Erro na requisição: $e');
-    }
+  @override
+  void initState() {
+    super.initState();
+    // Inicializa com uma lista vazia para evitar acesso prematuro
+    imageGroups = widget.subfolders;
   }
 
-  Future<String> _uploadImage(Uint8List imageData, String subAlbumName) async {
-    final url = Uri.parse("https://api.comppare.com.br/api/imagem/upload"); // Ajuste o endpoint conforme sua API
-    const int userId = 2;
-
-    try {
-      var request = http.MultipartRequest('POST', url)
-        ..fields['idUsuario'] = userId.toString()
-        ..fields['subAlbumName'] = subAlbumName
-        ..files.add(http.MultipartFile.fromBytes(
-          'imagem',
-          imageData,
-          filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ));
-
-      final response = await request.send().timeout(const Duration(seconds: 30));
-      final responseBody = await response.stream.bytesToString();
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(responseBody);
-        if (data is Map<String, dynamic> && data['data'] != null && data['data']['url'] != null) {
-          return data['data']['url'];
-        }
-        throw Exception('URL da imagem não retornada pela API: $responseBody');
-      } else {
-        throw Exception('Falha ao fazer upload da imagem: ${response.statusCode} - $responseBody');
+@override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Carrega os argumentos apenas após o contexto estar pronto
+    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final subfoldersJson = arguments?['subfolders'] as List<dynamic>? ?? [];
+    setState(() {
+      imageGroups = subfoldersJson
+          .map((json) => ImageGroup.fromJson(json as Map<String, dynamic>))
+          .toList();
+      if (imageGroups.isEmpty) {
+        imageGroups = widget.subfolders;
       }
-    } catch (e) {
-      throw Exception('Erro ao fazer upload da imagem: $e');
+    });
+    _checkAuthentication();
+  }
+
+void _checkAuthentication() {
+    final String? authToken = UserHelper.instance.user?.token;
+    if (authToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Token de autenticação não encontrado. Faça login novamente.')),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } else {
+      debugPrint('Token presente na tela AlbunsCriados: $authToken');
     }
   }
 
   Future<void> _addMultipleImages() async {
-    SubAlbumData? subAlbumData = await _promptSubAlbumName();
-    if (subAlbumData == null || subAlbumData.name.isEmpty) return;
+  // Evita chamadas duplicadas enquanto a função está em execução
+  if (isLoading) return;
 
-    List<ImageItem> newImages = [];
-    List<String> imageUrls = [];
+  SubAlbumData? subAlbumData = await _promptSubAlbumName();
+  if (subAlbumData == null || subAlbumData.name.isEmpty) return;
 
-    // Armazenar o BuildContext antes da operação assíncrona
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
+  List<ImageItem> newImages = [];
+  List<dynamic> imagesToUpload = [];
 
+  final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    // Usa a nova classe FilePickerHelper para selecionar imagens
+    newImages = await FilePickerHelper.pickImages(subAlbumData.name);
+    if (newImages.isEmpty) {
+      // Caso nenhuma imagem seja selecionada, interrompe o fluxo
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Nenhuma imagem selecionada.')),
+      );
+      return;
+    }
+
+    // Obtém as imagens para upload (se necessário)
+    imagesToUpload = await FilePickerHelper.getImagesToUpload();
+
+    // Adiciona o novo grupo de imagens ao estado
     setState(() {
-      isLoading = true;
+      imageGroups.add(ImageGroup(
+        subAlbumName: subAlbumData.name,
+        images: newImages,
+        tags: subAlbumData.tags,
+        creationDate: DateTime.now(),
+      ));
     });
 
-    try {
-      if (kIsWeb) {
-        final uploadInput = html.FileUploadInputElement()..multiple = true;
-        uploadInput.accept = 'image/*';
-        uploadInput.click();
-
-        await uploadInput.onChange.first;
-        final files = uploadInput.files;
-        if (files == null || files.isEmpty) return;
-
-        for (var file in files) {
-          final reader = html.FileReader();
-          reader.readAsArrayBuffer(file);
-          await reader.onLoadEnd.first;
-          final data = reader.result;
-          if (data != null && data is Uint8List) {
-            final imageUrl = await _uploadImage(data, subAlbumData.name);
-            newImages.add(ImageItem(
-              imageData: data,
-              subAlbumName: subAlbumData.name,
-            ));
-            imageUrls.add(imageUrl);
-          }
-        }
-      } else {
-        final List<XFile>? images = await _picker.pickMultiImage();
-        if (images == null || images.isEmpty) return;
-
-        for (var image in images) {
-          final bytes = await File(image.path).readAsBytes();
-          final imageUrl = await _uploadImage(bytes, subAlbumData.name);
-          newImages.add(ImageItem(
-            imageData: bytes,
-            subAlbumName: subAlbumData.name,
-          ));
-          imageUrls.add(imageUrl);
-        }
-      }
-
-      if (newImages.isEmpty) return;
-
-      await _createSubAlbum(
-        widget.folderName,
-        subAlbumData.name,
-        subAlbumData.tags,
-        imageUrls,
-      );
-
-      if (!mounted) return;
+    scaffoldMessenger.showSnackBar(
+      const SnackBar(content: Text('Subálbum criado localmente com sucesso.')),
+    );
+  } catch (error) {
+    if (!mounted) return;
+    debugPrint('Erro ao adicionar imagens: $error');
+    final errorMessage = error.toString().replaceFirst('Exception: ', '');
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        content: Text('Erro ao adicionar imagens: $errorMessage. Subálbum criado localmente.'),
+      ),
+    );
+  } finally {
+    if (mounted) {
       setState(() {
-        imageGroups.add(ImageGroup(
-          subAlbumName: subAlbumData.name,
-          images: newImages,
-          tags: subAlbumData.tags,
-          creationDate: DateTime.now(),
-        ));
+        isLoading = false;
       });
-
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Subálbum e imagens salvos com sucesso!')),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      // Logar o erro para depuração
-      debugPrint('Erro ao salvar subálbum ou imagens: $error');
-      // Garantir que a mensagem de erro seja uma string
-      final errorMessage = error.toString().replaceFirst('Exception: ', '');
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Erro ao salvar subálbum ou imagens: $errorMessage')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
     }
   }
+}
 
-  void _showSaveDialog(Uint8List imageData) {
+  Future<void> _showSaveDialog(Uint8List imageData) async {
     final TextEditingController nameController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Salvar Imagem'),
+          title: Text('Salvar Imagem', style: TextStyle(fontSize: 20.sp)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Nome do Subálbum'),
+                decoration: InputDecoration(
+                  labelText: 'Nome do Subálbum',
+                  labelStyle: TextStyle(fontSize: 16.sp),
+                ),
               ),
-              const SizedBox(height: 10),
-              const Text('Deseja salvar a imagem com esse nome?'),
+              SizedBox(height: 10.h),
+              Text('Deseja salvar a imagem com esse nome?', style: TextStyle(fontSize: 16.sp)),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancelar', style: TextStyle(fontSize: 16.sp)),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 String name = nameController.text.trim();
                 if (name.isNotEmpty) {
-                  try {
-                    final imageUrl = await _uploadImage(imageData, name);
-                    setState(() {
-                      SubAlbum? existing = subAlbums.firstWhere(
-                        (sub) => sub.name == name,
-                        orElse: () => SubAlbum(name: name, images: []),
-                      );
-
-                      if (subAlbums.contains(existing)) {
-                        existing.images.add(
-                          ImageItem(imageData: imageData, subAlbumName: name),
-                        );
-                      } else {
-                        subAlbums.add(
-                          SubAlbum(
-                            name: name,
-                            images: [
-                              ImageItem(imageData: imageData, subAlbumName: name),
-                            ],
-                          ),
-                        );
-                      }
-                    });
-                    await _createSubAlbum(widget.folderName, name, [], [imageUrl]);
-                    Navigator.of(context).pop();
-                  } catch (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao salvar subálbum: $error')),
+                  setState(() {
+                    final existingGroup = imageGroups.firstWhere(
+                      (group) => group.subAlbumName == name,
+                      orElse: () => ImageGroup(
+                        subAlbumName: name,
+                        images: [],
+                        creationDate: DateTime.now(),
+                      ),
                     );
-                  }
+                    existingGroup.images.add(ImageItem(imageData: imageData, subAlbumName: name));
+                    if (!imageGroups.contains(existingGroup)) {
+                      imageGroups.add(existingGroup);
+                    }
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Subálbum criado localmente.')),
+                  );
+
+                  Navigator.of(context).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('O nome do subálbum não pode estar vazio.')),
                   );
                 }
               },
-              child: const Text('Salvar'),
+              child: Text('Salvar', style: TextStyle(fontSize: 16.sp)),
             ),
           ],
         );
@@ -299,22 +212,21 @@ class _AlbunsCriados extends State<AlbunsCriados> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Adicionar Tags'),
+          title: Text('Adicionar Tags', style: TextStyle(fontSize: 20.sp)),
           content: TextField(
             controller: tagsController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Digite novas tags (separadas por vírgula)',
+              labelStyle: TextStyle(fontSize: 16.sp),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancelar', style: TextStyle(fontSize: 16.sp)),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 List<String> newTags = tagsController.text
                     .split(',')
                     .map((tag) => tag.trim())
@@ -323,16 +235,13 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                 setState(() {
                   group.tags.addAll(newTags.where((tag) => !group.tags.contains(tag)));
                 });
-                try {
-                  await _createSubAlbum(widget.folderName, group.subAlbumName, group.tags, []);
-                  Navigator.of(context).pop();
-                } catch (error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erro ao atualizar tags: $error')),
-                  );
-                }
+
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Tags adicionadas localmente.')),
+                );
               },
-              child: const Text('Adicionar'),
+              child: Text('Adicionar', style: TextStyle(fontSize: 16.sp)),
             ),
           ],
         );
@@ -348,21 +257,23 @@ class _AlbunsCriados extends State<AlbunsCriados> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Nome do Subálbum'),
+          title: Text('Nome do Subálbum', style: TextStyle(fontSize: 20.sp)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Digite o nome do subálbum',
+                  labelStyle: TextStyle(fontSize: 16.sp),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               TextField(
                 controller: tagsController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Digite as tags (separadas por vírgula)',
+                  labelStyle: TextStyle(fontSize: 16.sp),
                 ),
               ),
             ],
@@ -370,7 +281,7 @@ class _AlbunsCriados extends State<AlbunsCriados> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(null),
-              child: const Text('Cancelar'),
+              child: Text('Cancelar', style: TextStyle(fontSize: 16.sp)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -390,7 +301,7 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                   );
                 }
               },
-              child: const Text('OK'),
+              child: Text('OK', style: TextStyle(fontSize: 16.sp)),
             ),
           ],
         );
@@ -399,92 +310,73 @@ class _AlbunsCriados extends State<AlbunsCriados> {
   }
 
   Future<void> _editSubAlbum(int groupIndex) async {
+    if (imageGroups.isEmpty || groupIndex < 0 || groupIndex >= imageGroups.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Subálbum inválido ou não encontrado.')),
+      );
+      return;
+    }
+
+    final String subAlbumName = imageGroups[groupIndex].subAlbumName;
     TextEditingController tagsController = TextEditingController(
       text: imageGroups[groupIndex].tags.join(', '),
     );
     List<ImageItem> newImages = [];
+    List<dynamic> imagesToUpload = [];
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Editar Subálbum'),
+          title: Text('Editar Subálbum', style: TextStyle(fontSize: 20.sp)),
           content: SingleChildScrollView(
             child: StatefulBuilder(
               builder: (BuildContext context, StateSetter setState) {
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (kIsWeb)
-                      ElevatedButton(
-                        onPressed: () async {
-                          html.FileUploadInputElement uploadInput = html.FileUploadInputElement()
-                            ..multiple = true;
-                          uploadInput.accept = 'image/*';
-                          uploadInput.click();
-
-                          await uploadInput.onChange.first;
-                          final files = uploadInput.files;
-                          if (files != null && files.isNotEmpty) {
-                            for (var file in files) {
-                              final reader = html.FileReader();
-                              reader.readAsArrayBuffer(file);
-                              await reader.onLoadEnd.first;
-                              final data = reader.result;
-                              if (data != null && data is Uint8List) {
-                                setState(() {
-                                  newImages.add(ImageItem(
-                                    imageData: data,
-                                    subAlbumName: imageGroups[groupIndex].subAlbumName,
-                                  ));
-                                });
-                              }
-                            }
-                          }
-                        },
-                        child: const Text('Adicionar Fotos (Web)'),
-                      )
-                    else
-                      ElevatedButton(
-                        onPressed: () async {
-                          final List<XFile>? images = await _picker.pickMultiImage();
-                          if (images != null && images.isNotEmpty) {
-                            for (var image in images) {
-                              final bytes = await File(image.path).readAsBytes();
-                              setState(() {
-                                newImages.add(ImageItem(
-                                  imageData: bytes,
-                                  subAlbumName: imageGroups[groupIndex].subAlbumName,
-                                ));
-                              });
-                            }
-                          }
-                        },
-                        child: const Text('Adicionar Fotos (Mobile)'),
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          // Usa a nova classe FilePickerHelper
+                          final pickedImages = await FilePickerHelper.pickImages(subAlbumName);
+                          final uploadedImages = await FilePickerHelper.getImagesToUpload();
+                          setState(() {
+                            newImages.addAll(pickedImages);
+                            imagesToUpload.addAll(uploadedImages);
+                          });
+                        } catch (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erro ao adicionar fotos: $error')),
+                          );
+                        }
+                      },
+                      child: Text(
+                        kIsWeb ? 'Adicionar Fotos (Web)' : 'Adicionar Fotos (Mobile)',
+                        style: TextStyle(fontSize: 16.sp),
                       ),
-                    const SizedBox(height: 16),
+                    ),
+                    SizedBox(height: 16.h),
                     if (newImages.isNotEmpty) ...[
-                      const Text(
+                      Text(
                         'Novas Imagens:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8.h),
                       Container(
-                        constraints: const BoxConstraints(
-                          maxHeight: 150,
-                        ),
+                        constraints: BoxConstraints(maxHeight: 150.h),
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: newImages.map((image) {
                               return Padding(
-                                padding: const EdgeInsets.only(right: 8.0),
+                                padding: EdgeInsets.only(right: 8.w),
                                 child: Stack(
                                   children: [
                                     Image.memory(
                                       image.imageData,
-                                      width: 100,
-                                      height: 100,
+                                      width: 100.w,
+                                      height: 100.h,
                                       fit: BoxFit.cover,
                                     ),
                                     Positioned(
@@ -493,17 +385,23 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                                       child: GestureDetector(
                                         onTap: () {
                                           setState(() {
+                                            final indexToRemove = imagesToUpload.indexWhere((img) {
+                                              if (img is Uint8List && image.imageData is Uint8List) {
+                                                return listEquals(
+                                                    (img as Uint8List).toList(), image.imageData.toList());
+                                              }
+                                              return false;
+                                            });
+                                            if (indexToRemove != -1) {
+                                              imagesToUpload.removeAt(indexToRemove);
+                                            }
                                             newImages.remove(image);
                                           });
                                         },
-                                        child: const CircleAvatar(
-                                          radius: 12,
+                                        child: CircleAvatar(
+                                          radius: 12.r,
                                           backgroundColor: Colors.red,
-                                          child: Icon(
-                                            Icons.close,
-                                            color: Colors.white,
-                                            size: 16,
-                                          ),
+                                          child: Icon(Icons.close, color: Colors.white, size: 16.sp),
                                         ),
                                       ),
                                     ),
@@ -514,12 +412,13 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16.h),
                     ],
                     TextField(
                       controller: tagsController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Editar tags (separadas por vírgula)',
+                        labelStyle: TextStyle(fontSize: 16.sp),
                       ),
                     ),
                   ],
@@ -532,40 +431,35 @@ class _AlbunsCriados extends State<AlbunsCriados> {
               onPressed: () {
                 Navigator.of(context).pop();
                 newImages.clear();
+                imagesToUpload.clear();
               },
-              child: const Text('Cancelar'),
+              child: Text('Cancelar', style: TextStyle(fontSize: 16.sp)),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 List<String> updatedTags = tagsController.text
                     .split(',')
                     .map((tag) => tag.trim())
                     .where((tag) => tag.isNotEmpty)
                     .toList();
-                List<String> imageUrls = [];
-                try {
-                  for (var image in newImages) {
-                    final imageUrl = await _uploadImage(image.imageData, imageGroups[groupIndex].subAlbumName);
-                    imageUrls.add(imageUrl);
+
+                setState(() {
+                  if (imageGroups.isEmpty || groupIndex < 0 || groupIndex >= imageGroups.length) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Índice de subálbum inválido ao salvar.')),
+                    );
+                    return;
                   }
-                  setState(() {
-                    imageGroups[groupIndex].images.addAll(newImages);
-                    imageGroups[groupIndex].tags = updatedTags;
-                  });
-                  await _createSubAlbum(
-                    widget.folderName,
-                    imageGroups[groupIndex].subAlbumName,
-                    updatedTags,
-                    imageUrls,
-                  );
-                  Navigator.of(context).pop();
-                } catch (error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erro ao atualizar subálbum: $error')),
-                  );
-                }
+                  imageGroups[groupIndex].images.addAll(newImages);
+                  imageGroups[groupIndex].tags = updatedTags;
+                });
+
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Subálbum atualizado localmente.')),
+                );
               },
-              child: const Text('Salvar'),
+              child: Text('Salvar', style: TextStyle(fontSize: 16.sp)),
             ),
           ],
         );
@@ -575,34 +469,28 @@ class _AlbunsCriados extends State<AlbunsCriados> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             GestureDetector(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
+              onTap: () => Navigator.of(context).pop(),
               child: Image.asset(
                 "assets/logo_cortada.png",
-                width: 150,
-                height: 50,
+                width: 100,
+                height: 30,
               ),
-            )
+            ),
           ],
         ),
         backgroundColor: Colors.white,
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 20),
+            padding: EdgeInsets.only(right: 20.w),
             child: GestureDetector(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              child: const Icon(Icons.logout),
+              onTap: () => Navigator.of(context).pop(),
+              child: Icon(Icons.logout, size: 24.sp),
             ),
           ),
         ],
@@ -612,25 +500,25 @@ class _AlbunsCriados extends State<AlbunsCriados> {
           Column(
             children: [
               Padding(
-                padding: const EdgeInsets.only(left: 15, top: 20),
+                padding: EdgeInsets.only(left: 15.w, top: 20.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Text('Album:  ', style: TextStyle(color: Colors.black, fontSize: 15)),
+                        Text('Album:  ', style: TextStyle(color: Colors.black, fontSize: 15.sp)),
                         Container(
-                          height: 30,
-                          width: 120,
+                          height: 30.h,
+                          width: 120.w,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(10.r),
                             color: const Color(0xFFaed513),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.only(left: 30, top: 5),
+                            padding: EdgeInsets.only(left: 30.w, top: 5.h),
                             child: Text(
                               widget.folderName,
-                              style: const TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 15.sp, color: Colors.black, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -639,7 +527,7 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                   ],
                 ),
               ),
-              const SizedBox(height: 50),
+              SizedBox(height: 50.h),
               Expanded(
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -662,61 +550,60 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                             },
                             child: Card(
                               color: Colors.grey[900],
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                               child: Padding(
-                                padding: const EdgeInsets.all(12.0),
+                                padding: EdgeInsets.all(12.w),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     group.images.isNotEmpty
                                         ? Image.memory(
                                             group.images.first.imageData,
-                                            width: 40,
-                                            height: 40,
+                                            width: 40.w,
+                                            height: 40.h,
                                             fit: BoxFit.cover,
                                           )
-                                        : const Icon(
+                                        : Icon(
                                             Icons.photo_album,
-                                            size: 40,
+                                            size: 40.sp,
                                             color: Colors.white,
                                           ),
-                                    const SizedBox(width: 16),
+                                    SizedBox(width: 16.w),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'subalbum: ${group.subAlbumName}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: 10,
+                                              fontSize: 10.sp,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
+                                          SizedBox(height: 4.h),
                                           Text(
                                             group.creationDate != null
                                                 ? group.creationDate!.toLocal().toString().split(' ')[0]
                                                 : 'Sem data',
-                                            style: const TextStyle(
-                                              color: Color.fromARGB(108, 255, 255, 255),
-                                              fontSize: 14,
+                                            style: TextStyle(
+                                              color: const Color.fromARGB(108, 255, 255, 255),
+                                              fontSize: 14.sp,
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
+                                          SizedBox(height: 8.h),
                                           if (group.tags.isNotEmpty)
                                             Wrap(
-                                              spacing: 4.0,
-                                              runSpacing: 4.0,
+                                              spacing: 4.w,
+                                              runSpacing: 4.h,
                                               children: group.tags
                                                   .map((tag) => Chip(
                                                         label: Text(
                                                           tag,
-                                                          style: const TextStyle(fontSize: 12),
+                                                          style: TextStyle(fontSize: 12.sp),
                                                         ),
                                                         backgroundColor: Colors.grey[300],
-                                                        padding:
-                                                            const EdgeInsets.symmetric(horizontal: 8.0),
+                                                        padding: EdgeInsets.symmetric(horizontal: 8.w),
                                                       ))
                                                   .toList(),
                                             ),
@@ -724,22 +611,24 @@ class _AlbunsCriados extends State<AlbunsCriados> {
                                       ),
                                     ),
                                     SizedBox(
-                                      width: 48,
+                                      width: 48.w,
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.start,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(
+                                            icon: Icon(
                                               Icons.edit,
-                                              color: Color(0xFFaed513),
+                                              color: const Color(0xFFaed513),
+                                              size: 24.sp,
                                             ),
                                             onPressed: () => _editSubAlbum(index),
                                             tooltip: 'Editar subálbum',
                                           ),
                                           IconButton(
-                                            icon: const Icon(
+                                            icon: Icon(
                                               Icons.add_circle,
-                                              color: Color(0xFFaed513),
+                                              color: const Color(0xFFaed513),
+                                              size: 24.sp,
                                             ),
                                             onPressed: () => _addMoreTags(context, group),
                                             tooltip: 'Adicionar mais tags',
@@ -757,27 +646,13 @@ class _AlbunsCriados extends State<AlbunsCriados> {
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 600),
-            child: Center(
-              child: ElevatedButton(
-                onPressed: isLoading ? null : () async {
-                  await _addMultipleImages();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFaed513),
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
-                  elevation: 5,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-                ),
-                child: const Icon(
-                  Icons.add_a_photo,
-                  size: 35,
-                ),
-              ),
+          Positioned(
+            left: MediaQuery.of(context).size.width / 2 - 28.w,
+            bottom: 16.h,
+            child: FloatingActionButton(
+              backgroundColor: const Color(0xFFaed513),
+              onPressed: isLoading ? null : _addMultipleImages,
+              child: Icon(Icons.add_a_photo, size: 35.sp),
             ),
           ),
         ],
@@ -804,22 +679,21 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Adicionar Tags'),
+          title: Text('Adicionar Tags', style: TextStyle(fontSize: 20.sp)),
           content: TextField(
             controller: tagsController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Digite novas tags (separadas por vírgula)',
+              labelStyle: TextStyle(fontSize: 16.sp),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancelar', style: TextStyle(fontSize: 16.sp)),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 List<String> newTags = tagsController.text
                     .split(',')
                     .map((tag) => tag.trim())
@@ -828,24 +702,13 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
                 setState(() {
                   widget.group.tags.addAll(newTags.where((tag) => !widget.group.tags.contains(tag)));
                 });
-                try {
-                  final albunsCriadosState = context.findAncestorStateOfType<_AlbunsCriados>();
-                  if (albunsCriadosState != null) {
-                    await albunsCriadosState._createSubAlbum(
-                      albunsCriadosState.widget.folderName,
-                      widget.group.subAlbumName,
-                      widget.group.tags,
-                      [],
-                    );
-                  }
-                  Navigator.of(context).pop();
-                } catch (error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erro ao atualizar tags: $error')),
-                  );
-                }
+
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Tags adicionadas localmente.')),
+                );
               },
-              child: const Text('Adicionar'),
+              child: Text('Adicionar', style: TextStyle(fontSize: 16.sp)),
             ),
           ],
         );
@@ -896,7 +759,7 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
                                         .map((tag) => Chip(
                                               label: Text(
                                                 tag,
-                                                style: TextStyle(fontSize: 12 * MediaQuery.of(context).textScaleFactor),
+                                                style: TextStyle(fontSize: 12.sp),
                                               ),
                                               backgroundColor: Colors.grey[300],
                                               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.022),
@@ -916,29 +779,28 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
                             ],
                           ),
                           SizedBox(height: screenWidth * 0.033),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFaed513),
-                              foregroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.044, vertical: screenWidth * 0.033),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(screenWidth * 0.022),
-                              ),
-                            ),
-                            onPressed: widget.onEdit,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Editar',
-                                  style: TextStyle(
-                                    fontSize: 15 * MediaQuery.of(context).textScaleFactor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          Center(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFaed513),
+                                foregroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.044, vertical: screenWidth * 0.033),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(screenWidth * 0.022),
                                 ),
-                                SizedBox(width: screenWidth * 0.022),
-                                Icon(Icons.edit, size: screenWidth * 0.056),
-                              ],
+                              ),
+                              onPressed: widget.onEdit,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Editar',
+                                    style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(width: screenWidth * 0.022),
+                                  Icon(Icons.edit, size: screenWidth * 0.056),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -984,7 +846,7 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
                                         .map((tag) => Chip(
                                               label: Text(
                                                 tag,
-                                                style: TextStyle(fontSize: 12 * MediaQuery.of(context).textScaleFactor),
+                                                style: TextStyle(fontSize: 12.sp),
                                               ),
                                               backgroundColor: Colors.grey[300],
                                               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.022),
@@ -1019,10 +881,7 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
                               children: [
                                 Text(
                                   'Editar',
-                                  style: TextStyle(
-                                    fontSize: 15 * MediaQuery.of(context).textScaleFactor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold),
                                 ),
                                 SizedBox(width: screenWidth * 0.022),
                                 Icon(Icons.edit, size: screenWidth * 0.056),
@@ -1054,7 +913,7 @@ class _ImageGroupWidgetState extends State<ImageGroupWidget> {
                 child: Text(
                   widget.group.subAlbumName,
                   style: TextStyle(
-                    fontSize: 16 * MediaQuery.of(context).textScaleFactor,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),

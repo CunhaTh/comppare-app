@@ -2,7 +2,7 @@ import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/planos.dart';
-import 'package:application_progress/principal.dart';
+import 'package:application_progress/principal.dart' hide LoginScreen;
 import 'package:application_progress/views/admpage.dart';
 import 'package:application_progress/views/comppareimg.dart';
 import 'package:application_progress/views/pagamento.dart';
@@ -71,30 +71,37 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'comppare',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
-        useMaterial3: true,
-      ),
-      initialRoute: Uri.base.path,
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case AwaitingPayment.route:
-            return MaterialPageRoute(builder: (_) => const AwaitingPayment());
-          case CadastroScreen.route:
-            return MaterialPageRoute(
-              builder: (_) => CadastroScreen(
-                idPlano: int.tryParse(Uri.base.queryParameters['pId'] ?? ''),
-              ),
-            );
-          default:
-            return MaterialPageRoute(
-              builder: (_) => const MyHomePage(title: ''),
-            );
-        }
+    return ScreenUtilInit( // Adiciona o ScreenUtilInit para inicializar o flutter_screenutil
+      designSize: const Size(360, 690), // Tamanho base do design (ajuste conforme necessário)
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'comppare',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
+            useMaterial3: true,
+          ),
+          initialRoute: Uri.base.path,
+          onGenerateRoute: (settings) {
+            switch (settings.name) {
+              case AwaitingPayment.route:
+                return MaterialPageRoute(builder: (_) => const AwaitingPayment());
+              case CadastroScreen.route:
+                return MaterialPageRoute(
+                  builder: (_) => CadastroScreen(
+                    idPlano: int.tryParse(Uri.base.queryParameters['pId'] ?? ''),
+                  ),
+                );
+              default:
+                return MaterialPageRoute(
+                  builder: (_) => const MyHomePage(title: ''),
+                );
+            }
+          },
+          debugShowCheckedModeBanner: false,
+        );
       },
-      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -296,7 +303,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: _buildHeader(context),
               ),
               const SizedBox(height: 230),
-              const Text(
+              /*const Text(
                 '''Quer acompanhar a evolução de clientes e projetos de forma prática e interativa? Aqui é o lugar''',
                 style: TextStyle(
                   color: Colors.white,
@@ -311,12 +318,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
                 textAlign: TextAlign.center,
-              ),
-              const Text(
+              ),*/
+             /* const Text(
                 '''                                  Planos a partir de R\$ 27,99/mês''',
                 style: TextStyle(color: Colors.white, fontSize: 15),
                 textAlign: TextAlign.center,
-              ),
+              ),*/
               const SizedBox(height: 20),
             ],
           ),
@@ -342,9 +349,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => PrincipalPage()),
+                MaterialPageRoute(builder: (_) => const PrincipalPage()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -396,7 +403,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   foregroundColor: Colors.black,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 62, vertical: 20),
-                  shape: RoundedRectangleBorder(
+                  shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.only(
                         topRight: Radius.circular(0),
                         bottomRight: Radius.circular(0),
@@ -419,7 +426,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   foregroundColor: Colors.black,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 72, vertical: 20),
-                  shape: RoundedRectangleBorder(
+                  shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.only(
                         topRight: Radius.circular(8),
                         bottomRight: Radius.circular(8),
