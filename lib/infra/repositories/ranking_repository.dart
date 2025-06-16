@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../api_endponts.dart';
+import '../token_helper.dart';
 import '../user_helper.dart';
 
 class RankingRepository {
@@ -12,8 +13,7 @@ class RankingRepository {
       final response = await http.get(
         Uri.parse(ApiEndpoints.rankingClassification),
         headers: {
-          // 'Authorization': 'Bearer ${TokenHelper.instance.token}',
-          'content-type': 'application/json',
+          'Authorization': 'Bearer ${TokenHelper.instance.token}',
         },
       );
 
@@ -46,7 +46,7 @@ class RankingRepository {
         Uri.parse(ApiEndpoints.updateRanking),
         body: {'usuario': user!.id.toString(), 'pontos': points.toString()},
         headers: {
-          // 'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper.instance.token}',
         },
       );
 

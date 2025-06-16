@@ -1,12 +1,9 @@
-import 'dart:convert';
-
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:get/utils.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
-import '../infra/api_endponts.dart';
+import '../infra/repositories/plans_repository.dart';
 import '../planos.dart';
 import 'awaiting_payment.dart';
 
@@ -20,31 +17,6 @@ class PlansPage extends StatefulWidget {
 class _PlansPageState extends State<PlansPage> {
   List<Plano> plans = [];
 
-  void getPlans() async {
-    final response = await http.get(
-      Uri.parse('https://api.comppare.com.br/api/planos/listar'),
-    );
-
-    final data = json.decode(response.body);
-    final List<dynamic> planosJson = data['data'];
-    plans = planosJson.map((json) => Plano.fromJson(json)).toList();
-    setState(() {});
-  }
-
-  Future<bool> getCheckUpdatePlan(int newPlanId) async {
-    final response = await http.post(
-      Uri.parse(ApiEndpoints.checkUpdatePlan),
-      body: {
-        "cpf": UserHelper.instance.user?.cpf,
-        "plano": newPlanId.toString(),
-      },
-    );
-
-    final data = json.decode(response.body);
-    debugPrint('DATA: $data');
-    return data['changePlan'] ?? false;
-  }
-
   Plano? get currentUSerPlan {
     return plans.firstWhereOrNull(
       (p) => p.id == UserHelper.instance.user?.idPlano,
@@ -54,7 +26,10 @@ class _PlansPageState extends State<PlansPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(getPlans);
+    Future.microtask(() async {
+      plans = await PlansRepository.getPlans();
+      setState(() {});
+    });
   }
 
   @override
@@ -117,7 +92,8 @@ class _PlansPageState extends State<PlansPage> {
                                       Navigator.of(contextDialog);
 
                                   bool canUpdatePlan =
-                                      await getCheckUpdatePlan(planId);
+                                      await PlansRepository.getCheckUpdatePlan(
+                                          planId);
                                   var userId = UserHelper.instance.user?.id;
 
                                   if (canUpdatePlan && userId != null) {

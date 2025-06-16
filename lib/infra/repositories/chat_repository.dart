@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../api_endponts.dart';
+import '../token_helper.dart';
 
 class ChatRepository {
   static Future<List<ChatQuestionModel>> getChatQuestions() async {
@@ -11,8 +12,7 @@ class ChatRepository {
       final response = await http.get(
         Uri.parse(ApiEndpoints.getChatQuestions),
         headers: {
-          // 'Authorization': 'Bearer ${TokenHelper.instance.token}',
-          'content-type': 'application/json',
+          'Authorization': 'Bearer ${TokenHelper.instance.token}',
         },
       );
 
@@ -42,7 +42,7 @@ class ChatRepository {
         Uri.parse(ApiEndpoints.sendChatQuestion),
         body: {'pergunta': question, 'resposta': answer},
         headers: {
-          // 'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper.instance.token}',
         },
       );
 
