@@ -419,7 +419,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     });
   }
 
- void _showComparisonDialog(BuildContext context, List<ImageItem> imageItems, List<String> tags, String subAlbumName) {
+void _showComparisonDialog(BuildContext context, List<ImageItem> imageItems, List<String> tags, String subAlbumName) {
   final GlobalKey repaintKey = GlobalKey();
   final GlobalKey shareRepaintKey = GlobalKey();
   final screenWidth = MediaQuery.of(context).size.width;
@@ -689,9 +689,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         content: Container(
           width: screenWidth * 0.98,
           height: screenHeight * 0.90,
-          decoration: BoxDecoration(
-          //  border: Border.all(color: Colors.grey.withOpacity(0.5), width: 1.0),
-          ),
+          decoration: BoxDecoration(),
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               void onThumbnailTap(ImageItem tappedImage, int index) {
@@ -784,43 +782,55 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                               }).toList(),
                             ),
                           ),
-                          SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                          SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.010),
                           if (tags.isNotEmpty)
                             Container(
-                              padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
-                              child: Table(
-                                border: TableBorder.all(color: Colors.black54, width: 1),
-                                columnWidths: {
-                                  0: const FlexColumnWidth(1),
-                                  for (int i = 0; i < displayedImages.length; i++)
-                                    (i + 1): const FlexColumnWidth(1),
-                                },
+                              padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.02),
+                              child: Wrap(
+                                spacing: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014,
+                                runSpacing: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014,
                                 children: tags.asMap().entries.map((entry) {
                                   final int tagIndex = entry.key;
                                   final String tag = entry.value;
-                                  return TableRow(
-                                    decoration: tagIndex == 0 ? BoxDecoration(color: Colors.grey[300]) : null,
+                                  return Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014,
-                                          left: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014,
+                                          vertical: isLargeScreen ? screenWidth * 0.005 : screenWidth * 0.007,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue,
+                                          borderRadius: BorderRadius.circular(5),
                                         ),
                                         child: Text(
                                           tag,
                                           style: TextStyle(
+                                            color: Colors.white,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 12 * MediaQuery.of(context).textScaleFactor,
+                                            fontSize: 15 * MediaQuery.of(context).textScaleFactor,
                                           ),
                                         ),
                                       ),
+                                      SizedBox(width: 20,),
+                                    //  SizedBox(width: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
                                       ...displayedImages.asMap().entries.map((imageEntry) {
                                         final int imageIndex = imageEntry.key;
-                                        return Padding(
-                                          padding: EdgeInsets.all((isLargeScreen ? screenWidth * 0.006 : screenWidth * 0.008).clamp(1.0, 10.0)),
+                                        return SizedBox(
+                                          width: isLargeScreen ? screenWidth * 0.15 : screenWidth * 0.2,
                                           child: TextField(
                                             controller: controllers[tag]![imageIndex],
-                                            decoration: InputDecoration(border: InputBorder.none),
+                                            /*decoration: InputDecoration(
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(5),
+                                              ),
+                                              contentPadding: EdgeInsets.symmetric(
+                                                horizontal: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014,
+                                                vertical: isLargeScreen ? screenWidth * 0.005 : screenWidth * 0.007,
+                                              ),
+                                            ),*/
                                             style: TextStyle(
                                               fontSize: 12 * MediaQuery.of(context).textScaleFactor,
                                             ),
@@ -917,8 +927,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                 onThumbnailTap(imageItem, index);
                               },
                               child: Container(
-                                width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
-                                height: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
+                                width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.20,
+                                height: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.20,
                                 margin: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                                 decoration: BoxDecoration(
                                   border: Border.all(
@@ -937,12 +947,12 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                         ),
                       ),
                       Positioned(
-                        left: 0,
+                        left: 1,
                         top: isLargeScreen ? screenWidth * 0.08 : screenWidth * 0.11,
                         child: IconButton(
                           icon: Icon(
                             Icons.arrow_back_ios,
-                            color: Colors.black,
+                            color: const Color(0xFFaed513),
                             size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
                           onPressed: _scrollLeft,
@@ -950,12 +960,12 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                         ),
                       ),
                       Positioned(
-                        right: 0,
+                        right: 1,
                         top: isLargeScreen ? screenWidth * 0.08 : screenWidth * 0.11,
                         child: IconButton(
                           icon: Icon(
                             Icons.arrow_forward_ios,
-                            color: Colors.black,
+                            color: const Color(0xFFaed513),
                             size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
                           onPressed: _scrollRight,
