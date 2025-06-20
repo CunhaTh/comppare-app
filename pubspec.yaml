@@ -16,16 +16,13 @@ dependencies:
   mime: ^1.0.0
   device_preview: ^1.2.0
   flutter_svg: ^2.0.10
-  font_awesome_flutter: ^10.7.0
   cupertino_icons: ^1.0.8
   video_player: ^2.9.2
 
-  http: ^1.2.1
   font_awesome_flutter: ^10.7.0
   share_plus: any
   image_gallery_saver: ^2.0.3
   image_picker: ^1.1.2
-  url_launcher: ^6.0.2
   flutter_inappwebview: ^6.1.5
   efipay: ^1.0.6
   get_storage: ^2.1.1
@@ -38,9 +35,6 @@ dependencies:
   # Gerenciamento de estado e armazenamento
   flutter_riverpod: ^2.5.1
   # Utilitários
-  share_plus: ^10.0.0
-  image_picker: ^1.1.2
-  image_gallery_saver: ^2.0.3
   path_provider: ^2.1.5
   uuid: ^4.5.0
   qr_flutter: ^4.1.0
@@ -70,12 +64,3 @@ flutter:
     - assets/awaiting.png
     - assets/ranking.png
     - assets/chat_background.png
-      - assets/tela_principal.png
-      - assets/logo_escura.png
-      - assets/pagemconst.png
-      - assets/logo_cortada.png
-      - assets/profile.jpg
-      - assets/bg-comppare.jpeg
-      - assets/awaiting.png
-      - assets/ranking.png
-      - assets/chat_background.png
