@@ -1,16 +1,21 @@
 import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/cadastro.dart';
+import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/planos.dart';
 import 'package:application_progress/principal.dart' hide LoginScreen;
 import 'package:application_progress/views/admpage.dart';
+import 'package:application_progress/views/auth_wrapper.dart';
 import 'package:application_progress/views/comppareimg.dart';
 import 'package:application_progress/views/pagamento.dart';
+import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:application_progress/models/image_model.dart';
+import 'package:get_storage/get_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -60,9 +65,15 @@ class Plano {
       tempoGratuidade: json['tempoGratuidade'] ?? 1,
     );
   }
-}
+} 
 
 void main() async {
+  
+  await GetStorage.init(); 
+  debugPrint('GetStorage inicializado e TokenHelper pronto.'); // <--- Adicione este
+  debugPrint('Token na inicialização do app: ${TokenHelper().token}'); // <--- E este
+  debugPrint('User ID na inicialização do app: ${TokenHelper().userId}'); 
+  await TokenHelper().init();
   runApp(const MyApp());
 }
 
@@ -95,7 +106,11 @@ class MyApp extends StatelessWidget {
                 );
               default:
                 return MaterialPageRoute(
-                  builder: (_) => const MyHomePage(title: ''),
+                  
+                  builder: (_) => const AuthWrapper(),
+                                //Urlimg() 
+                                //const MyHomePage(title: ''),
+                                //const Pagemconstrucao() 
                 );
             }
           },
@@ -115,7 +130,9 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+
+
+ class _MyHomePageState extends State<MyHomePage> {
   bool isLoading = false;
   int? selectedQuestionIndex;
   List<Plano> plans = [];
@@ -482,7 +499,7 @@ class _MyHomePageState extends State<MyHomePage> {
           !plan.nome.toLowerCase().contains('anual'),
       orElse: () => Plano(
         id: 1,
-        nome: 'Básico Mensal',
+        nome: 'Avançado Mensal',
         descricao: 'Plano básico mensal com acesso a mais funcionalidades',
         valor: 24.90,
         quantidadeTags: 5,
@@ -502,7 +519,7 @@ class _MyHomePageState extends State<MyHomePage> {
           !plan.nome.toLowerCase().contains('anual'),
       orElse: () => Plano(
         id: 2,
-        nome: 'Avançado Mensal',
+        nome: 'Avançado Anual',
         descricao: 'Plano avançado mensal com todos os recursos',
         valor: 39.90,
         quantidadeTags: 10,
@@ -834,5 +851,5 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     );
-  }
-}
+  } 
+} 

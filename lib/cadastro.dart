@@ -1,11 +1,14 @@
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
+import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'views/awaiting_payment.dart';
+import 'infra/user_helper.dart'; // Importa o UserHelper (agora com a classe User)
 
 class CadastroScreen extends StatefulWidget {
   final int? idPlano;
@@ -20,6 +23,8 @@ class CadastroScreen extends StatefulWidget {
 
 class CadastroScreenState extends State<CadastroScreen> {
   final _nameController = TextEditingController();
+  final _surnameController = TextEditingController();
+  final _nicknameController = TextEditingController();
   final _cpfController = TextEditingController();
   final _emailController = TextEditingController();
   final _nasciController = TextEditingController();
@@ -50,7 +55,6 @@ class CadastroScreenState extends State<CadastroScreen> {
 
   bool _isValidCpf(String cpf) {
     if (cpf.length != 11) return false;
-    // Implementação básica (adicione validação de dígitos se necessário)
     return true;
   }
 
@@ -89,8 +93,14 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
   }
 
-  Future<void> _cadastrarUsuario(String nome, String sobrenome, String cpf, String email,
+  Future<void> _cadastrarUsuario(String nome, String sobrenome, String apelido, String cpf, String email,
       String telefone, String senha, String nascimento) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/usuarios/cadastrar'),
@@ -98,6 +108,7 @@ class CadastroScreenState extends State<CadastroScreen> {
         body: jsonEncode({
           "primeiroNome": nome,
           "sobrenome": sobrenome,
+          "apelido": apelido,
           "cpf": cpf,
           "nascimento": nascimento,
           "email": email,
@@ -109,82 +120,148 @@ class CadastroScreenState extends State<CadastroScreen> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        if (responseData['sucesso'] == true ||
-            responseData['codigoRetorno'] == 200) {
+        if (responseData['sucesso'] == true || responseData['codigoRetorno'] == 200) {
           if (![1, 2].contains(widget.idPlano)) {
             final userId = responseData['idUser'];
             final redirected = await launchUrl(
-              Uri.parse(
-                'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId',
-              ),
+              Uri.parse('https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
             );
             if (redirected && mounted) {
               Navigator.pushNamed(context, AwaitingPayment.route);
             }
           } else {
-            if (mounted) {
-              await showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('Sucesso'),
-                  content: const Text('Cadastro realizado com sucesso!'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const PrincipalPage()),
-              );
+            final success = await _loginAfterCadastro(cpf, senha);
+            if (success && mounted) {
+              if (mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PrincipalPage()),
+                );
+              }
             }
           }
         } else {
           _showErrorDialog(responseData['mensagem'] ?? 'Erro ao cadastrar.');
         }
       } else {
-        final errorResponse = jsonDecode(response.body);
-        _showErrorDialog(
-            errorResponse['mensagem'] ?? 'Erro ao conectar com a API.');
+        final errResponse = jsonDecode(response.body);
+        late String msg = '';
+        if (errResponse["codRetorno"] == 201) {
+          msg = '''Cadastro concluido com sucesso''';
+        } else {
+          msg = 'falha';
+        }
+        _showErrorDialog(msg);
       }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<bool> _loginAfterCadastro(String cpf, String senha) async {
+    if (!mounted) return false;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    const String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    };
+    final Map<String, dynamic> body = {
+      'cpf': cpf,
+      'senha': senha,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+
+        if (data.containsKey('token') && data.containsKey('dados') && data['dados'] is Map) {
+          final String token = data['token'];
+          final Map<String, dynamic> userData = data['dados'];
+
+          // Cria um objeto User a partir dos dados recebidos
+          // Certifique-se de que a classe User tem um construtor que aceita esses parâmetros
+          final User loggedInUser = User( // <--- CORRIGIDO: Usando a classe User
+            id: userData['id'] as int?,
+            nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
+            cpf: userData['cpf'] as String?,
+            telefone: userData['telefone'] as String?,
+            idPlano: userData['idPlano'] as int?,
+            email: userData['email'] as String?, // Adicionado o email
+            token: token,
+          );
+
+          // Extrai e anexa a lista de pastas ao objeto User
+          if (data.containsKey('pastas') && data['pastas'] is List) {
+            final List<dynamic> pastasJson = data['pastas'] as List<dynamic>;
+            loggedInUser.pastas = pastasJson.map((item) => Folder.fromMap(item as Map<String, dynamic>)).toList();
+          } else {
+            loggedInUser.pastas = []; // Garante que a lista de pastas não seja nula
+          }
+
+          await UserHelper().setUser(loggedInUser); // <--- CORRIGIDO: Passando o objeto User completo
+          print('User saved: ${loggedInUser}'); // Imprime o objeto completo para debug
+          return true;
+        } else {
+          _showErrorDialog('Resposta da API inválida ou estrutura inesperada.');
+          return false;
+        }
+      } else {
+        String errorMessage = 'Credenciais inválidas. Tente novamente.';
+        try {
+          final Map<String, dynamic> errorData = json.decode(response.body);
+          if (errorData.containsKey('message')) {
+            errorMessage = errorData['message'];
+          }
+        } catch (_) {}
+        _showErrorDialog(errorMessage);
+        return false;
+      }
+    } catch (error) {
+      _showErrorDialog('Erro de conexão: $error. Tente novamente mais tarde.');
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   void _showErrorDialog(String message) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Erro'),
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showNoPlanSelectedDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Atenção'),
-        content: const Text('Escolha um plano para cadastrar.'),
-        actions: [
-          TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context); // Fecha o diálogo
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const MyHomePage(title: '')),
-              );
+              // Se o erro for de login, não tente fazer login novamente automaticamente aqui.
+              // O usuário deve corrigir as credenciais.
+              // Removido o _loginAfterCadastro automático aqui para evitar loops de erro.
             },
             child: const Text('OK'),
           ),
@@ -193,12 +270,37 @@ class CadastroScreenState extends State<CadastroScreen> {
     );
   }
 
+  void _showNoPlanSelectedDialog() {
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Atenção'),
+          content: const Text('Escolha um plano para cadastrar.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => Pagemconstrucao()) // MyHomePage(title: '')),
+                );
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   void _sendCadastroData() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
 
-    // Verifica se o plano foi selecionado
     if (widget.idPlano == null) {
       setState(() {
         _isLoading = false;
@@ -208,7 +310,8 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
 
     String nome = _nameController.text.trim();
-    String sobrenome = _nameController.text.trim();
+    String sobrenome = _surnameController.text.trim();
+    String apelido = _nicknameController.text.trim();
     String cpf = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
     String email = _emailController.text.trim();
     String nascimento = _nasciController.text.trim();
@@ -216,8 +319,7 @@ class CadastroScreenState extends State<CadastroScreen> {
     String senha = _passwordController.text.trim();
     String confirmSenha = _confirmPasswordController.text.trim();
 
-    // Validações
-    if ([nome, sobrenome, cpf, email, nascimento, telefone, senha, confirmSenha]
+    if ([nome, sobrenome, apelido, cpf, email, nascimento, telefone, senha, confirmSenha]
         .any((field) => field.isEmpty)) {
       _showErrorDialog('Por favor, preencha todos os campos!');
       setState(() => _isLoading = false);
@@ -242,7 +344,6 @@ class CadastroScreenState extends State<CadastroScreen> {
       return;
     }
 
-    // Parse da data para validação de idade
     final parts = nascimento.split('/');
     if (parts.length == 3) {
       try {
@@ -271,21 +372,19 @@ class CadastroScreenState extends State<CadastroScreen> {
         _showErrorDialog('Usuário já cadastrado com este CPF!');
         setState(() => _isLoading = false);
       } else {
-        await _cadastrarUsuario(nome, sobrenome, cpf, email, telefone, senha, nascimento);
+        await _cadastrarUsuario(nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
       }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
       setState(() => _isLoading = false);
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _surnameController.dispose();
+    _nicknameController.dispose();
     _cpfController.dispose();
     _emailController.dispose();
     _nasciController.dispose();
@@ -320,7 +419,7 @@ class CadastroScreenState extends State<CadastroScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const MyHomePage(
+                                  builder: (context) => /*Pagemconstrucao()*/ const MyHomePage(
                                     title: '',
                                   ),
                                 ),
@@ -342,7 +441,11 @@ class CadastroScreenState extends State<CadastroScreen> {
                             color: Colors.black),
                       ),
                       const SizedBox(height: 10),
-                      _buildTextField(_nameController, 'Nome Completo'),
+                      _buildTextField(_nameController, 'Nome'),
+                      const SizedBox(height: 15),
+                      _buildTextField(_surnameController, 'Sobrenome'),
+                      const SizedBox(height: 15),
+                      _buildTextField(_nicknameController, 'Apelido'),
                       const SizedBox(height: 15),
                       _buildTextField(_cpfController, 'CPF'),
                       const SizedBox(height: 15),

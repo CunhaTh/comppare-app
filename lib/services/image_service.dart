@@ -1,183 +1,231 @@
-import 'dart:async';
+// lib/services/image_service.dart
+
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:application_progress/infra/api_exception.dart';
+import 'package:application_progress/infra/api_services.dart'; // Certifique-se que ApiService existe e tem os métodos esperados
+import 'package:application_progress/models/folder_model.dart';
+import 'package:flutter/material.dart' as foundation;
 import 'package:http/http.dart' as http;
-import 'package:application_progress/infra/user_helper.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
+import 'package:application_progress/models/image_model.dart';
+import 'package:application_progress/infra/token_helper.dart';
+import 'package:application_progress/infra/api_endponts.dart';
+
+/// Serviço responsável por interagir com a API de imagens,
+/// gerenciando operações como criação de pastas, upload, busca e exclusão.
 class ImageService {
-  // Função auxiliar para recuperar o token
-  String? _getAuthToken() {
-    final user = UserHelper.instance.user;
-    final token = user?.token;
-    debugPrint('Token recuperado: $token');
-    return token;
+  final ApiService _apiService;
+  final http.Client _httpClient;
+
+  ImageService({ApiService? apiService, http.Client? httpClient})
+      : _apiService = apiService ?? ApiService(),
+        _httpClient = httpClient ?? http.Client();
+
+  /// Retorna os cabeçalhos HTTP padrão. Usado para requisições multipart.
+  /// O Content-Type é geralmente adicionado automaticamente pelo http.MultipartRequest.
+  Map<String, String> _getHeadersForMultipart() {
+    final String? authToken = TokenHelper().token;
+    final Map<String, String> headers = {
+      'Accept': 'application/json',
+    };
+    if (authToken != null && authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $authToken';
+    } else {
+      foundation.debugPrint('Aviso: Token de autenticação não disponível no TokenHelper.');
+    }
+    return headers;
   }
 
-  Future<List<String>> uploadImages({
-    required List<dynamic> images,
-    required int userId,
-    String? subAlbumName,
-    int? folderId,
-  }) async {
-    final Uri url = Uri.parse("https://api.comppare.com.br/api/imagem/upload");
-    final String? authToken = _getAuthToken();
-    List<String> uploadedUrls = [];
-
-    if (authToken == null) {
-      throw Exception('Token de autenticação não encontrado. Faça login novamente.');
-    }
-
-    if (folderId == null) {
-      throw Exception('ID da pasta não fornecido. Não é possível fazer upload das imagens.');
-    }
-
-    try {
-      for (var image in images) {
-        var request = http.MultipartRequest('POST', url)
-          ..fields['idUsuario'] = userId.toString()
-          ..fields['idPasta'] = folderId.toString();
-
-        if (subAlbumName != null) {
-          request.fields['subAlbumName'] = subAlbumName;
-        }
-
-        request.headers['Authorization'] = 'Bearer $authToken';
-        request.headers['Content-Type'] = 'multipart/form-data';
-
-        if (kIsWeb || image is Uint8List) {
-          request.files.add(http.MultipartFile.fromBytes(
-            'imagem',
-            image is Uint8List ? image : image as List<int>,
-            filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-          ));
-        } else if (image is File) {
-          request.files.add(await http.MultipartFile.fromPath('imagem', image.path));
-        } else {
-          throw Exception('Tipo de imagem não suportado: ${image.runtimeType}');
-        }
-
-        var response = await request.send().timeout(const Duration(seconds: 30));
-        var responseBody = await response.stream.bytesToString();
-
-        debugPrint('Resposta da API (uploadImages): $responseBody');
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          if (responseBody.isEmpty) {
-            throw Exception('Resposta da API está vazia');
-          }
-
-          dynamic data;
-          try {
-            data = jsonDecode(responseBody);
-          } catch (e) {
-            throw Exception('Erro ao parsear JSON: $responseBody');
-          }
-
-          if (data is Map<String, dynamic>) {
-            final dynamic urlData = data['data'];
-            if (urlData is Map<String, dynamic> && urlData['url'] is String) {
-              uploadedUrls.add(urlData['url'] as String);
-            } else {
-              throw Exception('URL da imagem não retornada pela API: $responseBody');
-            }
-          } else {
-            throw Exception('Resposta da API inválida (não é um Map): $responseBody');
-          }
-        } else {
-          throw Exception('Falha ao fazer upload da imagem: ${response.statusCode} - $responseBody');
-        }
-      }
-    } catch (e) {
-      debugPrint('Erro no uploadImages: $e');
-      throw Exception('Erro ao fazer upload das imagens: $e');
-    }
-
-    return uploadedUrls;
-  }
-
-  Future<void> createSubAlbum({
-    required int userId,
+  /// Cria uma nova pasta ou subpasta na galeria do usuário.
+  /// O `folderName` pode incluir a hierarquia (ex: "PastaPrincipal/Subpasta").
+  ///
+  /// Retorna o `idPasta` da pasta criada.
+  /// Lança [ApiException] em caso de falha.
+  Future<int> createFolder({
     required String folderName,
-    required String subAlbumName,
-    required List<String> tags,
-    required List<String> imageUrls,
-    int? folderId,
+    required List<String> tags, // Tags são passadas, mas a implementação do ApiService pode ignorá-las se o backend não suportar para pastas
   }) async {
-    final Uri url = Uri.parse("https://api.comppare.com.br/api/pasta/create");
-    final String? authToken = _getAuthToken();
-
-    if (authToken == null) {
-      throw Exception('Token de autenticação não encontrado. Faça login novamente.');
-    }
-
-    if (folderId == null) {
-      throw Exception('ID da pasta não fornecido. Não é possível criar o subálbum na API.');
+    final int currentUserId = TokenHelper().userId;
+    if (!TokenHelper().hasToken() || currentUserId == 0) {
+      throw ApiException('Usuário não autenticado ou ID de usuário inválido para criar pasta.', statusCode: 401);
     }
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-        body: jsonEncode({
-          'idUsuario': userId,
-          'nomePasta': '$folderName/$subAlbumName',
-          'tags': tags,
-          'imagens': imageUrls,
-          'idPasta': folderId,
-        }),
-      ).timeout(const Duration(seconds: 30), onTimeout: () {
-        throw TimeoutException('A requisição demorou muito para responder.');
-      });
-
-      debugPrint('Resposta da API (createSubAlbum): ${response.body}');
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Falha ao criar subálbum: ${response.statusCode} - ${response.body}');
+      // ⭐ Delega para o ApiService, que deve lidar com o endpoint e a lógica de criação de pasta.
+      // Assumindo que ApiService.createFolder recebe userId e folderName e retorna um Map.
+      final response = await _apiService.createFolder(currentUserId, folderName);
+      
+      // O ApiService já deve ter tratado a resposta HTTP e lançado ApiException para erros.
+      // Aqui, esperamos que 'response' seja o corpo decodificado da resposta,
+      // e que ele contenha 'idPasta'.
+      if (response.containsKey('idPasta') && response['idPasta'] is int) {
+        return response['idPasta'] as int;
+      } else {
+        throw ApiException(
+          'API retornou sucesso na criação da pasta, mas sem ID de pasta válido.',
+          statusCode: 200, // Assumimos 200 OK se chegou aqui, mas sem o ID esperado
+          body: json.encode(response),
+        );
       }
+    } on ApiException {
+      rethrow; // Re-lança a exceção já tratada pelo ApiService
     } catch (e) {
-      debugPrint('Erro no createSubAlbum: $e');
-      throw Exception('Erro ao criar subálbum: $e');
+      throw ApiException('Erro inesperado ao criar pasta: ${e.toString()}', statusCode: 0);
     }
   }
 
-  Future<void> saveImage({
-    required int idPasta,
-    required String imageName,
-  }) async {
-    final Uri url = Uri.parse("https://api.comppare.com.br/api/imagens/salvar");
-    final String? authToken = _getAuthToken();
-
-    if (authToken == null) {
-      throw Exception('Token de autenticação não encontrado. Faça login novamente.');
+  /// Recupera os detalhes de uma pasta específica (incluindo suas imagens).
+  /// Este método é para a "Tela de Subpastas" para carregar o conteúdo da pasta selecionada.
+  Future<List<Folder>> fetchFolderDetails() async {
+    final int currentUserId = TokenHelper().userId;
+    if (!TokenHelper().hasToken() || currentUserId == 0) {
+      throw ApiException('Usuário não autenticado para buscar detalhes da pasta.', statusCode: 401);
     }
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-        body: jsonEncode({
-          'image': imageName,
-          'idPasta': idPasta,
-        }),
-      ).timeout(const Duration(seconds: 30), onTimeout: () {
-        throw TimeoutException('A requisição demorou muito para responder.');
-      });
-
-      debugPrint('Resposta da API (saveImage): ${response.body}');
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Falha ao salvar imagem: ${response.statusCode} - ${response.body}');
-      }
+      // ⭐ Delega para o ApiService. O ApiService deve retornar um objeto ImageGroup.
+      return await _apiService.getAllFoldersForUser();
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      debugPrint('Erro no saveImage: $e');
-      throw Exception('Erro ao salvar imagem: $e');
+      throw ApiException('Erro ao buscar detalhes da pasta: ${e.toString()}', statusCode: 0);
+    }
+  }
+
+  /// Lista todas as pastas (principais e subpastas, ou apenas principais dependendo da API) do usuário.
+  /// Este método é para a "Tela Principal" (Álbuns Criados)
+  /// e não deve receber `idFolder`, pois busca todas as pastas do usuário.
+  /// ⭐ AJUSTE: Removido o parâmetro `idFolder` que era redundante para "todas as pastas".
+  Future<List<Folder>> fetchAllFolders() async {
+    final int currentUserId = TokenHelper().userId;
+    if (!TokenHelper().hasToken() || currentUserId == 0) {
+      throw ApiException('Usuário não autenticado para listar pastas.', statusCode: 401);
+    }
+
+    try {
+      // ⭐ Delega para o ApiService. O ApiService.recuperaFolder deve buscar todas as pastas associadas ao usuário logado.
+      return await _apiService.getAllFoldersForUser();
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Erro ao buscar todas as pastas: ${e.toString()}', statusCode: 0);
+    }
+  }
+
+  /// Exclui uma pasta e todo o seu conteúdo.
+  Future<void> deleteFolder(int folderId) async {
+    final int currentUserId = TokenHelper().userId;
+    if (!TokenHelper().hasToken() || currentUserId == 0) {
+      throw ApiException('Usuário não autenticado para excluir pasta.', statusCode: 401);
+    }
+
+    try {
+      // ⭐ Delega para o ApiService, que deve ter o método deleteFolder
+      await _apiService.deleteFolder(currentUserId, folderId);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Erro ao excluir pasta: ${e.toString()}', statusCode: 0);
+    }
+  }
+
+  /// Faz o upload de uma lista de imagens para uma pasta específica.
+  Future<List<ImageModel>> uploadImages({
+    required List<PickedFileItem> images,
+    required int folderId,
+  }) async {
+    final int currentUserId = TokenHelper().userId;
+    if (!TokenHelper().hasToken() || currentUserId == 0) {
+      throw ApiException('Usuário não autenticado para fazer upload de imagens.', statusCode: 401);
+    }
+
+    final uri = Uri.parse(ApiEndpoints.uploadImages);
+    foundation.debugPrint('Enviando imagens para: $uri, para a pasta: $folderId, pelo usuário: $currentUserId');
+
+    var request = http.MultipartRequest('POST', uri);
+
+    request.headers.addAll(_getHeadersForMultipart());
+
+    request.fields['idUsuario'] = currentUserId.toString();
+    request.fields['idPasta'] = folderId.toString(); // ⭐ Usando folderId passado como parâmetro
+
+    for (var item in images) {
+      final file = item.platformFile;
+      final String? mimeType = lookupMimeType(file.name);
+
+      if (file.bytes != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image', // Nome do campo esperado pela API para o arquivo
+            file.bytes!,
+            filename: file.name,
+            contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+          ),
+        );
+      } else if (file.path != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'image', // Nome do campo esperado pela API para o arquivo
+            file.path!,
+            filename: file.name,
+            contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+          ),
+        );
+      } else {
+        foundation.debugPrint('Aviso: Arquivo ${file.name} sem bytes ou caminho, será ignorado.');
+      }
+    }
+
+    try {
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      foundation.debugPrint('Upload Images Response Status: ${response.statusCode}');
+      foundation.debugPrint('Upload Images Response Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final dynamic decodedResponse = json.decode(response.body);
+
+        // Adaptação para o JSON do Insomnia ou outros formatos comuns de sucesso
+        if (decodedResponse is List) {
+          // Se a API retornar uma lista diretamente de objetos de imagem
+          return decodedResponse.map((json) => ImageModel.fromMap(json as Map<String, dynamic>)).toList();
+        } else if (decodedResponse is Map<String, dynamic> && decodedResponse.containsKey('data') && decodedResponse['data'] is List) {
+          // Se a API retornar um objeto com uma chave 'data' contendo a lista de imagens
+          return (decodedResponse['data'] as List<dynamic>)
+              .map((json) => ImageModel.fromMap(json as Map<String, dynamic>))
+              .toList();
+        } else if (decodedResponse is Map<String, dynamic> && decodedResponse.containsKey('image_paths') && decodedResponse['image_paths'] is List) {
+          // ⭐ Adaptação específica para o JSON do Insomnia (ex: {"image_paths": ["path1", "path2"]})
+          final List<dynamic> imagePaths = decodedResponse['image_paths'] as List<dynamic>;
+          // Cria objetos MyImage a partir dos paths. O ID pode ser um placeholder (0)
+          // se a API não retornar IDs de imagem no momento do upload.
+          return imagePaths.map((path) => ImageModel(path: path.toString(), id: 0)).toList();
+        } else {
+          throw ApiException(
+            'Formato de resposta inesperado após o upload de imagens.',
+            statusCode: response.statusCode,
+            body: response.body,
+          );
+        }
+      } else {
+        throw ApiException(
+          'Falha no upload das imagens: Status ${response.statusCode} - ${response.body}',
+          statusCode: response.statusCode,
+          body: response.body,
+        );
+      }
+    } on http.ClientException catch (e) {
+      throw ApiException('Erro de conexão ao fazer upload das imagens: ${e.message}', statusCode: 0);
+    } on FormatException {
+      throw ApiException('Resposta inválida do servidor durante o upload de imagens.', statusCode: 0);
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ApiException('Erro inesperado ao fazer upload das imagens: ${e.toString()}', statusCode: 0);
     }
   }
 }

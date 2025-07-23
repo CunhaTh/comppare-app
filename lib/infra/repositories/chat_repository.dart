@@ -12,7 +12,7 @@ class ChatRepository {
       final response = await http.get(
         Uri.parse(ApiEndpoints.getChatQuestions),
         headers: {
-          'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper().token}',
         },
       );
 
@@ -42,7 +42,7 @@ class ChatRepository {
         Uri.parse(ApiEndpoints.sendChatQuestion),
         body: {'pergunta': question, 'resposta': answer},
         headers: {
-          'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper().token}',
         },
       );
 

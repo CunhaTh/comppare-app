@@ -19,7 +19,7 @@ class _PlansPageState extends State<PlansPage> {
 
   Plano? get currentUSerPlan {
     return plans.firstWhereOrNull(
-      (p) => p.id == UserHelper.instance.user?.idPlano,
+      (p) => p.id == UserHelper().user?.idPlano,
     );
   }
 
@@ -94,7 +94,7 @@ class _PlansPageState extends State<PlansPage> {
                                   bool canUpdatePlan =
                                       await PlansRepository.getCheckUpdatePlan(
                                           planId);
-                                  var userId = UserHelper.instance.user?.id;
+                                  var userId = UserHelper().user?.id;
 
                                   if (canUpdatePlan && userId != null) {
                                     final redirected = await launchUrl(

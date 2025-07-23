@@ -13,7 +13,7 @@ class RankingRepository {
       final response = await http.get(
         Uri.parse(ApiEndpoints.rankingClassification),
         headers: {
-          'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper().token}',
         },
       );
 
@@ -36,7 +36,7 @@ class RankingRepository {
 
   static Future<bool> sendDataRanking({required int points}) async {
     try {
-      var user = UserHelper.instance.user;
+      var user = UserHelper().user;
 
       if (user?.idPlano == 1) return true;
 
@@ -46,7 +46,7 @@ class RankingRepository {
         Uri.parse(ApiEndpoints.updateRanking),
         body: {'usuario': user!.id.toString(), 'pontos': points.toString()},
         headers: {
-          'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper().token}',
         },
       );
 

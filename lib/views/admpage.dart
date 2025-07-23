@@ -1,4 +1,5 @@
 import 'package:application_progress/main.dart';
+import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
 
 class MyApp extends StatelessWidget {
@@ -86,7 +87,7 @@ class _AdmPageState extends State<AdmPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const MyHomePage(title: '',),
+                                builder: (context) => Pagemconstrucao() //const MyHomePage(title: '',),
                               ),
                             );
                           },

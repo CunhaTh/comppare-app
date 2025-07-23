@@ -14,7 +14,7 @@ class PlansRepository {
       final response = await http.get(
         Uri.parse(ApiEndpoints.getPlans),
         headers: {
-          'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper().token}',
         },
       );
 
@@ -39,11 +39,11 @@ class PlansRepository {
       final response = await http.post(
         Uri.parse(ApiEndpoints.checkUpdatePlan),
         body: {
-          "cpf": UserHelper.instance.user?.cpf,
+          "cpf": UserHelper().user?.cpf,
           "plano": newPlanId.toString(),
         },
         headers: {
-          'Authorization': 'Bearer ${TokenHelper.instance.token}',
+          'Authorization': 'Bearer ${TokenHelper().token}',
         },
       );
 

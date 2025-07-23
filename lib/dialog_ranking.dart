@@ -19,7 +19,7 @@ class _DialogRankingState extends State<DialogRanking> {
   List<RankingItemModel> items = [];
 
   RankingItemModel? get positionCurrentUser {
-    final userName = UserHelper.instance.user?.nome ?? '';
+    final userName = UserHelper().user?.nome ?? '';
     return items.firstWhereOrNull(
       (i) => i.nome == userName && (i.position ?? 0) > 5,
     );
@@ -203,7 +203,7 @@ class PositionCard extends StatelessWidget {
                 Text('$positionº', style: textStyle),
                 const SizedBox(width: 10),
                 Text(
-                  name == (UserHelper.instance.user?.nome ?? '')
+                  name == (UserHelper().user?.nome ?? '')
                       ? 'Você'
                       : name,
                   style: textStyle,

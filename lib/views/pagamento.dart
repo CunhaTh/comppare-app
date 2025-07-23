@@ -125,14 +125,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         padding: const EdgeInsets.only(right: 20),
                         child: GestureDetector(
                             onTap: () {
-                              Navigator.push(
+                           /*   Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => const MyHomePage(
                                     title: '',
                                   ),
                                 ),
-                              );
+                              );*/
                             },
                             child: const Icon(Icons.logout)),
                       );

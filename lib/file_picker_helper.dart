@@ -24,7 +24,7 @@ class _SelectedImages {
 
 class FilePickerHelper {
   // Método para selecionar imagens e retornar uma lista de ImageItem
-  static Future<List<ImageItem>> pickImages(String subAlbumName) async {
+  static Future<List<ImageItem>> pickImages(String subAlbumName, {required bool allowMultiple}) async {
     List<ImageItem> newImages = [];
     print('FilePickerHelper.pickImages iniciado para subAlbum: $subAlbumName');
 

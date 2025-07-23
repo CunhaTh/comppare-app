@@ -1,33 +1,18 @@
-import 'package:application_progress/cadastro.dart';
-import 'package:application_progress/main.dart';
-import 'package:application_progress/principal.dart';
+// lib/screens/login_screen.dart (Renomeado para clareza)
+
+import 'package:application_progress/infra/api_exception.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'dart:convert'; // Para json.decode
+import 'package:application_progress/infra/token_helper.dart'; // Importa o TokenHelper corrigido
+import 'package:application_progress/infra/api_services.dart'; // Importa o ApiService
+import 'package:application_progress/infra/user_helper.dart'; // Importa o UserHelper
+import 'package:application_progress/cadastro.dart'; // Ajuste o nome do arquivo se for diferente
+import 'package:application_progress/views/recupera_senha.dart';
+import 'package:application_progress/principal.dart'; // Importa a PrincipalPage
 
-import 'infra/user_helper.dart';
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Login',
-      theme: ThemeData(
-        primaryColor: Colors.white,
-        scaffoldBackgroundColor: const Color.fromARGB(255, 212, 213, 206),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.black),
-          bodyMedium: TextStyle(color: Colors.black),
-        ),
-        colorScheme:
-            ColorScheme.fromSwatch().copyWith(secondary: const Color(0xFFaed513)),
-      ),
-      home: const LoginScreen(),
-    );
-  }
-}
+// Removendo MyApp e AuthWrapper daqui, eles devem estar em main.dart
+// class MyApp extends StatelessWidget { ... }
+// class AuthWrapper extends StatelessWidget { ... }
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,83 +25,76 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _cpfController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  final ApiService _apiService = ApiService(); // Instância do ApiService
+
+  @override
+  void dispose() {
+    _cpfController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
     });
 
-    const String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    };
-    final Map<String, dynamic> body = {
-      'cpf': _cpfController.text.trim().replaceAll(RegExp(r'\D'), ''),
-      'senha': _passwordController.text,
-    };
+    final String cpfDigitado = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
+    final String senhaDigitada = _passwordController.text;
+
+    print('CPF a ser enviado: $cpfDigitado');
+    print('Senha a ser enviada: $senhaDigitada'); 
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: json.encode(body),
+      // ⭐ Delega a autenticação para o ApiService
+      final Map<String, dynamic> responseData = await _apiService.authenticateUser(
+        cpfDigitado,
+        senhaDigitada,
       );
+      print('Corpo da requisição de autenticação: ${json.encode(responseData)}');
+      
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      // Se authenticateUser não lançou exceção, significa que foi sucesso
+      // O TokenHelper e UserHelper já foram atualizados dentro de authenticateUser
+      // pelo ApiService.
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-
-        if (data.containsKey('token') && data.containsKey('dados') && data['dados'] is Map) {
-          final String token = data['token'];
-          final Map<String, dynamic> userData = data['dados'];
-
-          final user = UserModel(
-            id: userData['id'],
-            nome: '${userData['primeiroNome']} ${userData['sobrenome']}', // Combine first and last name
-            cpf: userData['cpf'],
-            telefone: userData['telefone'],
-            idPlano: userData['idPlano'],
-            token: token,
-          );
-
-          await UserHelper.instance.setUser(user);
-          print('User saved: ${user.toMap()}'); // Debug user data
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const PrincipalPage()),
-          );
-        } else {
-          _showErrorDialog('Resposta da API inválida ou estrutura inesperada. Verifique os dados retornados.');
-        }
-      } else {
-        String errorMessage = 'Credenciais inválidas. Tente novamente.';
-        try {
-          final Map<String, dynamic> errorData = json.decode(response.body);
-          if (errorData.containsKey('message')) {
-            errorMessage = errorData['message'];
-          }
-        } catch (_) {}
-        _showErrorDialog(errorMessage);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login bem-sucedido!')),
+        );
+        // Navega para PrincipalPage sem passar CPF e Senha
+        // A PrincipalPage deve obter o userId do TokenHelper
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PrincipalPage(), // PrincipalPage agora não precisa de CPF/Senha
+          ),
+        );
       }
     } catch (error) {
-      _showErrorDialog('Erro de conexão: $error. Tente novamente mais tarde.');
+      String errorMessage = 'Erro desconhecido. Tente novamente.';
+      if (error is ApiException) {
+        errorMessage = error.message;
+        // Se for 401, o ApiService já lida, mas podemos adicionar um log específico aqui
+        if (error.statusCode == 401) {
+          errorMessage = 'Credenciais inválidas. Verifique seu CPF e senha.';
+        }
+      }
+      _showErrorDialog(errorMessage);
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-    debugPrint('User salvo"Token presente!": ${UserHelper.instance.user?.toMap()}');
   }
 
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Erro'),
+        title: const Text('Erro de Login'), // Título mais específico
         content: Text(message),
         actions: [
           TextButton(
@@ -127,27 +105,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActionButton(
-      BuildContext context, String label, Widget targetPage) {
-    return ElevatedButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => targetPage,
-          ),
-        );
-      },
-      style: ElevatedButton.styleFrom(
-        foregroundColor: const Color.fromARGB(255, 251, 255, 250),
-        backgroundColor: const Color(0xFF637700),
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-        textStyle: const TextStyle(fontSize: 18),
-      ),
-      child: Text(label),
     );
   }
 
@@ -165,21 +122,21 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(12)), // Adicionado arredondamento
                 ),
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MyHomePage(
-                              title: '',
-                            ),
-                          ),
-                        );
+                        // Se você quer que o logo volte para a página inicial do app (main.dart)
+                        // Navigator.pushAndRemoveUntil(
+                        //   context,
+                        //   MaterialPageRoute(builder: (context) => const MyHomePage(title: '')),
+                        //   (Route<dynamic> route) => false,
+                        // );
                       },
                       child: Image.asset(
                         "assets/logo_cortada.png",
@@ -199,6 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       style: const TextStyle(color: Colors.black),
+                      keyboardType: TextInputType.number, // Ajuda na entrada de CPF
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -217,60 +175,46 @@ class _LoginScreenState extends State<LoginScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 20),
                       child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            ElevatedButton(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded( // Para que o botão ocupe o espaço disponível
+                            child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 80, vertical: 20),
+                                padding: const EdgeInsets.symmetric(vertical: 20),
                                 textStyle: const TextStyle(fontSize: 18),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), // Arredondamento
                               ),
                               onPressed: _isLoading ? null : _login,
                               child: _isLoading
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white)
-                                  : const Text('Entrar',
-                                      style: TextStyle(color: Colors.white)),
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Text('Entrar', style: TextStyle(color: Colors.white)),
                             ),
-                            const SizedBox(width: 20),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 60, vertical: 20),
-                                textStyle: const TextStyle(fontSize: 18),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const CadastroScreen(
-                                      idPlano: null,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: const Text('Cadastrar',
-                                  style: TextStyle(color: Colors.white)),
-                            ),
-                          ]),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded( // Para que o botão ocupe o espaço disponível
+                            child: _buildActionButton(context, 'Cadastrar', const CadastroScreen(idPlano: null,)),
+                          ),
+                        ],
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: 30),
                       child: GestureDetector(
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => RecoverPasswordScreen()),
+                          );
+                        },
                         child: const Text(
                           'Esqueceu a senha?',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(165, 0, 0, 0)),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Color.fromARGB(165, 0, 0, 0)),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -291,91 +235,23 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
 
-class HomeScreen extends StatelessWidget {
-  final String token;
-  const HomeScreen({super.key, required this.token});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 30),
-      child: Stack(children: [
-        Scaffold(
-          appBar: AppBar(
-            title: const Text('Tela Principal'),
-            actions: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF637700),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const CustomScreen()));
-                },
-                child: const Text(
-                  'Customizar',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Aqui você pode customizar seus cards!',
-                  style: TextStyle(fontSize: 24),
-                ),
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const CustomScreen()));
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF637700),
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: const Text('Ir para Custom Screen',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-class CustomScreen extends StatelessWidget {
-  const CustomScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tela de Customização'),
+  Widget _buildActionButton(BuildContext context, String label, Widget targetPage) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => targetPage),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        textStyle: const TextStyle(fontSize: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), // Arredondamento
       ),
-      body: const Center(
-        child: Text('Aqui é a tela de customização!'),
-      ),
+      child: Text(label),
     );
   }
 }
