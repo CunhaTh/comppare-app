@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:application_progress/albuns_criados.dart';
+import 'package:application_progress/albuns_criados.dart'; // Importa a AlbunsCriadosPage
 import 'package:application_progress/chat_button.dart';
 import 'package:application_progress/dialog_ranking.dart';
 import 'package:application_progress/infra/api_services.dart';
@@ -14,8 +14,8 @@ import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart' as main_app;
 
 // IMPORTAÇÕES CORRETAS DOS MODELOS
-import 'package:application_progress/models/folder_model.dart';
-import 'package:application_progress/models/image_model.dart';
+import 'package:application_progress/models/folder_model.dart'; // Para o modelo Folder
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -30,29 +30,6 @@ class PrincipalPage extends StatefulWidget {
 
   @override
   _PrincipalPageState createState() => _PrincipalPageState();
-}
-
-class ImageItem {
-  final Uint8List imageData;
-  final String subAlbumName;
-
-  ImageItem({required this.imageData, required this.subAlbumName});
-
-  Map<String, dynamic> toJson() {
-    return {
-      'imageData': imageData.toList(),
-      'subAlbumName': subAlbumName,
-    };
-  }
-
-  factory ImageItem.fromJson(Map<String, dynamic> json) {
-    return ImageItem(
-      imageData: Uint8List.fromList(List<int>.from(json['imageData'])),
-      subAlbumName: json['subAlbumName'] as String,
-    );
-  }
-
-  get imageUrl => null;
 }
 
 
@@ -75,9 +52,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     _fetchFoldersFromApiAndRefreshState();
   }
 
-  // O método _fetchFolders agora busca as pastas diretamente do UserHelper
-  // e não tenta mais buscar da API se não encontrar no cache local.
-  // A responsabilidade de buscar da API (se necessário) foi movida para o login.
   Future<void> _fetchFolders() async {
     if (!mounted) return;
     setState(() {
@@ -95,8 +69,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
           });
         }
       } else {
-        // Se o UserHelper não tem pastas, algo está errado com o fluxo de login/cache.
-        // Redireciona para o login para reautenticar e recarregar os dados.
         debugPrint('Pastas não encontradas no UserHelper. Redirecionando para login.');
         _navigateToLogin();
       }
@@ -116,7 +88,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   Future<void> _addFolder(String folderName) async {
     final user = UserHelper().user;
-    if (user == null || user.id == null) {
+    if (user == null || user.id == null || user.nome == null) {
       debugPrint('Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
       _showErrorDialog('Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
       _navigateToLogin();
@@ -124,15 +96,25 @@ class _PrincipalPageState extends State<PrincipalPage> {
     }
 
     try {
-      await _apiService.createFolder(user.id!, folderName);
+      // ⭐ CORREÇÃO AQUI: Construindo o nome completo da pasta para a API
+      // Assume que o nome do usuário já está formatado como "PrimeiroNome Sobrenome"
+      // e o backend espera "PrimeiroNome_Sobrenome/NomeDaPasta"
+      final String userNameFormatted = user.nome!.replaceAll(' ', '_'); // Substitui espaços por underscores
+      final String fullFolderNameForApi = "$userNameFormatted/$folderName";
+      debugPrint('Tentando criar pasta com nome: $fullFolderNameForApi');
+
+
+      await _apiService.createSubFolder(
+        folderName: fullFolderNameForApi, // Nome completo da pasta para a API
+        tags: [], // Sem tags iniciais, se não for necessário
+        parentFolderId: null, // É uma pasta principal
+      );
 
       if (mounted) {
         folderNameController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
         );
-        // Após criar uma pasta, precisamos atualizar a lista de pastas.
-        // Isso deve ser feito buscando novamente da API para ter os dados mais recentes.
         await _fetchFoldersFromApiAndRefreshState();
       }
     } on ApiException catch (e) {
@@ -167,18 +149,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
         return;
       }
 
-      // Agora, getAllFoldersForUser no ApiService não faz uma chamada de rede,
-      // ele retorna as pastas do UserHelper.
-      // Se precisarmos *recarregar* as pastas da API (ex: após criar/deletar),
-      // precisaremos de um novo método no ApiService que faça uma requisição GET para o endpoint de listagem.
-      // Por enquanto, vamos assumir que o UserHelper já tem os dados mais recentes.
-      // Se a criação/exclusão de pastas não atualizar o UserHelper automaticamente,
-      // você precisará de um endpoint de "listar todas as pastas" no backend e uma chamada a ele aqui.
-
-      // Para simplificar, vamos carregar do UserHelper.
-      // Se a API de criação/exclusão não retornar a lista atualizada de pastas,
-      // você precisará de um endpoint GET para buscar todas as pastas novamente.
-      final List<Folder> fetchedFolders = UserHelper().user?.pastas ?? [];
+      final List<Folder> fetchedFolders = user.pastas ?? [];
 
       if (mounted) {
         setState(() {
@@ -221,7 +192,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
-          content: Text('Tem certeza que deseja excluir a pasta "${folder.displayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
+          content: Text('Tem certeza que deseja excluir a pasta "${folder.principalPageDisplayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -242,22 +213,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
       });
 
       try {
-        final Map<String, dynamic> response = await _apiService.deleteFolder(user.id!, folder.id);
+        await _apiService.deleteFolder(user.id!, folder.id);
 
-        if (response['success'] == true) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Pasta "${folder.displayName}" excluída com sucesso!')),
-            );
-            // Após excluir, precisamos atualizar a lista de pastas.
-            // Isso deve ser feito buscando novamente da API para ter os dados mais recentes.
-            await _fetchFoldersFromApiAndRefreshState();
-          }
-        } else {
-          final errorMessage = response['message'] ?? 'Erro desconhecido ao excluir a pasta.';
-          if (mounted) {
-            _showErrorDialog('Falha ao excluir a pasta: $errorMessage');
-          }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Pasta "${folder.principalPageDisplayName}" excluída com sucesso!')),
+          );
+          await _fetchFoldersFromApiAndRefreshState();
         }
       } on ApiException catch (e) {
         debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
@@ -480,7 +442,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                               itemBuilder: (context, index) {
                                 final folder = _folders[index];
                                 if (_searchQuery.isNotEmpty &&
-                                        !folder.displayName.toLowerCase().contains(_searchQuery.toLowerCase())) {
+                                        !folder.principalPageDisplayName.toLowerCase().contains(_searchQuery.toLowerCase())) {
                                   return const SizedBox.shrink();
                                 }
                                 return GestureDetector(
@@ -491,7 +453,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                                         builder: (context) => AlbunsCriadosPage(
                                           initialFolderName: folder.principalPageDisplayName,
                                           initialFolderId: folder.id,
-                                          folderApiPath: folder.caminho,
+                                          folderApiPath: folder.caminho, // Passa o caminho completo da pasta
                                         ),
                                       ),
                                     );

@@ -2,13 +2,13 @@
 
 import 'dart:convert';
 import 'package:application_progress/infra/api_exception.dart';
+import 'package:application_progress/models/image_model.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:http/http.dart' as http;
 import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/token_helper.dart';
-import 'package:application_progress/models/folder_model.dart';
-import 'package:application_progress/models/image_model.dart'; // Mantido para ImageModel se usado em Folder ou outros lugares
-import 'package:application_progress/infra/user_helper.dart'; // Importar UserHelper
+import 'package:application_progress/infra/user_helper.dart';
+import 'package:application_progress/models/folder_model.dart'; // Para o modelo Folder
 
 /// Uma classe de serviço para interagir com a API do seu backend.
 class ApiService {
@@ -23,6 +23,8 @@ class ApiService {
       'Accept': 'application/json',
     };
 
+    // Para MultipartRequest, o Content-Type é definido automaticamente pelo http.MultipartRequest
+    // Não precisamos defini-lo explicitamente aqui para requisições multipart.
     if (includeContentType) {
       headers['Content-Type'] = 'application/json';
     }
@@ -119,7 +121,7 @@ class ApiService {
       final String token = responseBody['token'] as String;
       final Map<String, dynamic> userData = responseBody['dados'] as Map<String, dynamic>;
 
-      // Cria o objeto User com os dados de autenticação
+      // Cria o objeto User
       final User loggedInUser = User(
         id: userData['id'] as int?,
         nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
@@ -133,6 +135,7 @@ class ApiService {
       // Extrai e anexa a lista de pastas ao objeto User
       if (responseBody.containsKey('pastas') && responseBody['pastas'] is List) {
         final List<dynamic> pastasJson = responseBody['pastas'] as List<dynamic>;
+        // Aqui, convertemos para o modelo Folder, que é usado na PrincipalPage
         loggedInUser.pastas = pastasJson.map((item) => Folder.fromMap(item as Map<String, dynamic>)).toList();
         foundation.debugPrint('ApiService: Pastas encontradas na resposta de autenticação: ${loggedInUser.pastas?.length}');
       } else {
@@ -145,7 +148,7 @@ class ApiService {
       await TokenHelper().saveUserId(loggedInUser.id!);
 
       // Salva o objeto User completo (com pastas) no UserHelper
-      await UserHelper().setUser(loggedInUser); // <--- CRUCIAL: Salva o User completo
+      await UserHelper().setUser(loggedInUser);
 
       return responseBody;
     } else {
@@ -213,54 +216,193 @@ class ApiService {
   }
 
   /// Função para listar TODAS as pastas principais do usuário logado.
-  /// Este método agora irá buscar as pastas do UserHelper, que foram salvas durante o login.
-  /// Não faz mais uma requisição separada à API para listar todas as pastas.
+  /// Este método agora obtém as pastas do UserHelper, que foram salvas durante o login.
   Future<List<Folder>> getAllFoldersForUser() async {
-    final String? token = TokenHelper().token;
-    final int currentUserId = TokenHelper().userId;
-    final User? user = UserHelper().user; // Obtém o usuário do UserHelper
+    final User? user = UserHelper().user;
 
-    foundation.debugPrint('ApiService.getAllFoldersForUser: Token do TokenHelper: $token, User ID: $currentUserId, UserHelper.user: ${user?.nome}');
-
-    if (token == null || token.isEmpty || currentUserId == 0 || user == null || user.pastas == null) {
-      // Se não há dados completos no UserHelper, podemos considerar isso como não autenticado
-      // ou que os dados de pastas não foram carregados no login.
-      // Neste cenário, se o AuthWrapper já passou, o ideal é que o UserHelper já tenha as pastas.
-      // Se não tiver, pode ser um erro de lógica anterior ou dados corrompidos.
+    if (user == null || user.pastas == null) {
       throw ApiException('Dados do usuário ou pastas não disponíveis no cache local. Por favor, faça login novamente.', statusCode: 401, body: '');
     }
-
-    // Retorna as pastas que foram salvas no UserHelper durante o login
     return user.pastas!;
   }
 
-  /// Função para recuperar os detalhes de UMA pasta específica (e suas imagens/caminho).
-  /// Este método usa o endpoint `getFolderDetails` e é para ser usado na AlbunsCriadosPage.
-  Future<Folder> getFolderDetails(int folderId) async {
+  /// NOVO MÉTODO: Função para buscar as "subpastas" (ImageGroups) e imagens de uma pasta pai.
+  /// Este método fará a chamada para o endpoint `getFolderDetails` e converterá a resposta.
+  ///
+  /// Assumimos que o endpoint `getFolderDetails` retorna UMA pasta e suas imagens diretas.
+  /// Se você precisa de uma lista de subpastas aninhadas, seu backend precisará de um endpoint
+  /// que retorne uma estrutura de lista de pastas.
+  Future<List<ImageGroup>> fetchSubfoldersAndImages(int parentFolderId) async {
     final String? token = TokenHelper().token;
     final int currentUserId = TokenHelper().userId;
 
     if (token == null || token.isEmpty || currentUserId == 0) {
-      throw ApiException('Usuário não autenticado para buscar detalhes da pasta.', statusCode: 401, body: '');
+      throw ApiException('Usuário não autenticado para buscar subpastas.', statusCode: 401, body: '');
     }
 
-    final url = Uri.parse(ApiEndpoints.getFolderDetails(folderId));
-    foundation.debugPrint('Buscando detalhes da pasta: $folderId em $url');
+    // Chama o endpoint que retorna os detalhes de UMA pasta específica (e suas imagens)
+    final url = Uri.parse(ApiEndpoints.getFolderDetails(parentFolderId));
+    foundation.debugPrint('Buscando subpastas/imagens para a pasta ID: $parentFolderId em $url');
 
     final responseBody = await _sendRequest(
       () => _httpClient.get(
         url,
         headers: _getHeaders(includeContentType: true),
       ),
-      errorMessage: 'Falha ao recuperar detalhes da pasta.',
+      errorMessage: 'Falha ao recuperar subpastas e imagens.',
     );
 
+    // A resposta para getFolderDetails deve ter a estrutura de uma única pasta
+    // Ex: {"codRetorno":200,"message":"OK","data":{ "id":..., "nome":..., "caminho":..., "imagens": [...] }}
     if (responseBody.containsKey('data') && responseBody['data'] is Map<String, dynamic>) {
       final Map<String, dynamic> folderData = responseBody['data'] as Map<String, dynamic>;
-      return Folder.fromMap(folderData);
+      
+      // Converte a pasta retornada em um ImageGroup
+      final ImageGroup imageGroup = ImageGroup.fromMap(folderData);
+      
+      // Retorna uma lista contendo apenas este ImageGroup.
+      // Se seu backend retornar múltiplas subpastas, você precisará adaptar esta lógica.
+      return [imageGroup];
     } else {
       throw ApiException(
         'Formato de resposta inesperado para detalhes da pasta: chave "data" ausente ou inválida.',
+        statusCode: responseBody['statusCode'] as int? ?? 0,
+        body: json.encode(responseBody),
+      );
+    }
+  }
+
+  /// Função para fazer upload de imagens para uma pasta específica.
+  Future<List<MyImage>> uploadImages({
+    required List<PickedFileItem> images,
+    required int folderId,
+  }) async {
+    final url = Uri.parse(ApiEndpoints.uploadImages);
+    final String? authToken = TokenHelper().token;
+    // O ID do usuário não é mais enviado como campo, assumimos que o backend o obtém do token.
+    // final int userId = TokenHelper().userId; 
+
+    if (authToken == null || authToken.isEmpty) { // Removido userId == 0 da condição
+      throw ApiException('Usuário não autenticado para upload de imagens.', statusCode: 401, body: '');
+    }
+
+    final request = http.MultipartRequest('POST', url)
+      ..headers['Authorization'] = 'Bearer $authToken';
+
+    // ⭐ Removendo debugPrints redundantes e o campo idUsuario
+    // foundation.debugPrint('Upload: idUsuario = $userId'); 
+    foundation.debugPrint('Upload: idPasta = $folderId');
+
+    // request.fields['idUsuario'] = userId.toString(); // ⭐ REMOVIDO: idUsuario não é mais enviado como campo
+    request.fields['idPasta'] = folderId.toString(); // ID da pasta para upload
+
+    for (var i = 0; i < images.length; i++) {
+      final fileItem = images[i];
+      if (fileItem.bytes != null && fileItem.platformFile.name != null) {
+        foundation.debugPrint('Upload: Adicionando arquivo ${fileItem.platformFile.name} (tamanho: ${fileItem.bytes!.length} bytes) ao campo image[]');
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image[]', // ⭐ CORREÇÃO AQUI: Nome do campo mudado para 'image[]'
+            fileItem.bytes!,
+            filename: fileItem.platformFile.name,
+          ),
+        );
+      } else {
+        foundation.debugPrint('Upload: Aviso - Arquivo ${fileItem.platformFile.name} (índice $i) possui bytes nulos ou nome nulo. Ignorando.');
+      }
+    }
+
+    foundation.debugPrint('Enviando ${request.files.length} imagens para a pasta $folderId...');
+
+    final response = await _httpClient.send(request).timeout(const Duration(seconds: 60));
+    final responseBody = await response.stream.bytesToString();
+
+    foundation.debugPrint('Upload Response Status: ${response.statusCode}, Body: $responseBody');
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final Map<String, dynamic> jsonResponse = json.decode(responseBody) as Map<String, dynamic>;
+      if (jsonResponse.containsKey('codRetorno') && jsonResponse['codRetorno'] == 200) {
+        if (jsonResponse.containsKey('image_paths') && jsonResponse['image_paths'] is List) { // ⭐ CORREÇÃO AQUI: Espera 'image_paths'
+          // A API retorna apenas os caminhos das imagens, não o objeto MyImage completo.
+          // Precisamos adaptar a criação de MyImage.
+          List<MyImage> uploadedImages = [];
+          for (var path in jsonResponse['image_paths']) {
+            // Assumimos que o backend não retorna o ID da imagem aqui,
+            // então usaremos um ID temporário ou 0, e um takenAt padrão.
+            // Se o backend retornar o ID e takenAt, você precisará ajustar.
+            uploadedImages.add(MyImage(
+              id: 0, // ID temporário, pois a API não o retorna neste ponto
+              path: path as String,
+              takenAt: DateTime.now().toIso8601String(), // Data atual como fallback
+            ));
+          }
+          return uploadedImages;
+        }
+        return [];
+      } else {
+        throw ApiException(
+          jsonResponse['message'] ?? 'Erro desconhecido no upload.',
+          statusCode: response.statusCode,
+          body: responseBody,
+        );
+      }
+    } else {
+      String serverMessage = 'Falha no upload da imagem.';
+      try {
+        final errorBody = json.decode(responseBody) as Map<String, dynamic>;
+        serverMessage = errorBody['message'] ?? errorBody['errors']?.toString() ?? serverMessage;
+      } catch (_) {
+        serverMessage = responseBody.isNotEmpty ? responseBody : serverMessage;
+      }
+      throw ApiException(
+        serverMessage,
+        statusCode: response.statusCode,
+        body: responseBody,
+      );
+    }
+  }
+
+  /// Função para criar uma pasta (subálbum) com tags.
+  Future<int> createSubFolder({
+    required String folderName,
+    required List<String> tags,
+    int? parentFolderId, // Adicionado para criar subpastas
+  }) async {
+    final url = Uri.parse(ApiEndpoints.createFolder);
+    final String? authToken = TokenHelper().token;
+    final int userId = TokenHelper().userId;
+
+    if (authToken == null || authToken.isEmpty || userId == 0) {
+      throw ApiException('Usuário não autenticado para criar pasta.', statusCode: 401, body: '');
+    }
+
+    final Map<String, dynamic> body = {
+      'idUsuario': userId,
+      'nomePasta': folderName,
+      'tags': tags,
+    };
+    if (parentFolderId != null) {
+      body['parentFolderId'] = parentFolderId;
+    }
+
+    foundation.debugPrint('Requisição para criar subpasta em: $url com nome: $folderName, parentId: $parentFolderId');
+
+    final responseBody = await _sendRequest(
+      () => _httpClient.post(
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Pasta criada com sucesso.',
+      errorMessage: 'Falha ao criar pasta.',
+    );
+
+    if (responseBody.containsKey('data') && responseBody['data'] is Map<String, dynamic> &&
+        responseBody['data'].containsKey('id')) {
+      return responseBody['data']['id'] as int;
+    } else {
+      throw ApiException(
+        'Resposta inesperada ao criar pasta: ID da pasta não encontrado.',
         statusCode: responseBody['statusCode'] as int? ?? 0,
         body: json.encode(responseBody),
       );

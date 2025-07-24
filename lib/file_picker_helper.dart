@@ -1,142 +1,79 @@
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:application_progress/principal.dart'; // Para ImageItem
-import 'dart:html' as dart_html;
-import 'dart:io' as dart_io;
+// lib/file_picker_helper.dart
 
-// Armazena as imagens selecionadas temporariamente
-class _SelectedImages {
-  static List<dynamic>? _files; // Para web (List<dart_html.File>) ou mobile (List<XFile>)
-  
-  static void setFiles(List<dynamic> files) {
-    _files = files;
-  }
-  
-  static List<dynamic>? getFiles() {
-    return _files;
-  }
-  
-  static void clearFiles() {
-    _files = null;
-  }
-}
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart'; // Para kIsWeb
+import 'package:flutter/material.dart' as devtools;
+import 'package:image_picker/image_picker.dart'; // Para XFile
+import 'package:file_picker/file_picker.dart'; // Para PlatformFile
+import 'dart:developer' as devtools; // Para devtools.debugPrint
+
+// Importa PickedFileItem do seu modelo
+import 'package:application_progress/models/image_model.dart';
+
+// Importações condicionais para web e mobile
+import 'dart:io' if (dart.library.html) 'dart:html' as platform_specific_io;
+
 
 class FilePickerHelper {
-  // Método para selecionar imagens e retornar uma lista de ImageItem
-  static Future<List<ImageItem>> pickImages(String subAlbumName, {required bool allowMultiple}) async {
-    List<ImageItem> newImages = [];
-    print('FilePickerHelper.pickImages iniciado para subAlbum: $subAlbumName');
+  // Método para selecionar imagens e retornar uma lista de PickedFileItem
+  static Future<List<PickedFileItem>> pickImages({required bool allowMultiple}) async {
+    List<PickedFileItem> pickedFiles = [];
+    devtools.debugPrint('FilePickerHelper.pickImages iniciado.');
 
     if (kIsWeb) {
-      // Web: Usar dart:html
+      // Web: Usar file_picker (que lida com dart:html internamente)
       try {
-        final uploadInput = dart_html.FileUploadInputElement()..multiple = true;
-        uploadInput.accept = 'image/*';
-        uploadInput.click();
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: allowMultiple,
+          withData: true, // Garante que os bytes estejam disponíveis
+        );
 
-        await uploadInput.onChange.first;
-        final files = uploadInput.files;
-        if (files == null || files.isEmpty) {
-          print('Nenhum arquivo selecionado na web');
-          throw Exception('Nenhum arquivo selecionado.');
+        if (result == null || result.files.isEmpty) {
+          devtools.debugPrint('Nenhum arquivo selecionado na web.');
+          return [];
         }
 
-        // Armazena os arquivos selecionados
-        _SelectedImages.setFiles(files);
-
-        for (var file in files) {
-          final reader = dart_html.FileReader();
-          reader.readAsArrayBuffer(file);
-          await reader.onLoadEnd.first;
-          final data = reader.result as Uint8List?;
-          if (data == null) {
-            throw Exception('Falha ao ler o arquivo: resultado nulo.');
+        for (var file in result.files) {
+          if (file.bytes != null) {
+            pickedFiles.add(PickedFileItem(platformFile: file));
+          } else {
+            devtools.debugPrint('Aviso: Arquivo ${file.name} não possui bytes disponíveis.');
           }
-          newImages.add(ImageItem(
-            imageData: data,
-            subAlbumName: subAlbumName,
-          ));
         }
       } catch (e) {
-        print('Erro ao selecionar imagens na web: $e');
+        devtools.debugPrint('Erro ao selecionar imagens na web: $e');
         throw Exception('Erro ao selecionar imagens na web: $e');
       }
     } else {
-      // Mobile: Usar image_picker
+      // Mobile: Usar image_picker (ou file_picker se preferir)
       try {
         final ImagePicker picker = ImagePicker();
-        final List<XFile>? images = await picker.pickMultiImage();
+        final List<XFile>? images = await picker.pickMultiImage(); // Ou picker.pickImage() para uma única
+
         if (images == null || images.isEmpty) {
-          print('Nenhum arquivo selecionado no mobile');
-          throw Exception('Nenhum arquivo selecionado.');
+          devtools.debugPrint('Nenhum arquivo selecionado no mobile.');
+          return [];
         }
 
-        // Armazena os arquivos selecionados
-        _SelectedImages.setFiles(images);
-
-        for (var image in images) {
-          final bytes = await dart_io.File(image.path).readAsBytes();
-          newImages.add(ImageItem(
-            imageData: bytes,
-            subAlbumName: subAlbumName,
-          ));
+        for (var xFile in images) {
+          final bytes = await xFile.readAsBytes();
+          // Converte XFile para PlatformFile para consistência com PickedFileItem
+          final platformFile = PlatformFile(
+            name: xFile.name,
+            size: bytes.length,
+            bytes: bytes,
+            path: xFile.path,
+          );
+          pickedFiles.add(PickedFileItem(platformFile: platformFile));
         }
       } catch (e) {
-        print('Erro ao selecionar imagens no mobile: $e');
+        devtools.debugPrint('Erro ao selecionar imagens no mobile: $e');
         throw Exception('Erro ao selecionar imagens no mobile: $e');
       }
     }
 
-    print('pickImages retornou ${newImages.length} imagens');
-    return newImages;
-  }
-
-  // Método para obter a lista de imagens a serem enviadas
-  static Future<List<dynamic>> getImagesToUpload() async {
-    List<dynamic> imagesToUpload = [];
-    final files = _SelectedImages.getFiles();
-
-    if (files == null || files.isEmpty) {
-      print('Nenhum arquivo armazenado para upload');
-      throw Exception('Nenhum arquivo disponível para upload.');
-    }
-
-    print('getImagesToUpload iniciado com ${files.length} arquivos');
-
-    if (kIsWeb) {
-      // Web: Reutiliza arquivos armazenados
-      try {
-        for (var file in files as List<dart_html.File>) {
-          final reader = dart_html.FileReader();
-          reader.readAsArrayBuffer(file);
-          await reader.onLoadEnd.first;
-          final data = reader.result as Uint8List?;
-          if (data == null) {
-            throw Exception('Falha ao ler o arquivo: resultado nulo.');
-          }
-          imagesToUpload.add(data);
-        }
-      } catch (e) {
-        print('Erro ao obter imagens para upload na web: $e');
-        throw Exception('Erro ao obter imagens para upload na web: $e');
-      }
-    } else {
-      // Mobile: Reutiliza arquivos armazenados
-      try {
-        for (var image in files as List<XFile>) {
-          final bytes = await dart_io.File(image.path).readAsBytes();
-          imagesToUpload.add(bytes); // Alterado para retornar bytes, para consistência
-        }
-      } catch (e) {
-        print('Erro ao obter imagens para upload no mobile: $e');
-        throw Exception('Erro ao obter imagens para upload no mobile: $e');
-      }
-    }
-
-    // Limpa os arquivos armazenados após uso
-    _SelectedImages.clearFiles();
-    print('getImagesToUpload retornou ${imagesToUpload.length} itens');
-    return imagesToUpload;
+    devtools.debugPrint('pickImages retornou ${pickedFiles.length} PickedFileItems');
+    return pickedFiles;
   }
 }
