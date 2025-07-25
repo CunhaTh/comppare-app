@@ -1,7 +1,7 @@
 // lib/views/comppareimg.dart
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';// Mantido caso queira usar em outro lugar, mas não será usado na exibição principal
 import 'package:application_progress/models/image_model.dart'; // Importa MyImage
 import 'package:application_progress/infra/api_services.dart'; // Para o ApiService
 import 'package:application_progress/infra/token_helper.dart'; // Para TokenHelper
@@ -15,11 +15,11 @@ import 'package:http/http.dart' as http; // Para carregar imagens de URL
 import 'dart:developer' as devtools; // Para devtools.debugPrint
 
 // Dependências para compartilhamento e salvamento (adicione ao pubspec.yaml se necessário)
-// import 'package:image_gallery_saver/image_gallery_saver.dart';
-// import 'package:share_plus/share_plus.dart';
-// import 'package:path_provider/path_provider.dart';
-// import 'dart:io'; // Para File
-// import 'dart:html' as html; // Para html.Blob no web
+ import 'package:image_gallery_saver/image_gallery_saver.dart';
+ import 'package:share_plus/share_plus.dart';
+ import 'package:path_provider/path_provider.dart';
+ import 'dart:io'; // Para File
+ import 'dart:html' as html; // Para html.Blob no web
 
 // Classe auxiliar para seleção de arquivos (mantida do seu código antigo)
 class FilePickerHelper {
@@ -103,6 +103,23 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // Funções de scroll para o GridView
+  void _scrollLeft() {
+    _scrollController.animateTo(
+      _scrollController.offset - (MediaQuery.of(context).size.width * 0.33),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _scrollRight() {
+    _scrollController.animateTo(
+      _scrollController.offset + (MediaQuery.of(context).size.width * 0.33),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   // Função para carregar os bytes de uma URL
@@ -548,26 +565,26 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                   }
 
                   // Lógica de compartilhamento (requer dependências: share_plus, path_provider, dart:html)
-                  // if (kIsWeb) {
-                  //   final blob = html.Blob([imageBytes], 'image/png');
-                  //   final url = html.Url.createObjectUrlFromBlob(blob);
-                  //   final anchor = html.AnchorElement(href: url)
-                  //     ..setAttribute('download', 'comparison_share.png')
-                  //     ..click();
-                  //   html.Url.revokeObjectUrl(url);
-                  //   ScaffoldMessenger.of(context).showSnackBar(
-                  //     const SnackBar(content: Text('Imagem baixada. Compartilhe manualmente.')),
-                  //   );
-                  // } else {
-                  //   final tempDir = await getTemporaryDirectory();
-                  //   final file = await File('${tempDir.path}/comparison_share.png').writeAsBytes(imageBytes);
-                  //   final xFile = XFile(file.path);
-                  //   await Share.shareXFiles(
-                  //     [xFile],
-                  //     text: 'Confira minha comparação de progresso!',
-                  //     subject: 'Comparação de Imagens',
-                  //   );
-                  // }
+                   if (kIsWeb) {
+                     final blob = html.Blob([imageBytes], 'image/png');
+                     final url = html.Url.createObjectUrlFromBlob(blob);
+                     final anchor = html.AnchorElement(href: url)
+                       ..setAttribute('download', 'comparison_share.png')
+                       ..click();
+                     html.Url.revokeObjectUrl(url);
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       const SnackBar(content: Text('Imagem baixada. Compartilhe manualmente.')),
+                     );
+                   } else {
+                     final tempDir = await getTemporaryDirectory();
+                     final file = await File('${tempDir.path}/comparison_share.png').writeAsBytes(imageBytes);
+                     final xFile = XFile(file.path);
+                     await Share.shareXFiles(
+                       [xFile],
+                       text: 'Confira minha comparação de progresso!',
+                       subject: 'Comparação de Imagens',
+                     );
+                   }
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Funcionalidade de compartilhamento desativada. Adicione as dependências e descomente o código.')),
                   );
@@ -589,30 +606,39 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         return;
       }
 
-
+      // Lógica de salvamento (requer dependência: image_gallery_saver, dart:html)
+       if (kIsWeb) {
+         final blob = html.Blob([imageBytes], 'image/png');
+         final url = html.Url.createObjectUrlFromBlob(blob);
+         final anchor = html.AnchorElement(href: url)
+           ..setAttribute('download', 'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
+           ..click();
+         html.Url.revokeObjectUrl(url);
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Imagem baixada com sucesso!')),
+         );
+       } else {
+         final result = await ImageGallerySaver.saveImage(
+           imageBytes,
+           quality: 100,
+           name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
+         );
+         if (result['isSuccess']) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
+           );
+         } else {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
+           );
+         }
+       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Funcionalidade de salvamento desativada. Adicione as dependências e descomente o código.')),
       );
     }
 
     final ScrollController _localScrollController = ScrollController(); // Usar um controller local para o diálogo
-
-    // Funções de scroll para as miniaturas (não usadas diretamente no diálogo de comparação, mas mantidas para referência)
-    void _scrollLeft() {
-      _localScrollController.animateTo(
-        _localScrollController.offset - (screenWidth * 0.25),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
-
-    void _scrollRight() {
-      _localScrollController.animateTo(
-        _localScrollController.offset + (screenWidth * 0.25),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
 
     showDialog(
       context: context,
@@ -664,7 +690,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                 padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
                                 child: Column(
                                   children: [
-                                    Container(
+                                    SizedBox(
                                       height: isLargeScreen ? screenWidth * 0.5 : screenWidth * 0.6,
                                       // Usa Image.memory com imageData
                                       child: imageItem.imageData.isNotEmpty
@@ -672,7 +698,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                               imageItem.imageData,
                                               fit: BoxFit.cover,
                                             )
-                                          : Center(child: Text('Imagem não disponível')),
+                                          : const Center(child: Text('Imagem não disponível')),
                                     ),
                                     SizedBox(height: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
                                     Text(

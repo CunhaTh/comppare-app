@@ -107,9 +107,10 @@ class MyApp extends StatelessWidget {
               default:
                 return MaterialPageRoute(
                   
-                  builder: (_) => const AuthWrapper(),
+                  builder: (_) => //PrincipalPage() 
+                                // const AuthWrapper(),
                                 //Urlimg() 
-                                //const MyHomePage(title: ''),
+                                 const MyHomePage(title: ''),
                                 //const Pagemconstrucao() 
                 );
             }

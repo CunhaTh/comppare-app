@@ -55,7 +55,7 @@ class ImageService {
     try {
       // ⭐ Delega para o ApiService, que deve lidar com o endpoint e a lógica de criação de pasta.
       // Assumindo que ApiService.createFolder recebe userId e folderName e retorna um Map.
-      final response = await _apiService.createFolder(currentUserId, folderName);
+      final response = await _apiService.createFolder(parentFolderId: currentUserId, idUsuario: currentUserId, folderName: '$folderName', );
       
       // O ApiService já deve ter tratado a resposta HTTP e lançado ApiException para erros.
       // Aqui, esperamos que 'response' seja o corpo decodificado da resposta,
@@ -202,7 +202,7 @@ class ImageService {
           final List<dynamic> imagePaths = decodedResponse['image_paths'] as List<dynamic>;
           // Cria objetos MyImage a partir dos paths. O ID pode ser um placeholder (0)
           // se a API não retornar IDs de imagem no momento do upload.
-          return imagePaths.map((path) => ImageGroup(folderPath: path.toString(), folderId: 0, folderName: 'NOME DA PASTA')).toList();
+          return imagePaths.map((path) => ImageGroup(folderPath: path.toString(), folderId: 0, folderName: 'NOME DA PASTA', images: [])).toList();
         } else {
           throw ApiException(
             'Formato de resposta inesperado após o upload de imagens.',

@@ -86,7 +86,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
     }
   }
 
-  Future<void> _addFolder(String folderName) async {
+    Future<void> _addFolder(String folderName) async {
     final user = UserHelper().user;
     if (user == null || user.id == null || user.nome == null) {
       debugPrint('Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
@@ -96,18 +96,14 @@ class _PrincipalPageState extends State<PrincipalPage> {
     }
 
     try {
-      // ⭐ CORREÇÃO AQUI: Construindo o nome completo da pasta para a API
-      // Assume que o nome do usuário já está formatado como "PrimeiroNome Sobrenome"
-      // e o backend espera "PrimeiroNome_Sobrenome/NomeDaPasta"
-      final String userNameFormatted = user.nome!.replaceAll(' ', '_'); // Substitui espaços por underscores
-      final String fullFolderNameForApi = "$userNameFormatted/$folderName";
-      debugPrint('Tentando criar pasta com nome: $fullFolderNameForApi');
+      // Usar apenas o nome da pasta fornecido pelo usuário, sem hierarquia inicial
+      final String folderNameForApi = folderName.trim(); // Ex.: "NovaPasta"
+      debugPrint('Tentando criar pasta com nome: $folderNameForApi');
 
-
-      await _apiService.createSubFolder(
-        folderName: fullFolderNameForApi, // Nome completo da pasta para a API
-        tags: [], // Sem tags iniciais, se não for necessário
-        parentFolderId: null, // É uma pasta principal
+      await _apiService.createFolder(
+        idUsuario: user.id!, // ID do usuário logado
+        folderName: folderNameForApi, // Nome da pasta
+        parentFolderId: null, // Pasta raiz
       );
 
       if (mounted) {

@@ -101,6 +101,10 @@ class ApiService {
   Future<Map<String, dynamic>> authenticateUser(String cpf, String senha) async {
     final url = Uri.parse(ApiEndpoints.authenticateUser);
     foundation.debugPrint('Tentando autenticar usuário: $cpf');
+    foundation.debugPrint('Tentando autenticar usuário: $cpf');
+  foundation.debugPrint('URL da requisição: $url');
+  foundation.debugPrint('Corpo da requisição: ${jsonEncode({'cpf': cpf, 'senha': senha})}');
+  foundation.debugPrint('Cabeçalhos: ${_getHeaders(includeContentType: true)}');
 
     final responseBody = await _sendRequest(
       () => _httpClient.post(
@@ -160,7 +164,7 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createFolder(int idUsuario, String folderName, {int? parentFolderId}) async {
+  Future<Map<String, dynamic>> createFolder({int? parentFolderId,required int idUsuario, required String folderName}) async {
     final url = Uri.parse(ApiEndpoints.createFolder);
     foundation.debugPrint('Requisição para criar pasta/subpasta em: $url com nome: $folderName');
 
