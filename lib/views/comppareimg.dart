@@ -1,41 +1,23 @@
-// lib/views/comppareimg.dart
-
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';// Mantido caso queira usar em outro lugar, mas não será usado na exibição principal
-import 'package:application_progress/models/image_model.dart'; // Importa MyImage
-import 'package:application_progress/infra/api_services.dart'; // Para o ApiService
-import 'package:application_progress/infra/token_helper.dart'; // Para TokenHelper
-import 'package:application_progress/login.dart'; // Para LoginScreen
-import 'package:flutter/foundation.dart'; // Para kIsWeb
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:application_progress/models/image_model.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as devtools;
-import 'dart:typed_data'; // Para Uint8List
-import 'dart:ui' as ui; // Para ui.Image
-import 'package:flutter/rendering.dart'; // Para RenderRepaintBoundary
-import 'package:http/http.dart' as http; // Para carregar imagens de URL
-import 'dart:developer' as devtools; // Para devtools.debugPrint
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html; // Para web, se aplicável
+import 'package:application_progress/main.dart' as main_app;
+import 'package:http/http.dart' as http; // Adicione este import para fazer requisições HTTP
+import 'package:flutter/foundation.dart';
 
-// Dependências para compartilhamento e salvamento (adicione ao pubspec.yaml se necessário)
- import 'package:image_gallery_saver/image_gallery_saver.dart';
- import 'package:share_plus/share_plus.dart';
- import 'package:path_provider/path_provider.dart';
- import 'dart:io'; // Para File
- import 'dart:html' as html; // Para html.Blob no web
-
-// Classe auxiliar para seleção de arquivos (mantida do seu código antigo)
-class FilePickerHelper {
-  static Future<List<PlatformFile>?> pickImages(bool allowMultiple) async {
-    // Note: FilePicker.platform.pickFiles não está disponível diretamente aqui,
-    // mas a lógica é mantida para referência de como era usada.
-    // Você precisará garantir que 'file_picker' esteja importado e configurado onde este helper é chamado.
-    return null; // Retorna nulo para evitar erro, já que a funcionalidade de pickImages não é o foco desta tela.
-  }
-}
-
-// Reintroduzindo a classe ImageItem para gerenciar dados da UI
-class ImageItem {
+/*class ImageItem {
   final int id; // ID da imagem na API
   final String path; // URL da imagem
-  Uint8List imageData; // Dados da imagem em bytes (para Image.memory)
+  Uint8List imageData; // Dados da imagem em bytes
   bool isSelected; // Para seleção na UI
   String? date;
   String? weight;
@@ -55,49 +37,117 @@ class ImageItem {
     this.customTags = const {},
   });
 
-  // Construtor para criar ImageItem a partir de MyImage
+  // Construtor de fábrica
   factory ImageItem.fromMyImage(MyImage myImage, Uint8List imageData) {
     return ImageItem(
       id: myImage.id,
-      path: myImage.path,
+      path: myImage.url,
       imageData: imageData,
       date: myImage.takenAt.split(' ')[0], // Usando takenAt como data inicial
-      // Outros campos podem ser inicializados com valores padrão ou nulos
       weight: 'N/A',
       waist: 'N/A',
       observation: 'N/A',
       customTags: {},
     );
   }
-}
+}*/
 
 class ImagemDetalhesPage extends StatefulWidget {
-  final List<MyImage> images; // Lista de MyImage (vindos da AlbunsCriadosPage)
-  final List<String> tags; // Tags da pasta (não da imagem individual, se for o caso)
+  final List<ImageModel> images;
+  final List<String> tags;
   final String subAlbumName;
+  //final int idSubfolder;
 
   const ImagemDetalhesPage({
-    super.key,
+    Key? key,
     required this.images,
     required this.tags,
-    required this.subAlbumName,
-  });
+    required this.subAlbumName, 
+   // required this.idSubfolder,
+  }) : super(key: key);
 
   @override
   State<ImagemDetalhesPage> createState() => _ImagemDetalhesPageState();
 }
 
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
-  late Future<List<ImageItem>> _imageItemsFuture;
-  List<ImageItem>? _imageItems; // A lista real de ImageItems que será populada
-  final ScrollController _scrollController = ScrollController(); // Para o GridView
-  final ApiService _apiService = ApiService(); // Instância do ApiService
+  // Alterado para um Future para carregar as imagens
+  late Future<List<ImageModel>> _imageItemsFuture;
+  late List<String> tags;
+  final ScrollController _scrollController = ScrollController();
+  int? _selectedIndex;
+  List<ImageModel> allSelectedImages = [];
 
+  // A lista real de ImageItems que será populada após a resolução do Future.
+  // Será usada pelo ListView.builder e no _showEditDialog.
+  List<ImageModel>? _imageItems;
+
+  // Função para carregar os bytes de uma URL
+  Future<Uint8List?> _loadImageBytesFromUrl(String url,) async {
+    try {
+      debugPrint('Tentando carregar imagem da URL: $url');
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+      final contentType = response.headers['content-type'];
+        debugPrint('Content-Type da URL $url: $contentType');
+
+        if (contentType != null && (contentType.startsWith('image/') || contentType == 'application/octet-stream')) {
+          if (response.bodyBytes.isNotEmpty) {
+            debugPrint('Imagem carregada com sucesso da URL: $url. Tamanho: ${response.bodyBytes.length} bytes.');
+            return response.bodyBytes;
+          } else {
+            debugPrint('Falha ao carregar imagem da URL: $url. Corpo vazio.');
+            return null;
+          }
+        } else {
+          debugPrint('Falha ao carregar imagem da URL: $url. Content-Type inesperado: $contentType. Corpo da resposta: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+          return null;
+        }
+      } else {
+        debugPrint('Falha ao carregar imagem da URL: $url com status ${response.statusCode}. Corpo da resposta: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Erro catastrófico ao carregar imagem da URL $url: $e');
+      return null;
+    } 
+  }
+
+  Future<List<ImageModel>> _prepareImageItems() async {
+  List<ImageModel> items = [];
+  for (int i = 0; i < widget.images.length; i++) {
+    final ImageModel myImage = widget.images[i];
+    Uint8List? imageData;
+
+    devtools.debugPrint('Processando MyImage ID: ${myImage.id}, Path: ${myImage.url}');
+
+    // Sempre tenta carregar da URL
+    imageData = await _loadImageBytesFromUrl(myImage.url);
+    if (imageData != null && imageData.isNotEmpty) {
+      devtools.debugPrint('Bytes carregados da URL para ID: ${myImage.id}. Tamanho: ${imageData.length} bytes.');
+    } else {
+      devtools.debugPrint('ATENÇÃO: Não foi possível obter dados válidos para a imagem ID: ${myImage.id}, Path: ${myImage.url}. Usando placeholder.');
+      imageData = Uint8List(0); // Placeholder
+    }
+
+    // Cria o ImageItem com o ID explícito de MyImage
+    items.add(ImageModel.fromMyImage(myImage as ImageModel, imageData: imageData));
+    debugPrint('Preparando imagem com URL: ${myImage.url}, imageData: ${myImage.imageData != null}');
+  }
+  _imageItems = items.cast<ImageModel>(); // Atualiza a lista no estado
+  return items;
+}
+
+  Uint8List? _placeholderBytes;
+  
   @override
   void initState() {
     super.initState();
-    _imageItemsFuture = _prepareImageItems(); // Inicia o carregamento assíncrono
+    tags = widget.tags;
+    _imageItemsFuture = _prepareImageItems() as Future<List<ImageModel>>; // Inicia o carregamento assíncrono
+    
   }
+  
 
   @override
   void dispose() {
@@ -105,7 +155,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     super.dispose();
   }
 
-  // Funções de scroll para o GridView
   void _scrollLeft() {
     _scrollController.animateTo(
       _scrollController.offset - (MediaQuery.of(context).size.width * 0.33),
@@ -122,163 +171,219 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     );
   }
 
-  // Função para carregar os bytes de uma URL
-  Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
-    try {
-      devtools.debugPrint('Tentando carregar imagem da URL: $url');
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final contentType = response.headers['content-type'];
-        devtools.debugPrint('Content-Type da URL $url: $contentType');
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
-        if (contentType != null && (contentType.startsWith('image/') || contentType == 'application/octet-stream')) {
-          if (response.bodyBytes.isNotEmpty) {
-            devtools.debugPrint('Imagem carregada com sucesso da URL: $url. Tamanho: ${response.bodyBytes.length} bytes.');
-            return response.bodyBytes;
+    return Scaffold(
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const main_app.MyHomePage(title: '')),
+              (Route<dynamic> route) => false,
+            );
+          },
+          child: Center(
+            child: Image.asset(
+              "assets/logo_cortada.png",
+              width: isLargeScreen ? screenWidth * 0.3 : screenWidth * 0.4,
+              height: isLargeScreen ? screenHeight * 0.05 : screenHeight * 0.07,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.white,
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(right: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.05),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const main_app.MyHomePage(title: '')),
+                  (Route<dynamic> route) => false,
+                );
+              },
+              child: Icon(Icons.arrow_back, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
+            ),
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<ImageModel>>( // Use FutureBuilder para lidar com o carregamento assíncrono
+        future: _imageItemsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator()); // Mostra um loader enquanto carrega
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Erro ao carregar imagens: ${snapshot.error}')); // Mostra erro
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('Nenhuma imagem encontrada.')); // Sem dados
           } else {
-            devtools.debugPrint('Falha ao carregar imagem da URL: $url. Corpo vazio.');
-            return null;
+            // Se os dados foram carregados, exiba o GridView
+            final List<ImageModel> loadedImageItems = snapshot.data!.cast<ImageModel>();
+            return Stack(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                  child: GridView.builder(
+                    padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: (screenWidth / (isLargeScreen ? 200 : 150)).floor().clamp(1, 3),
+                      childAspectRatio: 1,
+                      crossAxisSpacing: isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083,
+                      mainAxisSpacing: isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083,
+                    ),
+                    itemCount: loadedImageItems.length,
+                    itemBuilder: (context, index) {
+                      final imageItem = loadedImageItems[index];
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  imageItem.isSelected = !imageItem.isSelected;
+                                });
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: imageItem.isSelected ? Colors.green : Colors.grey,
+                                    width: 2.0,
+                                  ),
+                                ),
+                                child: Image.memory(
+                                  imageItem.imageData!,
+                                  fit: BoxFit.cover,
+                                  // Adicione um placeholder ou tratamento de erro visual para 'Image.memory'
+                                  errorBuilder: (context, error, stackTrace) {
+                                    debugPrint('Erro ao renderizar imagem do GridView: $error');
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.error, color: Colors.red, size: 40),
+                                          Text('Erro de imagem', style: TextStyle(color: Colors.red)),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (imageItem.isSelected)
+                            Padding(
+                              padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
+                              child: Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067,
+                              ),
+                            ),
+                          GestureDetector(
+                            onTap: () => _showEditDialog(context, imageItem, index), // Lembre-se de ajustar _showEditDialog para usar loadedImageItems[index]
+                            child: Padding(
+                              padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'edit',
+                                    style: TextStyle(fontSize: 17 * MediaQuery.of(context).textScaleFactor),
+                                  ),
+                                  SizedBox(width: isLargeScreen ? screenWidth * 0.012 : screenWidth * 0.017),
+                                  Icon(
+                                    Icons.edit,
+                                    color: Colors.black,
+                                    size: isLargeScreen ? screenWidth * 0.035 : screenWidth * 0.047,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  left: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
+                  right: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
+                  bottom: isLargeScreen ? screenHeight * 0.08 : screenHeight * 0.1,
+                  child: GestureDetector(
+                    onTap: () => _showComparisonDialog(context, loadedImageItems, tags, widget.subAlbumName), // Lembre-se de ajustar _showComparisonDialog
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                        vertical: isLargeScreen ? screenHeight * 0.015 : screenHeight * 0.022,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFaed513),
+                        borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Comppare',
+                            style: TextStyle(
+                              fontSize: 18 * MediaQuery.of(context).textScaleFactor,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
           }
-        } else {
-          devtools.debugPrint('Falha ao carregar imagem da URL: $url. Content-Type inesperado: $contentType. Corpo da resposta: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
-          return null;
         }
-      } else {
-        devtools.debugPrint('Falha ao carregar imagem da URL: $url com status ${response.statusCode}. Corpo da resposta: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
-        return null;
-      }
-    } catch (e) {
-      devtools.debugPrint('Erro catastrófico ao carregar imagem da URL $url: $e');
-      return null;
-    }
-  }
-
-  // Função assíncrona para preparar a lista de ImageItem
-  Future<List<ImageItem>> _prepareImageItems() async {
-    List<ImageItem> items = [];
-    for (int i = 0; i < widget.images.length; i++) {
-      final MyImage myImage = widget.images[i];
-      Uint8List? imageData;
-
-      devtools.debugPrint('Processando MyImage ID: ${myImage.id}, Path: ${myImage.path}');
-
-      // Sempre tenta carregar da URL, pois MyImage não tem bytes diretamente
-      imageData = await _loadImageBytesFromUrl(myImage.path);
-      if (imageData != null && imageData.isNotEmpty) {
-        devtools.debugPrint('Bytes carregados da URL para ID: ${myImage.id}. Tamanho: ${imageData.length} bytes.');
-      }
-
-      // Se imageData ainda for nulo ou vazio após tentar carregar, use um placeholder
-      if (imageData == null || imageData.isEmpty) {
-        devtools.debugPrint('ATENÇÃO: Não foi possível obter dados VÁLIDOS para a imagem ID: ${myImage.id}, Path: ${myImage.path}. Usando placeholder.');
-        // Cria um Uint8List vazio para evitar erros de renderização, ou um placeholder visual
-        imageData = Uint8List(0); // Garante que é um Uint8List vazio
-      }
-
-      // Cria um ImageItem a partir de MyImage e os bytes carregados
-      items.add(ImageItem.fromMyImage(myImage, imageData));
-    }
-    _imageItems = items; // Salva a lista carregada no estado
-    return items;
-  }
-
-  // Função para excluir uma imagem
-  Future<void> _deleteImage(ImageItem imageToDelete) async {
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirmar Exclusão'),
-          content: const Text('Tem certeza que deseja excluir esta imagem?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-            ),
-            ElevatedButton(
-              child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-            ),
-          ],
-        );
-      },
+      ),
     );
+  }  
 
-    if (confirm == true) {
-      try {
-        final userId = TokenHelper().userId;
-        if (!TokenHelper().hasToken() || userId == 0) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erro: Usuário não logado. Redirecionando...')),
-            );
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
-          }
-          return;
-        }
-
-        await _apiService.deleteImage(userId, imageToDelete.id); // Chama o ApiService com o ID da imagem
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Imagem excluída com sucesso!')),
-          );
-          // Remove a imagem da lista local e atualiza a UI
-          setState(() {
-            _imageItems?.remove(imageToDelete);
-            // Se a lista ficar vazia, pode ser útil voltar para a tela anterior
-            if (_imageItems?.isEmpty ?? true) {
-              Navigator.pop(context);
-            }
-          });
-        }
-      } catch (e) {
-        devtools.debugPrint('Erro ao excluir imagem: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao excluir imagem: ${e.toString()}')),
-          );
-          if (e.toString().contains('Não autorizado') || e.toString().contains('Token inválido') || e.toString().contains('401')) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
-          }
-        }
-      }
-    }
-  }
-
-  // Diálogo para editar os metadados da imagem
-  void _showEditDialog(BuildContext context, ImageItem imageItem, int index) {
+  // **MÉTODO _showEditDialog AJUSTADO**
+  // Ele recebe o ImageItem e o index diretamente
+  void _showEditDialog(BuildContext context, ImageModel imageItem, int index) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = screenWidth > 520 && MediaQuery.of(context).size.height > 889;
     final Map<String, TextEditingController> controllers = {
-      // Inicializa controladores com os valores atuais do ImageItem
-      'Data': TextEditingController(text: imageItem.date ?? ''),
-      'Peso': TextEditingController(text: imageItem.weight ?? ''),
-      'Cintura': TextEditingController(text: imageItem.waist ?? ''),
-      'Obs': TextEditingController(text: imageItem.observation ?? ''),
-      // Para tags personalizadas
-      for (var entry in imageItem.customTags.entries) entry.key: TextEditingController(text: entry.value),
+      for (var tag in tags)
+        tag: TextEditingController(
+          text: tag == 'Data'
+              ? imageItem.date
+              : tag == 'Peso'
+                  ? imageItem.weight
+                  : tag == 'Série'
+                      ? imageItem.waist
+                      : tag == 'Obs'
+                          ? imageItem.observation
+                          : imageItem.customTags[tag] ?? '',
+        ),
     };
 
-    void saveChanges(ImageItem updatedItem) {
+    void saveChanges(ImageModel updatedItem) {
       setState(() {
+        // Atualiza o item específico na lista _imageItems
+        // Verificação de nulidade e limites para segurança
         if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
           _imageItems![index] = updatedItem;
         }
-        // TODO: Adicionar lógica para persistir as mudanças na API, se aplicável
+        // Aqui você pode adicionar lógica para persistir as mudanças
+        // Ex: salvar em um banco de dados, SharedPreferences, etc.
       });
-      Navigator.of(context).pop(updatedItem);
+      Navigator.of(context).pop(updatedItem); // Fecha o diálogo e retorna o item atualizado
     }
 
     showDialog(
@@ -290,7 +395,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
             children: [
               Expanded(
                 child: Text(
-                  'Editar Imagem',
+                  'Edit Image',
                   style: TextStyle(
                     fontSize: 18 * MediaQuery.of(context).textScaleFactor,
                     fontWeight: FontWeight.bold,
@@ -324,23 +429,62 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                     border: Border.all(color: Colors.grey, width: 1),
                     borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                   ),
-                  child: imageItem.imageData.isNotEmpty
+                  // Verifica se imageData não está vazia para evitar erro com Image.memory
+                  child: imageItem.imageData!.isEmpty
                       ? Image.memory(
-                          imageItem.imageData,
+                          imageItem.imageData!,
                           fit: BoxFit.cover,
                         )
-                      : const Center(child: Text('Imagem não disponível')),
+                      : Center(child: Text('Imagem não disponível')), // Placeholder para imagem vazia
                 ),
                 SizedBox(height: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044),
-                // Campos de edição para Data, Peso, Cintura, Obs
-                _buildTextFieldRow('Data', controllers['Data']!, isLargeScreen, screenWidth),
-                _buildTextFieldRow('Peso', controllers['Peso']!, isLargeScreen, screenWidth),
-                _buildTextFieldRow('Cintura', controllers['Cintura']!, isLargeScreen, screenWidth),
-                _buildTextFieldRow('Obs', controllers['Obs']!, isLargeScreen, screenWidth),
-                // Campos para tags personalizadas
-                ...imageItem.customTags.keys.map((tagKey) {
-                  return _buildTextFieldRow(tagKey, controllers[tagKey]!, isLargeScreen, screenWidth);
-                }).toList(),
+                if (tags.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: tags.map((tag) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16 * MediaQuery.of(context).textScaleFactor,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: controllers[tag],
+                                decoration: InputDecoration(
+                                  hintText: 'Insira o valor $tag',
+                                  border: const OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                                    vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  )
+                else
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                    child: Text(
+                      'Sem Tags no momento.',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14 * MediaQuery.of(context).textScaleFactor,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -361,21 +505,20 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                     ),
                   ),
                   onPressed: () {
-                    final updatedItem = ImageItem(
+                    final updatedItem = ImageModel(
                       id: imageItem.id,
-                      path: imageItem.path,
+                      url: controllers['path']?.text ?? imageItem.url, 
                       imageData: imageItem.imageData,
-                      isSelected: imageItem.isSelected,
-                      date: controllers['Data']?.text,
-                      weight: controllers['Peso']?.text,
-                      waist: controllers['Cintura']?.text,
-                      observation: controllers['Obs']?.text,
+                      date: controllers['Data']?.text ?? imageItem.date,
+                      weight: controllers['Peso']?.text ?? imageItem.weight,
+                      waist: controllers['Série']?.text ?? imageItem.waist,
+                      observation: controllers['Obs']?.text ?? imageItem.observation,
                       customTags: {
-                        // Atualiza tags personalizadas
                         ...imageItem.customTags,
-                        for (var tagKey in imageItem.customTags.keys)
-                          tagKey: controllers[tagKey]!.text,
-                      },
+                        for (var tag in tags)
+                          if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
+                            tag: controllers[tag]!.text,
+                      }, takenAt: '', 
                     );
                     saveChanges(updatedItem);
                   },
@@ -393,420 +536,172 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
           ],
         );
       },
-    );
+    ).then((updatedItem) {
+      // Este bloco .then é chamado quando o showDialog é fechado.
+      // Se saveChanges já atualizou _imageItems e chamou setState,
+      // esta parte pode não precisar fazer nada,
+      // ou pode ser usada para feedback (ex: SnackBar).
+      // Se você está usando um gerenciamento de estado mais complexo (Provider, Bloc, Riverpod),
+      // este é o lugar para notificar o gerenciador de estado sobre a atualização.
+    });
   }
 
-  // Helper para construir os campos de texto no diálogo de edição
-  Widget _buildTextFieldRow(String label, TextEditingController controller, bool isLargeScreen, double screenWidth) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
-      child: Row(
-        children: [
-          SizedBox(
-            width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16 * MediaQuery.of(context).textScaleFactor,
-              ),
-            ),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'Insira o valor $label',
-                border: const OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
-                  vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022,
-                ),
-              ),
-            ),
-          ),
-        ],
+// Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
+void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompare, List<String> tags, String subAlbumName) async {
+  final GlobalKey repaintKey = GlobalKey();
+  final GlobalKey shareRepaintKey = GlobalKey();
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+  final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+
+  final List<ImageModel> selectedImages = imagesToCompare.where((item) => item.isSelected).toList();
+  if (selectedImages.length < 2) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Selecione pelo menos 2 imagens para comparar.'),
+        backgroundColor: Colors.orange,
       ),
     );
+    return;
   }
 
-  // Diálogo para comparação de imagens
-  void _showComparisonDialog(BuildContext context, List<ImageItem> imagesToCompare, List<String> tags, String subAlbumName) async {
-    final GlobalKey repaintKey = GlobalKey();
-    final GlobalKey shareRepaintKey = GlobalKey();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+  List<ImageModel> displayedImages = [
+    selectedImages[0],
+    selectedImages[1],
+  ];
+  final List<ImageModel> allSelectedImages = List.from(selectedImages); // Todas as imagens selecionadas para miniaturas
 
-    final List<ImageItem> selectedImages = imagesToCompare.where((item) => item.isSelected).toList();
+  final Map<String, List<TextEditingController>> controllers = {
+    for (var tag in tags)
+      tag: displayedImages.asMap().entries.map((entry) {
+        final ImageModel item = entry.value;
+        switch (tag) {
+          case 'Data':
+            return TextEditingController(text: item.date ?? '');
+          case 'Peso':
+            return TextEditingController(text: item.weight ?? '');
+          case 'Cintura':
+            return TextEditingController(text: item.waist ?? '');
+          case 'Obs':
+            return TextEditingController(text: item.observation ?? '');
+          default:
+            return TextEditingController(text: item.customTags[tag] ?? '');
+        }
+      }).toList(),
+  };
 
-    if (selectedImages.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione pelo menos 2 imagens para comparar.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
+  Future<Uint8List?> captureCard(GlobalKey key) async {
+    try {
+      RenderRepaintBoundary boundary = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      devtools.debugPrint("Erro ao capturar o card: $e");
+      return null;
     }
+  }
 
-    List<ImageItem> displayedImages = [
-      selectedImages[0],
-      selectedImages[1],
-    ];
-
-    final Map<String, List<TextEditingController>> controllers = {
-      for (var tag in tags)
-        tag: displayedImages.asMap().entries.map((entry) {
-          final ImageItem item = entry.value;
-          switch (tag) {
-            case 'Data':
-              return TextEditingController(text: item.date ?? '');
-            case 'Peso':
-              return TextEditingController(text: item.weight ?? '');
-            case 'Cintura':
-              return TextEditingController(text: item.waist ?? '');
-            case 'Obs':
-              return TextEditingController(text: item.observation ?? '');
-            default:
-              return TextEditingController(text: item.customTags[tag] ?? '');
-          }
-        }).toList(),
-    };
-
-    Future<Uint8List?> captureCard(GlobalKey key) async {
-      try {
-        RenderRepaintBoundary boundary = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
-        ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-        ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-        return byteData?.buffer.asUint8List();
-      } catch (e) {
-        devtools.debugPrint("Erro ao capturar o card: $e");
-        return null;
-      }
-    }
-
-    Future<void> shareImages() async {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Confirmar Compartilhamento'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RepaintBoundary(
-                  key: shareRepaintKey,
-                  child: Container(
-                    color: Colors.white,
-                    padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: displayedImages.map((imageItem) {
-                            return Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.zero,
-                                child: Column(
-                                  children: [
-                                    SizedBox(
-                                      height: isLargeScreen ? screenWidth * 0.5 : screenWidth * 0.6,
-                                      child: Image.memory(
-                                        imageItem.imageData,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    SizedBox(height: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                                    Text(
-                                      imageItem.date ?? '',
-                                      style: TextStyle(
-                                        fontSize: 12 * MediaQuery.of(context).textScaleFactor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
-                        Image.asset(
-                          "assets/logo_cortada.png",
-                          width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.3,
-                          height: isLargeScreen ? screenWidth * 0.1 : screenWidth * 0.15,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const Text('Quer compartilhar essa imagem?'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  final Uint8List? imageBytes = await captureCard(shareRepaintKey);
-                  if (imageBytes == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Erro ao capturar a imagem para compartilhamento.')),
-                    );
-                    return;
-                  }
-
-                  // Lógica de compartilhamento (requer dependências: share_plus, path_provider, dart:html)
-                   if (kIsWeb) {
-                     final blob = html.Blob([imageBytes], 'image/png');
-                     final url = html.Url.createObjectUrlFromBlob(blob);
-                     final anchor = html.AnchorElement(href: url)
-                       ..setAttribute('download', 'comparison_share.png')
-                       ..click();
-                     html.Url.revokeObjectUrl(url);
-                     ScaffoldMessenger.of(context).showSnackBar(
-                       const SnackBar(content: Text('Imagem baixada. Compartilhe manualmente.')),
-                     );
-                   } else {
-                     final tempDir = await getTemporaryDirectory();
-                     final file = await File('${tempDir.path}/comparison_share.png').writeAsBytes(imageBytes);
-                     final xFile = XFile(file.path);
-                     await Share.shareXFiles(
-                       [xFile],
-                       text: 'Confira minha comparação de progresso!',
-                       subject: 'Comparação de Imagens',
-                     );
-                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Funcionalidade de compartilhamento desativada. Adicione as dependências e descomente o código.')),
-                  );
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-
-    Future<void> saveCard() async {
-      final Uint8List? imageBytes = await captureCard(repaintKey);
-      if (imageBytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao capturar o card para salvamento.')),
-        );
-        return;
-      }
-
-      // Lógica de salvamento (requer dependência: image_gallery_saver, dart:html)
-       if (kIsWeb) {
-         final blob = html.Blob([imageBytes], 'image/png');
-         final url = html.Url.createObjectUrlFromBlob(blob);
-         final anchor = html.AnchorElement(href: url)
-           ..setAttribute('download', 'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
-           ..click();
-         html.Url.revokeObjectUrl(url);
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Imagem baixada com sucesso!')),
-         );
-       } else {
-         final result = await ImageGallerySaver.saveImage(
-           imageBytes,
-           quality: 100,
-           name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
-         );
-         if (result['isSuccess']) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
-           );
-         } else {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
-           );
-         }
-       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Funcionalidade de salvamento desativada. Adicione as dependências e descomente o código.')),
-      );
-    }
-
-    final ScrollController _localScrollController = ScrollController(); // Usar um controller local para o diálogo
-
+  Future<void> shareImages() async {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          title: const Text('Confirmar Compartilhamento'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Text(
-                  'Comparar Imagens',
-                  style: TextStyle(
-                    fontSize: 18 * MediaQuery.of(context).textScaleFactor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: CircleAvatar(
-                  backgroundColor: Colors.black,
-                  radius: isLargeScreen ? screenWidth * 0.025 : screenWidth * 0.033,
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: isLargeScreen ? screenWidth * 0.033 : screenWidth * 0.044,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RepaintBoundary(
-                  key: repaintKey,
-                  child: Container(
-                    color: Colors.white, // Fundo branco para a imagem capturada
-                    padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: displayedImages.map((imageItem) {
-                            return Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                                child: Column(
-                                  children: [
-                                    SizedBox(
-                                      height: isLargeScreen ? screenWidth * 0.5 : screenWidth * 0.6,
-                                      // Usa Image.memory com imageData
-                                      child: imageItem.imageData.isNotEmpty
-                                          ? Image.memory(
-                                              imageItem.imageData,
-                                              fit: BoxFit.cover,
-                                            )
-                                          : const Center(child: Text('Imagem não disponível')),
+              RepaintBoundary(
+                key: shareRepaintKey,
+                child: Container(
+                  color: Colors.white,
+                  padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: displayedImages.map((imageItem) {
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.zero,
+                              child: Column(
+                                children: [
+                                  SizedBox(
+                                    height: isLargeScreen ? screenWidth * 0.5 : screenWidth * 0.6,
+                                    child: Image.memory(
+                                      imageItem.imageData!,
+                                      fit: BoxFit.cover,
                                     ),
-                                    SizedBox(height: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                                    Text(
-                                      imageItem.date ?? '',
-                                      style: TextStyle(
-                                        fontSize: 12 * MediaQuery.of(context).textScaleFactor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
-                        // Exibe os campos de metadados para cada imagem
-                        ...tags.map((tag) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(vertical: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.28,
-                                  child: Text(
-                                    tag,
+                                  ),
+                                  SizedBox(height: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
+                                  Text(
+                                    imageItem.date ?? '',
                                     style: TextStyle(
+                                      fontSize: 12 * MediaQuery.of(context).textScaleFactor,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14 * MediaQuery.of(context).textScaleFactor,
-                                      color: Colors.black, // Cor do texto para o fundo branco
                                     ),
                                   ),
-                                ),
-                                Expanded(
-                                  child: Row(
-                                    children: displayedImages.asMap().entries.map((entry) {
-                                      final ImageItem item = entry.value;
-                                      String value = '';
-                                      switch (tag) {
-                                        case 'Data':
-                                          value = item.date ?? '';
-                                          break;
-                                        case 'Peso':
-                                          value = item.weight ?? '';
-                                          break;
-                                        case 'Cintura':
-                                          value = item.waist ?? '';
-                                          break;
-                                        case 'Obs':
-                                          value = item.observation ?? '';
-                                          break;
-                                        default:
-                                          value = item.customTags[tag] ?? '';
-                                      }
-                                      return Expanded(
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                                          child: Text(
-                                            value,
-                                            style: TextStyle(
-                                              fontSize: 14 * MediaQuery.of(context).textScaleFactor,
-                                              color: Colors.black, // Cor do texto para o fundo branco
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           );
                         }).toList(),
-                        SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
-                        Image.asset(
-                          "assets/logo_cortada.png",
-                          width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.3,
-                          height: isLargeScreen ? screenWidth * 0.1 : screenWidth * 0.15,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                      Image.asset(
+                        "assets/logo_cortada.png",
+                        width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.3,
+                        height: isLargeScreen ? screenWidth * 0.1 : screenWidth * 0.15,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              const Text('Quer compartilhar essa imagem?'),
+            ],
           ),
           actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: shareImages,
-                  icon: const Icon(Icons.share, color: Colors.black),
-                  label: const Text('Compartilhar', style: TextStyle(color: Colors.black)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFaed513),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: saveCard,
-                  icon: const Icon(Icons.download, color: Colors.black),
-                  label: const Text('Salvar', style: TextStyle(color: Colors.black)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFaed513),
-                  ),
-                ),
-              ],
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final Uint8List? imageBytes = await captureCard(shareRepaintKey);
+                if (imageBytes == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Erro ao capturar a imagem para compartilhamento.')),
+                  );
+                  return;
+                }
+
+                if (kIsWeb) {
+                  final blob = html.Blob([imageBytes], 'image/png');
+                  final url = html.Url.createObjectUrlFromBlob(blob);
+                  final anchor = html.AnchorElement(href: url)
+                    ..setAttribute('download', 'comparison_share.png')
+                    ..click();
+                  html.Url.revokeObjectUrl(url);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Imagem baixada. Compartilhe manualmente.')),
+                  );
+                } else {
+                  final tempDir = await getTemporaryDirectory();
+                  final file = await File('${tempDir.path}/comparison_share.png').writeAsBytes(imageBytes);
+                  final xFile = XFile(file.path);
+                  await Share.shareXFiles(
+                    [xFile],
+                    text: 'Confira minha comparação de progresso!',
+                    subject: 'Comparação de Imagens',
+                  );
+                }
+              },
+              child: const Text('OK'),
             ),
           ],
         );
@@ -814,83 +709,219 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+  Future<void> saveCard() async {
+    final Uint8List? imageBytes = await captureCard(repaintKey);
+    if (imageBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao capturar o card para salvamento.')),
+      );
+      return;
+    }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.subAlbumName, style: const TextStyle(color: Colors.black)),
-        backgroundColor: const Color(0xFFaed513),
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      backgroundColor: Colors.black,
-      body: FutureBuilder<List<ImageItem>>(
-        future: _imageItemsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFFaed513)));
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Erro ao carregar imagens: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-            );
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text(
-                'Nenhuma imagem encontrada para este álbum.',
-                style: TextStyle(color: Colors.white54, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-            );
-          } else {
-            // Se os dados foram carregados com sucesso, use-os
-            _imageItems = snapshot.data; // Atualiza a lista no estado
-            return Stack(
-              children: [
-                Padding(
-                  padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
-                  child: GridView.builder(
-                    controller: _scrollController, // Adiciona o controller
+    if (kIsWeb) {
+      final blob = html.Blob([imageBytes], 'image/png');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagem baixada com sucesso!')),
+      );
+    } else {
+      final result = await ImageGallerySaver.saveImage(
+        imageBytes,
+        quality: 100,
+        name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
+      );
+      if (result['isSuccess']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
+        );
+      }
+    }
+  }
+
+  final ScrollController _localScrollController = ScrollController(); // Usar um controller local para o diálogo
+
+  // Funções de scroll para as miniaturas
+  void _scrollLeft() {
+    _localScrollController.animateTo(
+      _localScrollController.offset - (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _scrollRight() {
+    _localScrollController.animateTo(
+      _localScrollController.offset + (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        insetPadding: const EdgeInsets.all(8.0),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+        ),
+        content: Container(
+          width: screenWidth * 0.98,
+          height: screenHeight * 0.90,
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.zero,
+          ),
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              // Inicializa _selectedIndex com a primeira imagem exibida
+              int? _selectedIndex;
+              if (_selectedIndex == null) {
+                // Encontra o índice da primeira imagem exibida na lista original 'allSelectedImages'
+                _selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
+                if (_selectedIndex == -1 && allSelectedImages.isNotEmpty) {
+                  _selectedIndex = 0; // fallback se não encontrar, seleciona o primeiro
+                }
+              }
+
+              void onThumbnailTap(ImageModel tappedImage, int tappedIndexInAllSelected) {
+                setState(() {
+                  // A lógica aqui deve ser: a imagem clicada se torna a primeira (esquerda)
+                  // e a que estava na primeira posição vai para a segunda (direita).
+                  final ImageModel currentFirstImage = displayedImages[0];
+                  final ImageModel currentSecondImage = displayedImages[1];
+
+                  if (tappedImage == currentFirstImage) {
+                    // Clicou na imagem da esquerda, não faz nada
+                    return;
+                  } else if (tappedImage == currentSecondImage) {
+                    // Clicou na imagem da direita, troca com a esquerda
+                    displayedImages[0] = tappedImage;
+                    displayedImages[1] = currentFirstImage;
+                  } else {
+                    // Clicou em uma imagem da miniatura que não está em exibição
+                    // A nova imagem clicada vai para a posição 0 (esquerda)
+                    displayedImages[0] = tappedImage;
+                    // E a imagem que estava na posição 0 vai para a posição 1 (direita)
+                    // Mas apenas se ela não for a imagem que acabou de ser substituída.
+                    if (tappedImage != currentFirstImage) {
+                      displayedImages[1] = currentFirstImage;
+                    }
+                  }
+
+                  // Atualiza o _selectedIndex para refletir a imagem que está agora à esquerda
+                  _selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
+
+                  // Atualiza os controladores de texto com os dados das novas imagens exibidas
+                  controllers.forEach((tag, controllerList) {
+                    // Atualiza a primeira posição (esquerda)
+                    switch (tag) {
+                      case 'Data':
+                        controllerList[0].text = displayedImages[0].date ?? '';
+                        break;
+                      case 'Peso':
+                        controllerList[0].text = displayedImages[0].weight ?? '';
+                        break;
+                      case 'Cintura':
+                        controllerList[0].text = displayedImages[0].waist ?? '';
+                        break;
+                      case 'Obs':
+                        controllerList[0].text = displayedImages[0].observation ?? '';
+                        break;
+                      default:
+                        controllerList[0].text = displayedImages[0].customTags[tag] ?? '';
+                        break;
+                    }
+                    // Atualiza a segunda posição (direita)
+                    if (controllerList.length > 1) { // Garante que há controlador para a segunda imagem
+                      switch (tag) {
+                        case 'Data':
+                          controllerList[1].text = displayedImages[1].date ?? '';
+                          break;
+                        case 'Peso':
+                          controllerList[1].text = displayedImages[1].weight ?? '';
+                          break;
+                        case 'Cintura':
+                          controllerList[1].text = displayedImages[1].waist ?? '';
+                          break;
+                        case 'Obs':
+                          controllerList[1].text = displayedImages[1].observation ?? '';
+                          break;
+                        default:
+                          controllerList[1].text = displayedImages[1].customTags[tag] ?? '';
+                          break;
+                      }
+                    }
+                  });
+                });
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
                     padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: (screenWidth / (isLargeScreen ? 200 : 150)).floor().clamp(1, 3),
-                      childAspectRatio: 1,
-                      crossAxisSpacing: isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083,
-                      mainAxisSpacing: isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083,
+                    color: Colors.white,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            subAlbumName,
+                            style: TextStyle(
+                              fontSize: 18 * MediaQuery.of(context).textScaleFactor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black,
+                            radius: isLargeScreen ? screenWidth * 0.025 : screenWidth * 0.033,
+                            child: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: isLargeScreen ? screenWidth * 0.033 : screenWidth * 0.044,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    itemCount: _imageItems!.length,
-                    itemBuilder: (context, index) {
-                      final imageItem = _imageItems![index];
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
+                  ),
+                  Expanded(
+                    child: RepaintBoundary(
+                      key: repaintKey,
+                      child: Column(
                         children: [
+                          // Imagens exibidas em um Row centralizado
                           Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  imageItem.isSelected = !imageItem.isSelected;
-                                });
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: imageItem.isSelected ? Colors.green : Colors.grey,
-                                    width: 2.0,
-                                  ),
-                                ),
-                                child: imageItem.imageData.isNotEmpty
-                                    ? Image.memory(
-                                        imageItem.imageData,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: displayedImages.map((imageItem) {
+                                return Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.zero,
+                                    child: Container(
+                                      height: double.infinity,
+                                      decoration: const BoxDecoration(
+                                        borderRadius: BorderRadius.zero,
+                                      ),
+                                      child: Image.memory(
+                                        imageItem.imageData!,
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) {
-                                          devtools.debugPrint('Erro ao renderizar imagem do GridView: $error');
-                                          return const Center(
+                                          devtools.debugPrint('Erro ao carregar imagem em displayedImages: $error');
+                                          return Center(
                                             child: Column(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
@@ -900,107 +931,226 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                             ),
                                           );
                                         },
-                                      )
-                                    : const Center(child: Text('Imagem não disponível')), // Placeholder para imagem vazia
-                              ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ),
-                          if (imageItem.isSelected)
+                          SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.01),
+                          // Tags e TextFields
+                          if (tags.isNotEmpty)
+                            Container(
+                              padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.02),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: tags.map((tag) {
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      // Tag à esquerda
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014,
+                                          vertical: isLargeScreen ? screenWidth * 0.005 : screenWidth * 0.007,
+                                        ),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFaed513),
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Text(
+                                          tag,
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15 * MediaQuery.of(context).textScaleFactor,
+                                          ),
+                                        ),
+                                      ),
+                                      // TextFields centralizados em relação às imagens
+                                      ...displayedImages.asMap().entries.map((imageEntry) {
+                                        final int imageIndex = imageEntry.key;
+                                        return Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.04,
+                                            ),
+                                            child: SizedBox(
+                                              width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.2,
+                                              child: TextField(
+                                                controller: controllers[tag]![imageIndex],
+                                                style: TextStyle(
+                                                  fontSize: 12 * MediaQuery.of(context).textScaleFactor,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                decoration: const InputDecoration(
+                                                  contentPadding: EdgeInsets.zero,
+                                                  isDense: true,
+                                                  border: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            )
+                          else
                             Padding(
-                              padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                              child: Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067,
+                              padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                              child: Text(
+                                'Nenhuma tag disponível.',
+                                style: TextStyle(
+                                  fontSize: 14 * MediaQuery.of(context).textScaleFactor,
+                                ),
                               ),
                             ),
-                          GestureDetector(
-                            onTap: () => _showEditDialog(context, imageItem, index),
-                            child: Padding(
-                              padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'editar',
-                                    style: TextStyle(fontSize: 17 * MediaQuery.of(context).textScaleFactor, color: Colors.white),
-                                  ),
-                                  SizedBox(width: isLargeScreen ? screenWidth * 0.012 : screenWidth * 0.017),
-                                  Icon(
-                                    Icons.edit,
-                                    color: Colors.white,
-                                    size: isLargeScreen ? screenWidth * 0.035 : screenWidth * 0.047,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Botão de exclusão para cada imagem
-                          GestureDetector(
-                            onTap: () => _deleteImage(imageItem),
-                            child: Padding(
-                              padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'excluir',
-                                    style: TextStyle(fontSize: 17 * MediaQuery.of(context).textScaleFactor, color: Colors.red),
-                                  ),
-                                  SizedBox(width: isLargeScreen ? screenWidth * 0.012 : screenWidth * 0.017),
-                                  Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                    size: isLargeScreen ? screenWidth * 0.035 : screenWidth * 0.047,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                Positioned(
-                  left: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
-                  right: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
-                  bottom: isLargeScreen ? screenHeight * 0.08 : screenHeight * 0.1,
-                  child: GestureDetector(
-                    onTap: () => _showComparisonDialog(context, _imageItems!, widget.tags, widget.subAlbumName),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
-                        vertical: isLargeScreen ? screenHeight * 0.015 : screenHeight * 0.022,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFaed513),
-                        borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.06 : screenWidth * 0.083),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Comppare',
-                            style: TextStyle(
-                              fontSize: 18 * MediaQuery.of(context).textScaleFactor,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          }
-        },
-      ),
-    );
-  }
+                  Padding(
+                    padding: EdgeInsets.all(isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFaed513),
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.022,
+                              vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.015,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                            ),
+                          ),
+                          onPressed: shareImages,
+                          icon: Icon(Icons.share, size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.030),
+                          label: Text(
+                            'Compartilhar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11 * MediaQuery.of(context).textScaleFactor,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFaed513),
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.022,
+                              vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.015,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                            ),
+                          ),
+                          onPressed: saveCard,
+                          icon: Icon(Icons.download, size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.030),
+                          label: Text(
+                            'Baixar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11 * MediaQuery.of(context).textScaleFactor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Stack(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 11),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          controller: _localScrollController,
+                          child: Row(
+                            children: allSelectedImages.asMap().entries.map((entry) {
+                              final int index = entry.key;
+                              final ImageModel imageItem = entry.value;
+                              return GestureDetector(
+                                onTap: () {
+                                  onThumbnailTap(imageItem, index);
+                                },
+                                child: Container(
+                                  width: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.20,
+                                  height: isLargeScreen ? screenWidth * 0.2 : screenWidth * 0.20,
+                                  margin: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: _selectedIndex == index ? Colors.blue : Colors.grey,
+                                      width: _selectedIndex == index ? 3 : 1,
+                                    ),
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                  child: Image.memory(
+                                    imageItem.imageData!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      devtools.debugPrint('Erro ao carregar imagem da miniatura: $error');
+                                      return Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.error, color: Colors.red, size: 20),
+                                            Text('Erro', style: TextStyle(color: Colors.red, fontSize: 10)),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 1,
+                        top: isLargeScreen ? screenWidth * 0.08 : screenWidth * 0.11,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.arrow_back_ios,
+                            color: const Color(0xFFaed513),
+                            size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
+                          ),
+                          onPressed: _scrollLeft,
+                          tooltip: 'Rolar para a esquerda',
+                        ),
+                      ),
+                      Positioned(
+                        right: 1,
+                        top: isLargeScreen ? screenWidth * 0.08 : screenWidth * 0.11,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.arrow_forward_ios,
+                            color: const Color(0xFFaed513),
+                            size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
+                          ),
+                          onPressed: _scrollRight,
+                          tooltip: 'Rolar para a direita',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+    },
+  );
+}
 }

@@ -34,6 +34,8 @@ class ApiEndpoints {
   // POST: { "idUsuario": ..., "nomePasta": ..., "parentFolderId": ..., "tags": [...] }
   static String get createFolder => '$baseUrl/pasta/create';
 
+  static String get createSubFolder => '$baseUrl/pasta/create';
+
   /// Endpoint para excluir uma pasta.
   /// Usa o método DELETE na API, enviando o folderId no corpo.
   // DELETE: { "folderId": ... }

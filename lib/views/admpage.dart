@@ -1,10 +1,16 @@
 import 'package:application_progress/main.dart';
+import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,7 +24,8 @@ class MyApp extends StatelessWidget {
         ),
         colorScheme: ColorScheme.fromSwatch().copyWith(secondary: const Color(0xFFaed513)),
       ),
-      home: const AdmPage(),
+      home: //const AdmPage(),
+            const PrincipalPage()
     );
   }
 }

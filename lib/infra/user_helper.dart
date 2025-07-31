@@ -1,24 +1,28 @@
 // lib/infra/user_helper.dart
 import 'dart:convert';
+import 'package:application_progress/infra/token_helper.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:flutter/foundation.dart' as foundation; // Para debugPrint
-import 'package:application_progress/models/folder_model.dart'; // Importa Folder
-import 'package:application_progress/models/image_model.dart'; // Importa ImageModel
+import 'package:flutter/foundation.dart' as foundation;
+import 'package:application_progress/models/folder_model.dart';
+import 'package:application_progress/models/image_model.dart';
+import 'package:application_progress/infra/api_services.dart';
 
 class User {
   final int? id;
   final String? nome;
   final String? cpf;
+  final String? senha;
   final String? telefone;
   final int? idPlano;
   final String? email;
-  final String? token; // O token de autenticação do usuário
-  List<Folder>? pastas; // Lista de pastas do usuário
+  final String? token;
+  List<Folder>? pastas;
 
   User({
     required this.id,
     this.nome,
     this.cpf,
+    this.senha,
     this.telefone,
     this.idPlano,
     this.email,
@@ -26,7 +30,6 @@ class User {
     this.pastas,
   });
 
-  // Converte um objeto User para um Map (para salvar no GetStorage)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -36,11 +39,10 @@ class User {
       'idPlano': idPlano,
       'email': email,
       'token': token,
-      'pastas': pastas?.map((pasta) => pasta.toMap()).toList(), // Converte pastas para Map
+      'pastas': pastas?.map((pasta) => pasta.toMap()).toList(),
     };
   }
 
-  // Cria um objeto User a partir de um Map (lido do GetStorage)
   factory User.fromMap(Map<String, dynamic> map) {
     List<Folder>? parsedPastas;
     if (map.containsKey('pastas') && map['pastas'] is List) {
@@ -70,16 +72,11 @@ class UserHelper {
   final _box = GetStorage();
   static const String _userKey = 'currentUser';
 
-  User? _user; // Cache interno para o usuário
+  User? _user;
+  bool _isInitialized = false;
 
-  bool _isInitialized = false; // Flag para garantir inicialização única
-
-  /// Inicializa o UserHelper carregando o usuário do GetStorage para o cache interno.
-  /// Deve ser chamado uma única vez no início do aplicativo (ex: em main.dart ou AuthWrapper).
   Future<void> init() async {
-    if (_isInitialized) {
-      return; // Já inicializado, evita recarregar
-    }
+    if (_isInitialized) return;
 
     final userData = _box.read(_userKey);
     if (userData != null) {
@@ -88,8 +85,8 @@ class UserHelper {
         foundation.debugPrint('UserHelper: Usuário carregado do storage: ${_user?.nome}');
       } catch (e) {
         foundation.debugPrint('UserHelper: Erro ao carregar usuário do storage: $e');
-        _user = null; // Limpa o usuário se houver erro de decodificação
-        await _box.remove(_userKey); // Remove dados corrompidos
+        _user = null;
+        await _box.remove(_userKey);
       }
     }
     _isInitialized = true;
@@ -97,25 +94,65 @@ class UserHelper {
 
   User? get user => _user;
 
-  /// Salva o objeto User completo no cache interno e no GetStorage.
   Future<void> setUser(User user) async {
-    _user = user; // Atualiza o cache interno
+    _user = user;
     await _box.write(_userKey, json.encode(user.toMap()));
     foundation.debugPrint('UserHelper: Usuário salvo no storage e cache.');
   }
 
-  /// Atualiza apenas a lista de pastas do usuário no cache e no storage.
   Future<void> updateUserFolders(List<Folder> folders) async {
     if (_user != null) {
-      _user!.pastas = folders; // Atualiza a lista de pastas no objeto User em cache
-      await _box.write(_userKey, json.encode(_user!.toMap())); // Salva o User atualizado
+      _user!.pastas = folders;
+      await _box.write(_userKey, json.encode(_user!.toMap()));
       foundation.debugPrint('UserHelper: Pastas do usuário atualizadas no storage e cache.');
     } else {
       foundation.debugPrint('UserHelper: Não foi possível atualizar pastas, usuário não está no cache.');
     }
   }
 
-  /// Remove o usuário do cache interno e do GetStorage.
+  // lib/infra/user_helper.dart
+// lib/infra/user_helper.dart
+Future<void> refreshUser() async {
+  final apiService = ApiService();
+  final userId = TokenHelper().userId;
+  final token = TokenHelper().token;
+  if (userId != 0 && token != null && token.isNotEmpty) {
+    try {
+      // Chama authenticateUser com token no header, corpo vazio
+      final response = await apiService.authenticateUser('', ''); // Ajuste se necessário
+      foundation.debugPrint('[_refreshUser] Resposta da API: ${json.encode(response)}');
+
+      if (response.containsKey('dados') && response['dados'] is Map<String, dynamic>) {
+        final userData = response['dados'] as Map<String, dynamic>;
+        final User updatedUser = User(
+          id: userData['id'] as int?,
+          nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
+          cpf: userData['cpf'] as String?,
+          telefone: userData['telefone'] as String?,
+          idPlano: userData['idPlano'] as int?,
+          email: userData['email'] as String?,
+          token: token,
+        );
+        if (response.containsKey('pastas') && response['pastas'] is List) {
+          final List<dynamic> pastasJson = response['pastas'] as List<dynamic>;
+          updatedUser.pastas = pastasJson.map((item) => Folder.fromMap(item as Map<String, dynamic>)).toList();
+          foundation.debugPrint('[_refreshUser] Pastas atualizadas: ${updatedUser.pastas?.length}');
+        } else {
+          updatedUser.pastas = [];
+          foundation.debugPrint('[_refreshUser] Nenhuma pasta encontrada na resposta.');
+        }
+        await setUser(updatedUser);
+      } else {
+        foundation.debugPrint('[_refreshUser] Resposta inválida: dados ou pastas ausentes.');
+      }
+    } catch (e) {
+      foundation.debugPrint('[_refreshUser] Erro ao atualizar usuário: $e');
+    }
+  } else {
+    foundation.debugPrint('[_refreshUser] Usuário não autenticado ou token inválido.');
+  }
+}
+
   Future<void> removeUser() async {
     _user = null;
     await _box.remove(_userKey);

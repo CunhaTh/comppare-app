@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:flutter/material.dart' as foundation;
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/token_helper.dart';
@@ -37,64 +38,66 @@ class ApiService {
     return headers;
   }
 
-  Future<Map<String, dynamic>> _sendRequest(
-    Future<http.Response> Function() requestFunction, {
-    String? successMessage,
-    String? errorMessage,
-    bool decodeJson = true,
-  }) async {
-    try {
-      final response = await requestFunction().timeout(const Duration(seconds: 20));
+  // lib/infra/api_services.dart
+Future<Map<String, dynamic>> _sendRequest(
+  Future<http.Response> Function() requestFunction, {
+  String? successMessage,
+  String? errorMessage,
+  bool decodeJson = true,
+}) async {
+  try {
+    final response = await requestFunction().timeout(const Duration(seconds: 20));
 
-      foundation.debugPrint('Response Status: ${response.statusCode}, Body: ${response.body}');
+    foundation.debugPrint('[_sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (decodeJson) {
-          final Map<String, dynamic> responseBody = json.decode(response.body) as Map<String, dynamic>;
-          if (responseBody.containsKey('codRetorno') && responseBody['codRetorno'] == 200) {
-            return responseBody;
-          } else {
-            throw ApiException(
-              responseBody['message'] ?? (successMessage ?? 'Erro desconhecido na API.'),
-              statusCode: response.statusCode,
-              body: response.body,
-            );
-          }
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (decodeJson) {
+        final Map<String, dynamic> responseBody = json.decode(response.body) as Map<String, dynamic>;
+        if (responseBody.containsKey('codRetorno') && 
+            (responseBody['codRetorno'] == 200 || responseBody['codRetorno'] == 201)) {
+          return responseBody;
         } else {
-          return {'status': 'success', 'statusCode': response.statusCode, 'body': response.body};
+          throw ApiException(
+            responseBody['message'] ?? (successMessage ?? 'Erro desconhecido na API.'),
+            statusCode: response.statusCode,
+            body: response.body,
+          );
         }
-      } else if (response.statusCode == 401) {
-        throw ApiException(
-          'Não autorizado: Token inválido ou expirado.',
-          statusCode: 401,
-          body: response.body,
-        );
       } else {
-        String serverMessage = 'Falha na requisição.';
-        try {
-          final errorBody = json.decode(response.body) as Map<String, dynamic>;
-          serverMessage = errorBody['message'] ?? errorBody['errors']?.toString() ?? serverMessage;
-        } catch (_) {
-          serverMessage = response.body.isNotEmpty ? response.body : serverMessage;
-        }
+        return {'status': 'success', 'statusCode': response.statusCode, 'body': response.body};
+      }
+    } else if (response.statusCode == 401) {
+      throw ApiException(
+        'Não autorizado: Token inválido ou expirado.',
+        statusCode: 401,
+        body: response.body,
+      );
+    } else {
+      String serverMessage = 'Falha na requisição.';
+      try {
+        final errorBody = json.decode(response.body) as Map<String, dynamic>;
+        serverMessage = errorBody['message'] ?? errorBody['errors']?.toString() ?? serverMessage;
+      } catch (_) {
+        serverMessage = response.body.isNotEmpty ? response.body : serverMessage;
+      }
 
-        throw ApiException(
-          errorMessage ?? 'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
-          statusCode: response.statusCode,
-          body: response.body,
-        );
-      }
-    } on http.ClientException catch (e) {
-      throw ApiException('Erro de conexão: ${e.message}', statusCode: 0, body: '');
-    } on FormatException {
-      throw ApiException('Resposta inválida do servidor.', statusCode: 0, body: '');
-    } catch (e) {
-      if (e is ApiException) {
-        rethrow;
-      }
-      throw ApiException('Erro inesperado: ${e.toString()}', statusCode: 0, body: '');
+      throw ApiException(
+        errorMessage ?? 'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
+        statusCode: response.statusCode,
+        body: response.body,
+      );
     }
+  } on http.ClientException catch (e) {
+    throw ApiException('Erro de conexão: ${e.message}', statusCode: 0, body: '');
+  } on FormatException {
+    throw ApiException('Resposta inválida do servidor.', statusCode: 0, body: '');
+  } catch (e) {
+    if (e is ApiException) {
+      rethrow;
+    }
+    throw ApiException('Erro inesperado: ${e.toString()}', statusCode: 0, body: '');
   }
+}
 
   /// Função para autenticar o usuário.
   /// Salva o token e o ID do usuário no TokenHelper e o objeto User completo no UserHelper.
@@ -164,24 +167,44 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createFolder({int? parentFolderId,required int idUsuario, required String folderName}) async {
-    final url = Uri.parse(ApiEndpoints.createFolder);
-    foundation.debugPrint('Requisição para criar pasta/subpasta em: $url com nome: $folderName');
+  // lib/infra/api_services.dart
+      Future<Map<String, dynamic>> getFolderById(int folderId) async {
+        final url = Uri.parse('${ApiEndpoints.baseUrl}/folders/$folderId');
+        return _sendRequest(
+          () => _httpClient.get(url, headers: _getHeaders()),
+          successMessage: 'Pasta carregada com sucesso.',
+          errorMessage: 'Falha ao carregar pasta.',
+        );
+      }
 
-    return _sendRequest(
-      () => _httpClient.post(
-        url,
-        headers: _getHeaders(includeContentType: true),
-        body: jsonEncode({
-          'idUsuario': idUsuario,
-          'nomePasta': folderName,
-          if (parentFolderId != null) 'parentFolderId': parentFolderId,
-        }),
-      ),
-      successMessage: 'Pasta/subpasta criada com sucesso.',
-      errorMessage: 'Falha ao criar pasta/subpasta.',
-    );
-  }
+      // lib/infra/api_services.dart
+    Future<Map<String, dynamic>> createFolder({
+      int? parentFolderId,
+      required int idUsuario,
+      required String folderName,
+      List<String>? tags, // Adiciona suporte a tags
+    }) async {
+      final url = Uri.parse(ApiEndpoints.createFolder);
+      foundation.debugPrint('[_createFolder] Requisição para criar pasta/subpasta em: $url com nome: $folderName, parentFolderId: $parentFolderId');
+
+      final body = {
+        'idUsuario': idUsuario,
+        'nomePasta': folderName,
+        if (parentFolderId != null) 'parentFolderId': parentFolderId,
+        if (tags != null && tags.isNotEmpty) 'tags': tags,
+      };
+
+      return _sendRequest(
+        () => _httpClient.post(
+          url,
+          headers: _getHeaders(includeContentType: true),
+          body: jsonEncode(body),
+        ),
+        successMessage: 'Pasta/subpasta criada com sucesso.',
+        errorMessage: 'Falha ao criar pasta/subpasta.',
+      );
+    }
+    
 
   Future<Map<String, dynamic>> deleteFolder(int idUsuario, int idPasta) async {
     final url = Uri.parse(ApiEndpoints.deleteFolder);
@@ -230,54 +253,20 @@ class ApiService {
     return user.pastas!;
   }
 
-  /// NOVO MÉTODO: Função para buscar as "subpastas" (ImageGroups) e imagens de uma pasta pai.
-  /// Este método fará a chamada para o endpoint `getFolderDetails` e converterá a resposta.
-  ///
-  /// Assumimos que o endpoint `getFolderDetails` retorna UMA pasta e suas imagens diretas.
-  /// Se você precisa de uma lista de subpastas aninhadas, seu backend precisará de um endpoint
-  /// que retorne uma estrutura de lista de pastas.
-  Future<List<ImageGroup>> fetchSubfoldersAndImages(int parentFolderId) async {
-    final String? token = TokenHelper().token;
-    final int currentUserId = TokenHelper().userId;
+Future<List<Folder>> fetchSubfoldersAndImages(int folderId) async {
+  final url = Uri.parse('${ApiEndpoints.baseUrl}/pasta/recupera?$folderId'); // Ajuste a rota conforme o backend
+  final response = await _sendRequest(
+    () => _httpClient.get(url, headers: _getHeaders()),
+    successMessage: 'Subpastas e imagens carregadas com sucesso.',
+    errorMessage: 'Falha ao carregar subpastas e imagens.',
+  );
 
-    if (token == null || token.isEmpty || currentUserId == 0) {
-      throw ApiException('Usuário não autenticado para buscar subpastas.', statusCode: 401, body: '');
-    }
-
-    // Chama o endpoint que retorna os detalhes de UMA pasta específica (e suas imagens)
-    final url = Uri.parse(ApiEndpoints.getFolderDetails(parentFolderId));
-    foundation.debugPrint('Buscando subpastas/imagens para a pasta ID: $parentFolderId em $url');
-
-    final responseBody = await _sendRequest(
-      () => _httpClient.get(
-        url,
-        headers: _getHeaders(includeContentType: true),
-      ),
-      errorMessage: 'Falha ao recuperar subpastas e imagens.',
-    );
-
-    // A resposta para getFolderDetails deve ter a estrutura de uma única pasta
-    // Ex: {"codRetorno":200,"message":"OK","data":{ "id":..., "nome":..., "caminho":..., "imagens": [...] }}
-    if (responseBody.containsKey('data') && responseBody['data'] is Map<String, dynamic>) {
-      final Map<String, dynamic> folderData = responseBody['data'] as Map<String, dynamic>;
-      
-      // Converte a pasta retornada em um ImageGroup
-      final ImageGroup imageGroup = ImageGroup.fromMap(folderData);
-      
-      // Retorna uma lista contendo apenas este ImageGroup.
-      // Se seu backend retornar múltiplas subpastas, você precisará adaptar esta lógica.
-      return [imageGroup];
-    } else {
-      throw ApiException(
-        'Formato de resposta inesperado para detalhes da pasta: chave "data" ausente ou inválida.',
-        statusCode: responseBody['statusCode'] as int? ?? 0,
-        body: json.encode(responseBody),
-      );
-    }
-  }
+  final List<dynamic> subfolders = response['subpastas'] as List<dynamic>? ?? [];
+  return subfolders.map((subfolder) => Folder.fromMap(subfolder as Map<String, dynamic>)).toList();
+}
 
   /// Função para fazer upload de imagens para uma pasta específica.
-  Future<List<MyImage>> uploadImages({
+  Future<List<ImageModel>> uploadImages({
     required List<PickedFileItem> images,
     required int folderId,
   }) async {
@@ -329,15 +318,16 @@ class ApiService {
         if (jsonResponse.containsKey('image_paths') && jsonResponse['image_paths'] is List) { // ⭐ CORREÇÃO AQUI: Espera 'image_paths'
           // A API retorna apenas os caminhos das imagens, não o objeto MyImage completo.
           // Precisamos adaptar a criação de MyImage.
-          List<MyImage> uploadedImages = [];
+          List<ImageModel> uploadedImages = [];
           for (var path in jsonResponse['image_paths']) {
             // Assumimos que o backend não retorna o ID da imagem aqui,
             // então usaremos um ID temporário ou 0, e um takenAt padrão.
             // Se o backend retornar o ID e takenAt, você precisará ajustar.
-            uploadedImages.add(MyImage(
+            uploadedImages.add(ImageModel(
               id: 0, // ID temporário, pois a API não o retorna neste ponto
-              path: path as String,
-              takenAt: DateTime.now().toIso8601String(), // Data atual como fallback
+              url: path as String,
+              takenAt: DateTime.now().toIso8601String(), 
+             // Data atual como fallback
             ));
           }
           return uploadedImages;
@@ -366,50 +356,106 @@ class ApiService {
     }
   }
 
-  /// Função para criar uma pasta (subálbum) com tags.
-  Future<int> createSubFolder({
+Future<Map<String, dynamic>> createSubFolder({
+    int? parentFolderId,
+    required int idUsuario,
     required String folderName,
-    required List<String> tags,
-    int? parentFolderId, // Adicionado para criar subpastas
+    List<String>? tags,
   }) async {
-    final url = Uri.parse(ApiEndpoints.createFolder);
-    final String? authToken = TokenHelper().token;
-    final int userId = TokenHelper().userId;
+    final url = Uri.parse(ApiEndpoints.createSubFolder);
+    String nomePasta = folderName.trim();
 
-    if (authToken == null || authToken.isEmpty || userId == 0) {
-      throw ApiException('Usuário não autenticado para criar pasta.', statusCode: 401, body: '');
-    }
-
-    final Map<String, dynamic> body = {
-      'idUsuario': userId,
-      'nomePasta': folderName,
-      'tags': tags,
+    final body = {
+      'idUsuario': idUsuario,
+      'nomePasta': nomePasta,
+      'parentFolderId': parentFolderId,
+      if (tags != null && tags.isNotEmpty) 'tags': tags,
+      'tipo': 'subpasta', // Define explicitamente como subpasta
     };
-    if (parentFolderId != null) {
-      body['parentFolderId'] = parentFolderId;
+    
+    // Tenta obter os detalhes da pasta pai
+    Map<String, dynamic>? parentFolder;
+    try {
+      parentFolder = await _getParentFolderDetails(parentFolderId!);
+      if (parentFolder != null && parentFolder['nome'] != null) {
+        nomePasta = '${parentFolder['nome']}/$folderName';
+      } else {
+        throw ApiException(
+          'Pasta pai não encontrada ou inválida para o ID: $parentFolderId',
+          statusCode: 404,
+          body: '',
+        );
+      }
+    } catch (e) {
+      foundation.debugPrint('[_createSubFolder] Erro ao buscar pasta pai: $e');
+      // Fallback: Usa o nome original se a pasta pai não puder ser recuperada
+      nomePasta = folderName;
     }
 
-    foundation.debugPrint('Requisição para criar subpasta em: $url com nome: $folderName, parentId: $parentFolderId');
+    foundation.debugPrint('[_createSubFolder] Requisição para criar subpasta em: $url com nome: $nomePasta, parentFolderId: $parentFolderId');
 
-    final responseBody = await _sendRequest(
+    
+
+    return _sendRequest(
       () => _httpClient.post(
         url,
         headers: _getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
-      successMessage: 'Pasta criada com sucesso.',
-      errorMessage: 'Falha ao criar pasta.',
+      successMessage: 'Subpasta criada com sucesso.',
+      errorMessage: 'Falha ao criar subpasta.',
     );
+  }
 
-    if (responseBody.containsKey('data') && responseBody['data'] is Map<String, dynamic> &&
-        responseBody['data'].containsKey('id')) {
-      return responseBody['data']['id'] as int;
-    } else {
-      throw ApiException(
-        'Resposta inesperada ao criar pasta: ID da pasta não encontrado.',
-        statusCode: responseBody['statusCode'] as int? ?? 0,
-        body: json.encode(responseBody),
-      );
+// Função de renovação de token (ajuste conforme necessário)
+Future<void> _refreshTokenIfNeeded() async {
+  final token = TokenHelper().token;
+  if (token != null) {
+    try {
+      final parts = token.split('.');
+      if (parts.length == 3) {
+        final payload = json.decode(base64Url.decode(base64Url.normalize(parts[1])) as String);
+        final expiry = payload['exp'] as int? ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        if (expiry < now + 300) { // Renova se faltar 5 minutos ou menos
+          final user = UserHelper().user;
+          if (user?.cpf != null && user?.senha != null) {
+            await authenticateUser(user!.cpf!, user.senha!); // Reautentica
+          }
+        }
+      }
+    } catch (e) {
+      foundation.debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
     }
   }
+}
+
+Future<Map<String, dynamic>?> _getParentFolderDetails(int parentFolderId) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$parentFolderId'); // Ajuste para a rota correta
+    try {
+      final response = await _sendRequest(
+        () => _httpClient.get(url, headers: _getHeaders()),
+        successMessage: 'Detalhes da pasta pai carregados.',
+        errorMessage: 'Falha ao carregar detalhes da pasta pai.',
+      );
+      return response;
+    } catch (e) {
+      if (e is ApiException && e.statusCode == 404) {
+        foundation.debugPrint('[_getParentFolderDetails] Pasta pai não encontrada para ID: $parentFolderId');
+        return null; // Retorna null em vez de lançar exceção
+      }
+      rethrow;
+    }
+  }
+// lib/infra/api_services.dart
+Future<Map<String, dynamic>> fetchFolderDetails(int folderId) async {
+  final url = Uri.parse('${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$folderId');
+  return _sendRequest(
+    () => _httpClient.get(
+      url,
+      headers: _getHeaders(includeContentType: true),
+    ),
+    errorMessage: 'Falha ao recuperar detalhes da pasta.',
+  );
+}
 }

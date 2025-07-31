@@ -132,7 +132,7 @@ class ImageService {
   }
 
   /// Faz o upload de uma lista de imagens para uma pasta específica.
-  Future<List<ImageGroup>> uploadImages({
+  Future<List<Folder>> uploadImages({
     required List<PickedFileItem> images,
     required int folderId,
   }) async {
@@ -191,18 +191,18 @@ class ImageService {
         // Adaptação para o JSON do Insomnia ou outros formatos comuns de sucesso
         if (decodedResponse is List) {
           // Se a API retornar uma lista diretamente de objetos de imagem
-          return decodedResponse.map((json) => ImageGroup.fromMap(json as Map<String, dynamic>)).toList();
+          return decodedResponse.map((json) => Folder.fromMap(json as Map<String, dynamic>)).toList();
         } else if (decodedResponse is Map<String, dynamic> && decodedResponse.containsKey('data') && decodedResponse['data'] is List) {
           // Se a API retornar um objeto com uma chave 'data' contendo a lista de imagens
           return (decodedResponse['data'] as List<dynamic>)
-              .map((json) => ImageGroup.fromMap(json as Map<String, dynamic>))
+              .map((json) => Folder.fromMap(json as Map<String, dynamic>))
               .toList();
         } else if (decodedResponse is Map<String, dynamic> && decodedResponse.containsKey('image_paths') && decodedResponse['image_paths'] is List) {
           // ⭐ Adaptação específica para o JSON do Insomnia (ex: {"image_paths": ["path1", "path2"]})
           final List<dynamic> imagePaths = decodedResponse['image_paths'] as List<dynamic>;
           // Cria objetos MyImage a partir dos paths. O ID pode ser um placeholder (0)
           // se a API não retornar IDs de imagem no momento do upload.
-          return imagePaths.map((path) => ImageGroup(folderPath: path.toString(), folderId: 0, folderName: 'NOME DA PASTA', images: [])).toList();
+          return imagePaths.map((path) => Folder(caminho: path.toString(), id: 0, nome: 'NOME DA PASTA', imagens: [])).toList();
         } else {
           throw ApiException(
             'Formato de resposta inesperado após o upload de imagens.',

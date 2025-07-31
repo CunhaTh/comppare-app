@@ -1,98 +1,123 @@
 
 
 import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart'; // Para PlatformFile
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart' as devtools;
+import 'package:http/http.dart' as http; // Para PlatformFile
 
+class ImageModel {
+  final int id; // Identificador único (opcional, pode ser nulo para novos arquivos)
+  String url; // URL ou caminho da imagem (pode ser vazio para arquivos locais)
+  Uint8List? imageData; // Dados binários, carregados ou de arquivo local
+  bool isSelected; // Estado de seleção na UI
+  String? date; // Data personalizada (derivado de takenAt ou editável)
+  String? weight; // Peso associado
+  String? waist; // Cintura associada
+  String? observation; // Observação
+  Map<String, String> customTags; // Tags personalizadas
+  
 
-// Modelo para representar uma imagem retornada pela API
-class MyImage {
-  final int id;
-  final String path; // URL da imagem
-  final String takenAt; // Data em que a imagem foi tirada
-
-  MyImage({
-    required this.id,
-    required this.path,
-    required this.takenAt,
+  ImageModel({
+    this.id = 0, // 0 como padrão para novos itens
+    this.url = '',
+    this.imageData,
+    this.isSelected = false,
+    this.date,
+    this.weight,
+    this.waist,
+    this.observation,
+    this.customTags = const {}, required String takenAt,
   });
 
-  factory MyImage.fromMap(Map<String, dynamic> map) {
-    return MyImage(
-      id: map['id'] as int,
-      path: map['path'] as String,
-      // ⭐ CORREÇÃO AQUI: Garante que 'takenAt' não seja nulo.
-      // Se a API não retornar 'takenAt', use uma string vazia ou a data atual.
-      takenAt: map['takenAt'] as String? ?? '', // Adicionado null-check e fallback
+  
+
+  // Construtor a partir de um mapa (ex.: API)
+  factory ImageModel.fromMap(Map<String, dynamic> map) {
+    return ImageModel(
+      id: map['id'] as int? ?? 0,
+      url: map['url'] as String? ?? map['path'] ?? '',
+      date: (map['takenAt'] as String?)?.split(' ')[0],
+      customTags: (map['customTags'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(key.toString(), value.toString()),
+          ) ??
+          {}, takenAt: '',
     );
   }
 
+  // Construtor a partir de MyImage (compatibilidade)
+  factory ImageModel.fromMyImage(ImageModel myImage, {Uint8List? imageData}) {
+    return ImageModel(
+      id: myImage.id,
+      url: myImage.url,
+      imageData: imageData,
+      date: myImage.date,
+      weight: 'N/A',
+      waist: 'N/A',
+      observation: 'N/A',
+      customTags: {}, takenAt: '',
+    );
+  }
+
+  // Construtor a partir de PickedFileItem (arquivos locais)
+  factory ImageModel.fromPickedFile(PlatformFile platformFile) {
+    return ImageModel(
+      id: 0, // Novo item, sem ID ainda
+      url: '', // Sem URL inicial
+      imageData: platformFile.bytes,
+      date: null,
+      weight: null,
+      waist: null,
+      observation: null,
+      customTags: {}, 
+      takenAt: '',
+    );
+  }
+
+  // Converte para mapa (ex.: envio à API)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'path': path,
-      'takenAt': takenAt,
+      'url': url,
+      'takenAt': date, // Usa date como substituto para takenAt
+      'customTags': customTags,
     };
   }
-}
 
-// Modelo para agrupar imagens em um "subálbum"
-class ImageGroup {
-  final int folderId;
-  final String folderName; // Nome completo da pasta, ex: "Thiago Gomes_Cunha/PastaPai/SubPasta"
-  final String folderPath; // Caminho físico da pasta no servidor
-  final List<MyImage> images;
-  final List<String> tags; // Tags associadas a este grupo/subálbum
+  // Método para carregar imageData a partir da URL (se não estiver presente)
+  Future<void> loadImageData() async {
+  if (imageData != null && imageData!.isNotEmpty) {
+    devtools.debugPrint('Usando imageData existente para URL: $url (${imageData!.length} bytes)');
+    return;
+  }
 
-  ImageGroup({
-    required this.folderId,
-    required this.folderName,
-    required this.folderPath,
-    required this.images,
-    this.tags = const [],
-  });
-
-  // Getter para o nome a ser exibido na AlbunsCriadosPage
-  String get albunsCriadosDisplayName {
-    final parts = folderName.split('/');
-    if (parts.isNotEmpty) {
-      return parts.last; // Retorna a última parte (o nome da subpasta mais aninhada)
+  if (url.isNotEmpty) {
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        imageData = response.bodyBytes;
+        devtools.debugPrint('Imagem carregada da URL: $url (${imageData!.length} bytes)');
+      } else {
+        devtools.debugPrint('Falha ao carregar imagem da URL $url: Status ${response.statusCode}');
+        imageData = Uint8List(0);
+      }
+    } catch (e) {
+      devtools.debugPrint('Erro ao carregar imagem da URL $url: $e');
+      imageData = Uint8List(0);
     }
-    return folderName; // Retorna o nome completo se não houver partes
-  }
-
-  factory ImageGroup.fromMap(Map<String, dynamic> map) {
-    // ⭐ CORREÇÃO AQUI: Adicionado null-check para 'nome' e 'caminho'
-    final String nome = map['nome'] as String? ?? '';
-    final String caminho = map['caminho'] as String? ?? '';
-
-    return ImageGroup(
-      folderId: map['id'] as int,
-      folderName: nome,
-      folderPath: caminho,
-      images: (map['imagens'] as List<dynamic>?)
-              ?.map((e) => MyImage.fromMap(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      // ⭐ CORREÇÃO AQUI: Adicionado null-check para 'tags'
-      tags: (map['tags'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'folderId': folderId,
-      'folderName': folderName,
-      'folderPath': folderPath,
-      'images': images.map((e) => e.toMap()).toList(),
-      'tags': tags,
-    };
+  } else {
+    devtools.debugPrint('URL vazia para imagem ID: $id');
+    imageData = Uint8List(0);
   }
 }
+}
 
-// Modelo para representar um arquivo selecionado localmente antes do upload
+// Função auxiliar (deve estar em um lugar acessível, ex.: um util ou service)
+Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
+  // Implementação existente (ex.: usando http.get)
+  // Retorna Uint8List ou null em caso de erro
+  return null; // Placeholder, substitua pela lógica real
+}
+
 class PickedFileItem {
   final PlatformFile platformFile;
   final Uint8List? bytes;

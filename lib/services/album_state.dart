@@ -1,4 +1,5 @@
 import 'package:application_progress/login.dart';
+import 'package:application_progress/models/folder_model.dart';
 import 'package:flutter/material.dart';
 import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/infra/api_exception.dart';
@@ -7,13 +8,13 @@ import 'package:application_progress/models/image_model.dart';
 import 'dart:developer' as devtools;
 
 class AlbumState extends ChangeNotifier {
-  List<ImageGroup> _imageGroups = [];
+  List<Folder> _imageGroups = [];
   bool _isLoading = true;
   final ApiService _apiService;
 
   AlbumState({required ApiService apiService}) : _apiService = apiService;
 
-  List<ImageGroup> get imageGroups => _imageGroups;
+  List<Folder> get imageGroups => _imageGroups;
   bool get isLoading => _isLoading;
 
   Future<void> fetchSubfolders(int folderId, BuildContext context) async {
@@ -30,7 +31,7 @@ class AlbumState extends ChangeNotifier {
     try {
       final fetchedGroups = await _apiService.fetchSubfoldersAndImages(folderId);
       _imageGroups = fetchedGroups;
-      devtools.log('Subálbuns carregados: ${_imageGroups.map((g) => g.folderName).join(', ')}');
+      devtools.log('Subálbuns carregados: ${_imageGroups.map((g) => g.nome).join(', ')}');
     } on ApiException catch (e) {
       devtools.log('Erro na API ao carregar subálbuns: ${e.message}');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,7 +72,8 @@ class AlbumState extends ChangeNotifier {
       final newFolderId = await _apiService.createSubFolder(
         folderName: fullFolderNameForApi,
         tags: tags,
-        parentFolderId: parentFolderId,
+        parentFolderId: parentFolderId, 
+        idUsuario: userId,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,31 +1,31 @@
-// lib/albuns_criados.dart
+import 'dart:convert';
 
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/user_helper.dart';
-import 'package:application_progress/infra/api_services.dart'; // Usar ApiService
+import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
-import 'package:application_progress/views/comppareimg.dart' hide FilePickerHelper; // ImagemDetalhesPage
+import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/comppareimg.dart' hide FilePickerHelper;
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart'; // Importa FilePicker
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:developer' as devtools;
 
 // Meus imports
-import 'package:application_progress/models/image_model.dart'; // Contém MyImage, ImageGroup e PickedFileItem
+import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/main.dart' as main_app;
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/login.dart';
-
-// Importa o FilePickerHelper que acabamos de ajustar
 import 'package:application_progress/file_picker_helper.dart';
 import 'package:flutter/material.dart' as devtools;
-
+import 'package:http/http.dart' as http;
 
 class AlbunsCriadosPage extends StatefulWidget {
-  final String initialFolderName; // Nome da pasta principal (do PrincipalPage)
-  final int initialFolderId; // ID da pasta selecionada
-  final String folderApiPath; // Caminho da API para a pasta pai (ex: "Thiago Gomes_Cunha/FirstFolder/firsSubfolder")
+  final String initialFolderName;
+  final int initialFolderId;
+  final String folderApiPath;
 
   const AlbunsCriadosPage({
     super.key,
@@ -39,17 +39,19 @@ class AlbunsCriadosPage extends StatefulWidget {
 }
 
 class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
-  List<ImageGroup> imageGroups = []; // Esta lista será a fonte única de dados
-  bool _isLoading = true;
-  final ApiService _apiService = ApiService(); // Usar ApiService
+  final _subalbumNameController = TextEditingController();
+  final _tagsController = TextEditingController();
 
-  final TextEditingController _subalbumNameController = TextEditingController();
-  final TextEditingController _tagsController = TextEditingController();
+  String _searchQuery = '';
+  List<Folder> _subfolders = []; // Renomeado de imageGroups para _subfolders
+  bool _isLoading = true;
+
+  final ApiService _apiService = ApiService(httpClient: http.Client());
 
   @override
   void initState() {
     super.initState();
-    _fetchSubfolders();
+    _fetchSubfoldersFromApiAndRefreshState();
   }
 
   @override
@@ -59,70 +61,146 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     super.dispose();
   }
 
-  Future<void> _fetchSubfolders() async {
+  Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
     if (!mounted) return;
     setState(() {
-      _isLoading = true;
-    });
-
-    final int? userId = TokenHelper().userId; // Obtenha userId do TokenHelper
-
-    if (!TokenHelper().hasToken() || userId == null || userId == 0) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro: Usuário não logado. Redirecionando...')),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      }
-      return;
-    }
+        _isLoading = true;
+      });
+    debugPrint('AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
 
     try {
-      // ⭐ AJUSTE AQUI: Chamar o novo método do ApiService
-      final List<ImageGroup> fetchedGroups = await _apiService.fetchSubfoldersAndImages(
-        widget.initialFolderId, // Passa o ID da pasta pai
-      );
+      final user = UserHelper().user;
+        if (user == null || user.id == null) {
+          debugPrint('Usuário não autenticado. Redirecionando para login.');
+          _navigateToLogin();
+          return;
+      }
 
+      final List<Folder> updateSubFolders = await _apiService.getAllFoldersForUser();
       if (mounted) {
         setState(() {
-          imageGroups = fetchedGroups;
+          _subfolders = updateSubFolders;
+          debugPrint('Subpastas atualizadas: ${_subfolders.length}');
         });
-        devtools.debugPrint('Subálbuns carregados: ${imageGroups.map((g) => g.folderName).join(', ')}');
       }
     } on ApiException catch (e) {
-      devtools.debugPrint('Erro na API ao carregar subálbuns: ${e.message}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar subálbuns: ${e.message}')),
-        );
-        if (e.statusCode == 401) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
+        debugPrint('Erro ao atualizar pastas da API: ${e.message}');
+        if (mounted) {
+          _showErrorDialog('Não foi possível atualizar seus álbuns. ${e.message}');
+          if (e.statusCode == 401) {
+            _navigateToLogin();
+          }
+        }
+      } catch (e) {
+        debugPrint('Erro inesperado ao atualizar pastas da API: $e');
+        if (mounted) {
+          _showErrorDialog('Ocorreu um erro inesperado ao atualizar seus álbuns.');
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
         }
       }
-    } catch (e) {
-      devtools.debugPrint('Erro inesperado ao carregar subálbuns: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro inesperado ao carregar subálbuns: ${e.toString()}')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    }
+
+  Future<void> _addSubfolder(String subfolderName) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) {
+    debugPrint('[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
+    _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
+    _navigateToLogin();
+    return;
+  }
+
+  try {
+    final String subfolderNameForApi = subfolderName.trim();
+    debugPrint('[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}');
+
+    final response = await _apiService.createSubFolder(
+      idUsuario: user.id!,
+      folderName: subfolderNameForApi,
+      parentFolderId: null,
+    );
+    debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
+
+    if (response is Map<String, dynamic> && mounted) {
+      final newSubFolder = Folder.fromMap(response);
+      debugPrint('[_addSubfolder] Novo SubFolder criado: id=${newSubFolder.id}, nome=${newSubFolder.nome}');
+      
+      final newSubfolder = Folder(
+        id: newSubFolder.id,
+        nome: newSubFolder.nome ?? subfolderNameForApi, // Placeholder se nome for nulo
+        caminho: newSubFolder.caminho,
+        principalPageDisplayName: newSubFolder.albunsCriadosPageDisplayName ?? subfolderNameForApi,
+        idPastaPai: newSubFolder.idPastaPai,
+        imagens: newSubFolder.imagens,
+        tags: newSubFolder.tags,
+        subpastas: newSubFolder.subpastas,
+      );
+      setState(() {
+        _subfolders.add(newSubfolder);
+      });
+      debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}');
+    }
+  } catch (e) {
+    debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
+    if (e is ApiException && mounted) {
+      _showErrorDialog('Falha ao criar a subpasta: ${e.message}');
+      if (e.statusCode == 401) {
+        _navigateToLogin();
       }
     }
   }
 
+  if (mounted) {
+    try {
+      await _fetchSubfoldersFromApiAndRefreshState();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
+      );
+    } catch (e) {
+      debugPrint('[_addSubfolder] Erro ao atualizar após criação: $e');
+      if (mounted) {
+        _showErrorDialog('Erro ao atualizar a lista de subpastas.');
+      }
+    }
+  }
+}
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Erro'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  void _navigateToLogin() {
+    if (!mounted) return;
+    TokenHelper().clearToken();
+    UserHelper().removeUser();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (Route<dynamic> route) => false,
+    );
+  }
 
   void _showAddSubalbumDialog() {
+    if (!mounted) return;
     _subalbumNameController.clear();
     _tagsController.clear();
 
@@ -131,146 +209,97 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Criar Novo Subálbum'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _subalbumNameController,
-                decoration: InputDecoration(
-                  hintText: 'Nome do subálbum',
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
-                    vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022,
-                  ),
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: StatefulBuilder(
+            builder: (dialogContext, setDialogState) {
+              bool isDialogLoading = false;
+              return AlertDialog(
+                title: const Text('Criar Novo Subálbum'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _subalbumNameController,
+                      decoration: InputDecoration(
+                        hintText: 'Nome do subálbum',
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                          vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022,
+                        ),
+                      ),
+                      enabled: !isDialogLoading,
+                    ),
+                    TextField(
+                      controller: _tagsController,
+                      decoration: InputDecoration(
+                        hintText: 'Tags (separadas por vírgula)',
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
+                          vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022,
+                        ),
+                      ),
+                      enabled: !isDialogLoading,
+                    ),
+                    if (isDialogLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                  ],
                 ),
-              ),
-              TextField(
-                controller: _tagsController,
-                decoration: InputDecoration(
-                  hintText: 'Tags (separadas por vírgula)',
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
-                    vertical: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022,
+                actions: [
+                  TextButton(
+                    onPressed: isDialogLoading ? null : () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('Cancelar'),
                   ),
-                ),
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_subalbumNameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('O nome do subálbum não pode ser vazio.')),
-                  );
-                  return;
-                }
-
-                final int userId = TokenHelper().userId;
-                if (!TokenHelper().hasToken() || userId == 0) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Erro: Usuário não logado. Redirecionando...')),
-                    );
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    );
-                  }
-                  return;
-                }
-
-                Navigator.of(context).pop(); // Fecha o dialog antes de iniciar a criação
-
-                try {
-                  final String newSubalbumName = _subalbumNameController.text.trim();
-
-                  // Construindo o nome completo da pasta para a API
-                  // A API espera "PastaPai/NomeDaSubpasta"
-                  // widget.folderApiPath já deve vir como "Usuario/NomeDaPastaPai"
-                  final String parentPathWithoutUser = widget.folderApiPath.split('/').skip(1).join('/');
-                  final String fullFolderNameForApi = "$parentPathWithoutUser/$newSubalbumName";
-                  devtools.log('Tentando criar subálbum com nome: $fullFolderNameForApi');
-
-
-                  final int newFolderId = await _apiService.createSubFolder( // Usar ApiService
-                    folderName: fullFolderNameForApi,
-                    tags: _tagsController.text
-                        .split(',')
-                        .map((tag) => tag.trim())
-                        .where((tag) => tag.isNotEmpty)
-                        .toList(),
-                    parentFolderId: widget.initialFolderId, // Passa o ID da pasta pai
-                  );
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Subálbum criado com sucesso!')),
-                    );
-
-                    await _fetchSubfolders(); // Atualiza a lista para incluir o novo subálbum
-
-                    // Lógica para adicionar imagens imediatamente ao novo grupo
-                    ImageGroup? newGroup;
-                    for (var group in imageGroups) {
-                      if (group.folderId == newFolderId) {
-                        newGroup = group;
-                        break;
+                  ElevatedButton(
+                    onPressed: isDialogLoading ? null : () async {
+                      final subalbumName = _subalbumNameController.text.trim();
+                      if (subalbumName.isEmpty) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('O nome do subálbum não pode ser vazio.')),
+                          );
+                        }
+                        return;
                       }
-                    }
 
-                    if (newGroup != null) {
-                      _addMultipleImages(newGroup); // Permite adicionar imagens ao novo subálbum
-                    } else {
-                      devtools.debugPrint('Erro: Subálbum recém-criado não encontrado na lista após fetch.');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Subálbum criado, mas não foi possível carregar imagens automaticamente. Tente adicionar imagens manualmente.')),
-                      );
-                    }
-                  }
-                } on ApiException catch (e) {
-                  devtools.debugPrint('Erro ao criar subálbum: ${e.message}');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao criar subálbum: ${e.message}')),
-                    );
-                    if (e.statusCode == 401) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      );
-                    }
-                  }
-                } catch (e) {
-                  devtools.debugPrint('Erro inesperado ao criar subálbum: $e');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro inesperado ao criar subálbum: ${e.toString()}')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Criar'),
-            ),
-          ],
+                      setDialogState(() => isDialogLoading = true);
+                      try {
+                        await _addSubfolder(subalbumName);
+                        if (context.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      } catch (e) {
+                        debugPrint('Erro no modal de criar subálbum: $e');
+                        if (mounted) {
+                          _showErrorDialog('Falha ao criar subpasta: $e');
+                        }
+                      } finally {
+                        if (context.mounted) {
+                          setDialogState(() => isDialogLoading = false);
+                        }
+                      }
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          ),
         );
       },
     );
   }
 
-  void _addMultipleImages(ImageGroup group) async {
-    devtools.debugPrint('Iniciando _addMultipleImages para subAlbum: ${group.folderName}');
+  void _addMultipleImages(Folder group) async {
+    devtools.debugPrint('Iniciando _addMultipleImages para subAlbum: ${group.nome}');
 
-    // ⭐ AJUSTE AQUI: Chamar o FilePickerHelper para obter PickedFileItem
     final List<PickedFileItem> pickedFiles = await FilePickerHelper.pickImages(allowMultiple: true);
 
     if (pickedFiles.isEmpty) {
@@ -300,17 +329,18 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     }
 
     try {
-      // ⭐ AJUSTE AQUI: Enviar PickedFileItem para o ApiService
-      final List<MyImage> uploadedImages = await _apiService.uploadImages(
+      final List<ImageModel> uploadedImages = await _apiService.uploadImages(
         images: pickedFiles,
-        folderId: group.folderId,
+        folderId: group.id,
       );
+      devtools.debugPrint('uploadedImages retornado: ${uploadedImages.length} itens');
 
       setState(() {
-        final int groupIndex = imageGroups.indexOf(group);
+        final int groupIndex = _subfolders.indexOf(group);
         if (groupIndex != -1) {
-          // Adiciona as MyImage retornadas pela API ao ImageGroup
-          imageGroups[groupIndex].images.addAll(uploadedImages);
+          _subfolders[groupIndex].imagens ??= [];
+          _subfolders[groupIndex].imagens!.addAll(uploadedImages);
+          devtools.debugPrint('Novas imagens adicionadas ao grupo ${group.nome}: ${_subfolders[groupIndex].imagens!.length}');
         }
       });
 
@@ -342,26 +372,27 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     }
   }
 
-  Future<void> _deleteFolder(ImageGroup groupToDelete) async {
-    bool? confirm = await showDialog<bool>(
+  Future<void> _confirmAndDeleteSubfolder(Folder subfolder) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null || !TokenHelper().hasToken()) {
+      _navigateToLogin();
+      return;
+    }
+
+    final bool? confirm = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
-          content: Text('Tem certeza que deseja excluir o subálbum "${groupToDelete.albunsCriadosDisplayName}" e todas as suas imagens?'),
+          content: Text('Tem certeza que deseja excluir a subpasta "${subfolder.albunsCriadosPageDisplayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
           actions: <Widget>[
             TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
             ),
-            ElevatedButton(
-              child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -372,48 +403,31 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       setState(() {
         _isLoading = true;
       });
-      try {
-        final userId = TokenHelper().userId; // Usar TokenHelper
-        if (!TokenHelper().hasToken() || userId == 0) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erro: Usuário não logado. Redirecionando...')),
-            );
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
-          }
-          return;
-        }
 
-        await _apiService.deleteFolder(userId, groupToDelete.folderId); // Usar ApiService e userId
+      try {
+        await _apiService.deleteFolder(user.id!, subfolder.id);
 
         if (mounted) {
+          setState(() {
+            _subfolders.removeWhere((f) => f.id == subfolder.id);
+          });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Subálbum "${groupToDelete.albunsCriadosDisplayName}" excluído com sucesso!')),
+            SnackBar(content: Text('Subpasta "${subfolder.albunsCriadosPageDisplayName}" excluída com sucesso!')),
           );
-          await _fetchSubfolders(); // Recarregar a lista de pastas após a exclusão
+          await _fetchSubfoldersFromApiAndRefreshState();
         }
       } on ApiException catch (e) {
-        devtools.debugPrint('Erro ao excluir subálbum: ${e.message}');
+        debugPrint('Erro em _confirmAndDeleteSubfolder: ${e.message}');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao excluir subálbum: ${e.message}')),
-          );
+          _showErrorDialog('Não foi possível excluir a subpasta: ${e.message}');
           if (e.statusCode == 401) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
+            _navigateToLogin();
           }
         }
       } catch (e) {
-        devtools.debugPrint('Erro inesperado ao excluir subálbum: $e');
+        debugPrint('Erro inesperado em _confirmAndDeleteSubfolder: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro inesperado ao excluir subálbum: ${e.toString()}')),
-          );
+          _showErrorDialog('Ocorreu um erro inesperado ao excluir a subpasta.');
         }
       } finally {
         if (mounted) {
@@ -437,7 +451,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
           onTap: () {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (context) => const main_app.MyHomePage(title: '')),
+              MaterialPageRoute(builder: (context) => PrincipalPage()),
               (Route<dynamic> route) => false,
             );
           },
@@ -462,17 +476,17 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                   (Route<dynamic> route) => false,
                 );
               },
-              child: Icon(Icons.arrow_back, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
+              child: Icon(Icons.exit_to_app, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
             ),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchSubfolders,
-        color: const Color(0xffFaed513),
+        onRefresh: _fetchSubfoldersFromApiAndRefreshState,
+        color: const Color(0xFFaed513),
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: Color(0xFFaed513)))
-            : imageGroups.isEmpty
+            : _subfolders.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -485,18 +499,18 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                     ),
                   )
                 : ListView.builder(
-                    itemCount: imageGroups.length,
+                    itemCount: _subfolders.length,
                     itemBuilder: (context, index) {
-                      final group = imageGroups[index];
+                      final group = _subfolders[index];
                       return GestureDetector(
                         onTap: () async {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => ImagemDetalhesPage(
-                                images: group.images,
-                                tags: group.tags,
-                                subAlbumName: group.albunsCriadosDisplayName,
+                                images: group.imagens ?? [],
+                                tags: group.tags ?? [],
+                                subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
                               ),
                             ),
                           );
@@ -517,13 +531,13 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Text(
-                                        group.albunsCriadosDisplayName, // Nome da subpasta
+                                        group.albunsCriadosPageDisplayName ?? 'Sem nome',
                                         style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => _deleteFolder(group),
+                                      onPressed: () => _confirmAndDeleteSubfolder(group),
                                     ),
                                     const Icon(Icons.arrow_forward_ios, color: Colors.white),
                                   ],
@@ -532,7 +546,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                                 Wrap(
                                   spacing: 8.0,
                                   runSpacing: 4.0,
-                                  children: group.tags.map((tag) => Chip(
+                                  children: (group.tags ?? []).map((tag) => Chip(
                                         label: Text(tag, style: const TextStyle(color: Colors.black)),
                                         backgroundColor: Colors.amberAccent,
                                       )).toList(),
@@ -549,20 +563,22 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                                     ),
                                   ),
                                 ),
-                                if (group.images.isNotEmpty) ...[
+                                if (group.imagens?.isNotEmpty ?? false) ...[
                                   const SizedBox(height: 8),
                                   SizedBox(
                                     height: 100,
                                     child: ListView.builder(
                                       scrollDirection: Axis.horizontal,
-                                      itemCount: group.images.length,
+                                      itemCount: group.imagens?.length ?? 0,
                                       itemBuilder: (context, imgIndex) {
-                                        final img = group.images[imgIndex];
-                                        if (img.path.isNotEmpty) {
+                                        final img = group.imagens?[imgIndex];
+                                        if (img == null) return const SizedBox.shrink();
+                                        final String imagePath = img.url;
+                                        if (imagePath.isNotEmpty) {
                                           return Padding(
                                             padding: const EdgeInsets.all(4.0),
                                             child: Image.network(
-                                              img.path,
+                                              imagePath,
                                               width: 90,
                                               height: 90,
                                               fit: BoxFit.cover,
