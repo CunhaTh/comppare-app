@@ -320,28 +320,6 @@ class MyHomePage extends StatefulWidget {
                 padding: const EdgeInsets.only(top: 20),
                 child: _buildHeader(context),
               ),
-              const SizedBox(height: 230),
-              /*const Text(
-                '''Quer acompanhar a evolução de clientes e projetos de forma prática e interativa? Aqui é o lugar''',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 4,
-                      color: Colors.black45,
-                      offset: Offset(2, 2),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),*/
-             /* const Text(
-                '''                                  Planos a partir de R\$ 27,99/mês''',
-                style: TextStyle(color: Colors.white, fontSize: 15),
-                textAlign: TextAlign.center,
-              ),*/
               const SizedBox(height: 20),
             ],
           ),
@@ -388,10 +366,12 @@ class MyHomePage extends StatefulWidget {
             plan.nome.toLowerCase().contains('mensal') ||
             plan.nome.toLowerCase().contains('gratuito'))
         .toList();
+    
+
     final annualPlans = plans
         .where((plan) => plan.nome.toLowerCase().contains('anual'))
         .toList();
-
+    
     final allMonthlyPlans = _buildMonthlyPlans(monthlyPlans);
     final allAnnualPlans = _buildAnnualPlans(annualPlans);
 
@@ -501,7 +481,7 @@ class MyHomePage extends StatefulWidget {
       orElse: () => Plano(
         id: 1,
         nome: 'Avançado Mensal',
-        descricao: 'Plano básico mensal com acesso a mais funcionalidades',
+        descricao: 'Plano Avançado mensal com acesso a mais funcionalidades',
         valor: 24.90,
         quantidadeTags: 5,
         quantidadeFotos: 50,
@@ -565,16 +545,7 @@ class MyHomePage extends StatefulWidget {
         isPopular: false,
       ),
     );
-    planCards.add(
-      _buildPlanCard(
-        avancado,
-        selectedPlans[avancado.id] ?? false,
-        () => selectPlan(avancado.id),
-        () => navigateToCadastro(avancado.id),
-        context,
-        isPopular: true,
-      ),
-    );
+    
 
     return planCards;
   }
@@ -582,24 +553,6 @@ class MyHomePage extends StatefulWidget {
   List<Widget> _buildAnnualPlans(List<Plano> annualPlans) {
     // Initialize list to hold plan cards
     List<Widget> planCards = [];
-
-    // Try to find the "Básico Anual" plan
-    final basicoAnual = annualPlans.firstWhere(
-      (plan) => plan.nome.toLowerCase().contains('básico'),
-      orElse: () => Plano(
-        id: 3,
-        nome: 'Básico Anual',
-        descricao: 'Plano básico anual com economia',
-        valor: 299.99,
-        quantidadeTags: 5,
-        quantidadeFotos: 50,
-        quantidadeConvites: 1,
-        quantidadePastas: 1,
-        status: 1,
-        frequenciaCobranca: 1,
-        tempoGratuidade: 1,
-      ),
-    );
 
     // Try to find the "Avançado Anual" plan
     final avancadoAnual = annualPlans.firstWhere(
@@ -620,24 +573,11 @@ class MyHomePage extends StatefulWidget {
     );
 
     // Add plans to selectedPlans if not already present
-    if (!selectedPlans.containsKey(basicoAnual.id)) {
-      selectedPlans[basicoAnual.id] = false;
-    }
     if (!selectedPlans.containsKey(avancadoAnual.id)) {
       selectedPlans[avancadoAnual.id] = false;
     }
 
     // Add plan cards only for plans that were found or have valid fallbacks
-    planCards.add(
-      _buildPlanCard(
-        basicoAnual,
-        selectedPlans[basicoAnual.id] ?? false,
-        () => selectPlan(basicoAnual.id),
-        () => navigateToCadastro(basicoAnual.id),
-        context,
-        isPopular: false,
-      ),
-    );
     planCards.add(
       _buildPlanCard(
         avancadoAnual,

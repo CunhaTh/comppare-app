@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:application_progress/models/image_model.dart';
+import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as devtools;
 import 'package:flutter/rendering.dart';
@@ -13,44 +14,6 @@ import 'dart:html' as html; // Para web, se aplicável
 import 'package:application_progress/main.dart' as main_app;
 import 'package:http/http.dart' as http; // Adicione este import para fazer requisições HTTP
 import 'package:flutter/foundation.dart';
-
-/*class ImageItem {
-  final int id; // ID da imagem na API
-  final String path; // URL da imagem
-  Uint8List imageData; // Dados da imagem em bytes
-  bool isSelected; // Para seleção na UI
-  String? date;
-  String? weight;
-  String? waist;
-  String? observation;
-  Map<String, String> customTags;
-
-  ImageItem({
-    required this.id,
-    required this.path,
-    required this.imageData,
-    this.isSelected = false,
-    this.date,
-    this.weight,
-    this.waist,
-    this.observation,
-    this.customTags = const {},
-  });
-
-  // Construtor de fábrica
-  factory ImageItem.fromMyImage(MyImage myImage, Uint8List imageData) {
-    return ImageItem(
-      id: myImage.id,
-      path: myImage.url,
-      imageData: imageData,
-      date: myImage.takenAt.split(' ')[0], // Usando takenAt como data inicial
-      weight: 'N/A',
-      waist: 'N/A',
-      observation: 'N/A',
-      customTags: {},
-    );
-  }
-}*/
 
 class ImagemDetalhesPage extends StatefulWidget {
   final List<ImageModel> images;
@@ -183,7 +146,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
           onTap: () {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (context) => const main_app.MyHomePage(title: '')),
+              MaterialPageRoute(builder: (context) => const PrincipalPage()),
               (Route<dynamic> route) => false,
             );
           },
@@ -208,7 +171,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                   (Route<dynamic> route) => false,
                 );
               },
-              child: Icon(Icons.arrow_back, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
+              child: Icon(Icons.exit_to_app, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
             ),
           ),
         ],
@@ -921,7 +884,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) {
                                           devtools.debugPrint('Erro ao carregar imagem em displayedImages: $error');
-                                          return Center(
+                                          return const Center(
                                             child: Column(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
@@ -1099,7 +1062,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       devtools.debugPrint('Erro ao carregar imagem da miniatura: $error');
-                                      return Center(
+                                      return const Center(
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [

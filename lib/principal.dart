@@ -12,9 +12,11 @@ import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart' as main_app;
+import 'package:application_progress/main.dart';
 
 // IMPORTAÇÕES CORRETAS DOS MODELOS
 import 'package:application_progress/models/folder_model.dart'; // Para o modelo Folder
+import 'package:application_progress/views/plans_page.dart';
 import 'package:application_progress/views/user_dashboard.dart';
 
 
@@ -39,18 +41,77 @@ class _PrincipalPageState extends State<PrincipalPage> {
   String _searchQuery = '';
   final TextEditingController folderNameController = TextEditingController();
   bool _isLoading = true;
+  int? selectedQuestionIndex;
+  bool isLoading = false; // Para outras operações, se aplicável
+  List<Plano> plans = [];
+  bool showMonthlyPlans = true;
+  Map<int, bool> selectedPlans = {};
+  bool isPlansLoading = true; // Novo estado para carregamento de planos
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
   @override
   void initState() {
     super.initState();
+    _fetchPlansAsync();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _fetchFoldersFromApiAndRefreshState();
+  }
+Future<void> _fetchPlansAsync() async {
+    setState(() {
+      isPlansLoading = true;
+    });
+    try {
+      await fetchPlans(); // Aguarda a população de plans
+    } finally {
+      setState(() {
+        isPlansLoading = false;
+      });
+    }
+  }
+
+  Future<void> fetchPlans() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> planosJson = data['data'];
+        setState(() {
+          plans = planosJson.map((json) => Plano.fromJson(json)).toList();
+          selectedPlans = {for (var plan in plans) plan.id: false};
+        });
+      } else {
+        print("Erro ao buscar planos: ${response.reasonPhrase}");
+      }
+    } catch (e) {
+      print("Erro ao buscar planos: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _navigateToSubscription() {
+    if (plans.isEmpty) {
+      print('Nenhum plano disponível. Tente novamente mais tarde.');
+      return;
+    }
+    final currentPlan = UserHelper().user?.idPlano != null
+        ? plans.firstWhere((p) => p.id == UserHelper().user!.idPlano,
+            orElse: () => plans.first)
+        : plans.first;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SubscriptionPage(initialPlan: plans.first, availablePlans: plans)),
+    );
   }
 
     Future<void> _addFolder(String folderName) async {
@@ -486,7 +547,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                                   child: ListTile(
                                     leading: const Icon(Icons.folder, color: Colors.white, size: 40),
                                     title: Text(
-                                      folder.pageDisplayName?.isNotEmpty == true ? folder.pageDisplayName! : 'Pasta sem nome',
+                                      folder.pageDisplayName?.isNotEmpty == true ? folder.pageDisplayName : 'Pasta sem nome',
                                       style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
                                     ),
                                     trailing: IconButton(
@@ -515,7 +576,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text('Menu', style: TextStyle(color: Colors.black, fontSize: 24)),
-                  const SizedBox(height: 40,),
+                  const SizedBox(height: 40),
                   Text(UserHelper().user?.nome ?? 'Convidado',
                       style: const TextStyle(color: Colors.black, fontSize: 16)),
                 ],
@@ -535,6 +596,14 @@ class _PrincipalPageState extends State<PrincipalPage> {
               onTap: () {
                 Navigator.pop(context);
                 showDialog(context: context, builder: (context) => DialogRanking());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment),
+              title: const Text('Planos'),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToSubscription(); // Chama o método para navegar com um plano
               },
             ),
             ListTile(

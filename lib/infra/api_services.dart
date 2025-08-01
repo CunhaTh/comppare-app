@@ -273,7 +273,7 @@ Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
       'idPastaPai': parentFolderId,
       'imagens': subfolder['imagens'] ?? [],
       'subpastas': [],
-    } as Map<String, dynamic>);
+    });
   }).toList();
 }
 

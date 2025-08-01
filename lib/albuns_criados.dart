@@ -442,7 +442,6 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
-
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
@@ -497,115 +496,115 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                     ),
                   )
                 : ListView.builder(
-  itemCount: _subfolders.length,
-  itemBuilder: (context, index) {
-    final group = _subfolders[index];
-    // Depuração
-    debugPrint('ListView: index=$index, nome=${group.nome}, idPastaPai=${group.idPastaPai}, albunsCriadosPageDisplayName=${group.albunsCriadosPageDisplayName}');
-
-    return GestureDetector(
-      onTap: () async {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ImagemDetalhesPage(
-              images: group.imagens ?? [],
-              tags: group.tags ?? [],
-              subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
-            ),
-          ),
-        );
-      },
-      child: Card(
-        color: Colors.grey[900],
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-        elevation: 5,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.folder, color: Colors.white, size: 40),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      group.albunsCriadosPageDisplayName ?? 'Sem nome',
-                      style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
+                itemCount: _subfolders.length,
+                itemBuilder: (context, index) {
+                  final group = _subfolders[index];
+                  // Depuração
+                  debugPrint('ListView: index=$index, nome=${group.nome}, idPastaPai=${group.idPastaPai}, albunsCriadosPageDisplayName=${group.albunsCriadosPageDisplayName}');
+            return 
+            GestureDetector(
+              onTap: () async {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ImagemDetalhesPage(
+                      images: group.imagens ?? [],
+                      tags: group.tags ?? [],
+                      subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmAndDeleteSubfolder(group),
-                  ),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.white),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8.0,
-                runSpacing: 4.0,
-                children: (group.tags ?? []).map((tag) => Chip(
-                      label: Text(tag, style: const TextStyle(color: Colors.black)),
-                      backgroundColor: Colors.amberAccent,
-                    )).toList(),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  onPressed: () => _addMultipleImages(group),
-                  icon: const Icon(Icons.add_photo_alternate, color: Colors.black),
-                  label: const Text('Adicionar Imagens', style: TextStyle(color: Colors.black)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFaed513),
-                  ),
-                ),
-              ),
-              if (group.imagens?.isNotEmpty ?? false) ...[
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: group.imagens?.length ?? 0,
-                    itemBuilder: (context, imgIndex) {
-                      final img = group.imagens?[imgIndex];
-                      if (img == null) return const SizedBox.shrink();
-                      final String imagePath = img.url;
-                      if (imagePath.isNotEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Image.network(
-                            imagePath,
-                            width: 90,
-                            height: 90,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 90,
-                                height: 90,
-                                color: Colors.grey,
-                                child: const Center(child: Icon(Icons.broken_image, color: Colors.red)),
-                              );
+                );
+              },
+              child: Card(
+                color: Colors.grey[900],
+                margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.folder, color: Colors.white, size: 40),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              group.albunsCriadosPageDisplayName ?? 'Sem nome',
+                              style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _confirmAndDeleteSubfolder(group),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8.0,
+                        runSpacing: 4.0,
+                        children: (group.tags ?? []).map((tag) => Chip(
+                              label: Text(tag, style: const TextStyle(color: Colors.black)),
+                              backgroundColor: Colors.amberAccent,
+                            )).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _addMultipleImages(group),
+                          icon: const Icon(Icons.add_photo_alternate, color: Colors.black),
+                          label: const Text('Adicionar Imagens', style: TextStyle(color: Colors.black)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFaed513),
+                          ),
+                        ),
+                      ),
+                      if (group.imagens?.isNotEmpty ?? false) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 100,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: group.imagens?.length ?? 0,
+                            itemBuilder: (context, imgIndex) {
+                              final img = group.imagens?[imgIndex];
+                              if (img == null) return const SizedBox.shrink();
+                              final String imagePath = img.url;
+                              if (imagePath.isNotEmpty) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Image.network(
+                                    imagePath,
+                                    width: 90,
+                                    height: 90,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        width: 90,
+                                        height: 90,
+                                        color: Colors.grey,
+                                        child: const Center(child: Icon(Icons.broken_image, color: Colors.red)),
+                                      );
+                                    },
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
                             },
                           ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ],
-            ],
-          ),
+              ),
+            );
+          },
         ),
-      ),
-    );
-  },
-),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddSubalbumDialog,
