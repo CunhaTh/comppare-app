@@ -62,112 +62,110 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   }
 
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
-    if (!mounted) return;
-    setState(() {
-        _isLoading = true;
-      });
-    debugPrint('AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
-
-    try {
-      final user = UserHelper().user;
-        if (user == null || user.id == null) {
-          debugPrint('Usuário não autenticado. Redirecionando para login.');
-          _navigateToLogin();
-          return;
-      }
-
-      final List<Folder> updateSubFolders = await _apiService.getAllFoldersForUser();
-      if (mounted) {
-        setState(() {
-          _subfolders = updateSubFolders;
-          debugPrint('Subpastas atualizadas: ${_subfolders.length}');
-        });
-      }
-    } on ApiException catch (e) {
-        debugPrint('Erro ao atualizar pastas da API: ${e.message}');
-        if (mounted) {
-          _showErrorDialog('Não foi possível atualizar seus álbuns. ${e.message}');
-          if (e.statusCode == 401) {
-            _navigateToLogin();
-          }
-        }
-      } catch (e) {
-        debugPrint('Erro inesperado ao atualizar pastas da API: $e');
-        if (mounted) {
-          _showErrorDialog('Ocorreu um erro inesperado ao atualizar seus álbuns.');
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    }
-
-  Future<void> _addSubfolder(String subfolderName) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null) {
-    debugPrint('[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
-    _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
-    _navigateToLogin();
-    return;
-  }
+  if (!mounted) return;
+  setState(() => _isLoading = true);
+  debugPrint('AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
+  debugPrint('AlbunsCriados: Buscando subpastas para initialFolderId: ${widget.initialFolderId}');
 
   try {
-    final String subfolderNameForApi = subfolderName.trim();
-    debugPrint('[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}');
-
-    final response = await _apiService.createSubFolder(
-      idUsuario: user.id!,
-      folderName: subfolderNameForApi,
-      parentFolderId: null,
-    );
-    debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
-
-    if (response is Map<String, dynamic> && mounted) {
-      final newSubFolder = Folder.fromMap(response);
-      debugPrint('[_addSubfolder] Novo SubFolder criado: id=${newSubFolder.id}, nome=${newSubFolder.nome}');
-      
-      final newSubfolder = Folder(
-        id: newSubFolder.id,
-        nome: newSubFolder.nome ?? subfolderNameForApi, // Placeholder se nome for nulo
-        caminho: newSubFolder.caminho,
-        principalPageDisplayName: newSubFolder.albunsCriadosPageDisplayName ?? subfolderNameForApi,
-        idPastaPai: newSubFolder.idPastaPai,
-        imagens: newSubFolder.imagens,
-        tags: newSubFolder.tags,
-        subpastas: newSubFolder.subpastas,
-      );
-      setState(() {
-        _subfolders.add(newSubfolder);
-      });
-      debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}');
+    final user = UserHelper().user;
+    if (user == null || user.id == null || !TokenHelper().hasToken()) {
+      debugPrint('Usuário não autenticado ou token ausente. Redirecionando para login.');
+      _navigateToLogin();
+      return;
     }
-  } catch (e) {
-    debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
-    if (e is ApiException && mounted) {
-      _showErrorDialog('Falha ao criar a subpasta: ${e.message}');
+
+    final List<Folder> subfolders = await _apiService.fetchSubfolders(widget.initialFolderId);
+    debugPrint('Subpastas recebidas da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}').join(', ')}');
+
+    if (mounted) {
+      setState(() {
+        _subfolders = subfolders;
+        debugPrint('Subpastas atualizadas: ${_subfolders.length}');
+      });
+    }
+  } on ApiException catch (e) {
+    debugPrint('Erro ao atualizar subpastas da API: ${e.message}');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar subpastas: ${e.message}')),
+      );
       if (e.statusCode == 401) {
         _navigateToLogin();
       }
     }
-  }
-
-  if (mounted) {
-    try {
-      await _fetchSubfoldersFromApiAndRefreshState();
+  } catch (e) {
+    debugPrint('Erro inesperado ao atualizar subpastas da API: $e');
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
+        const SnackBar(content: Text('Ocorreu um erro inesperado ao carregar subpastas.')),
       );
-    } catch (e) {
-      debugPrint('[_addSubfolder] Erro ao atualizar após criação: $e');
-      if (mounted) {
-        _showErrorDialog('Erro ao atualizar a lista de subpastas.');
-      }
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 }
+    Future<void> _addSubfolder(String subfolderName) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      debugPrint('[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
+      _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
+      _navigateToLogin();
+      return;
+    }
+
+    try {
+      final String subfolderNameForApi = subfolderName.trim();
+      debugPrint('[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}');
+
+      final response = await _apiService.createSubFolder(
+        parentFolderId: widget.initialFolderId,
+        idUsuario: user.id!,
+        folderName: subfolderNameForApi,
+        parentFolderPath: widget.folderApiPath, // Passa o caminho da pasta pai
+      );
+      debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
+
+      if (response is Map<String, dynamic> && mounted) {
+        final newSubfolder = Folder.fromMap({
+          'id': response['pasta_id'] ?? 0,
+          'nome': response['estrutura_completa'] ?? '${response['pasta_nome'] ?? subfolderNameForApi}',
+          'caminho': response['pasta_caminho'],
+          'idPastaPai': widget.initialFolderId,
+          'imagens': [],
+          'subpastas': [],
+        });
+        setState(() {
+          _subfolders.add(newSubfolder);
+        });
+        debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}');
+      }
+    } catch (e) {
+      debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
+      if (e is ApiException && mounted) {
+        _showErrorDialog('Falha ao criar a subpasta: ${e.message}');
+        if (e.statusCode == 401) {
+          _navigateToLogin();
+        }
+      }
+    }
+
+    if (mounted) {
+      try {
+        await _fetchSubfoldersFromApiAndRefreshState();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
+        );
+      } catch (e) {
+        debugPrint('[_addSubfolder] Erro ao atualizar após criação: $e');
+        if (mounted) {
+          _showErrorDialog('Erro ao atualizar a lista de subpastas.');
+        }
+      }
+    }
+  }
   void _showErrorDialog(String message) {
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -499,112 +497,115 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                     ),
                   )
                 : ListView.builder(
-                    itemCount: _subfolders.length,
-                    itemBuilder: (context, index) {
-                      final group = _subfolders[index];
-                      return GestureDetector(
-                        onTap: () async {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ImagemDetalhesPage(
-                                images: group.imagens ?? [],
-                                tags: group.tags ?? [],
-                                subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
-                              ),
-                            ),
-                          );
-                        },
-                        child: Card(
-                          color: Colors.grey[900],
-                          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                          elevation: 5,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.folder, color: Colors.white, size: 40),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Text(
-                                        group.albunsCriadosPageDisplayName ?? 'Sem nome',
-                                        style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => _confirmAndDeleteSubfolder(group),
-                                    ),
-                                    const Icon(Icons.arrow_forward_ios, color: Colors.white),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8.0,
-                                  runSpacing: 4.0,
-                                  children: (group.tags ?? []).map((tag) => Chip(
-                                        label: Text(tag, style: const TextStyle(color: Colors.black)),
-                                        backgroundColor: Colors.amberAccent,
-                                      )).toList(),
-                                ),
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () => _addMultipleImages(group),
-                                    icon: const Icon(Icons.add_photo_alternate, color: Colors.black),
-                                    label: const Text('Adicionar Imagens', style: TextStyle(color: Colors.black)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFaed513),
-                                    ),
-                                  ),
-                                ),
-                                if (group.imagens?.isNotEmpty ?? false) ...[
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    height: 100,
-                                    child: ListView.builder(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: group.imagens?.length ?? 0,
-                                      itemBuilder: (context, imgIndex) {
-                                        final img = group.imagens?[imgIndex];
-                                        if (img == null) return const SizedBox.shrink();
-                                        final String imagePath = img.url;
-                                        if (imagePath.isNotEmpty) {
-                                          return Padding(
-                                            padding: const EdgeInsets.all(4.0),
-                                            child: Image.network(
-                                              imagePath,
-                                              width: 90,
-                                              height: 90,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Container(
-                                                  width: 90,
-                                                  height: 90,
-                                                  color: Colors.grey,
-                                                  child: const Center(child: Icon(Icons.broken_image, color: Colors.red)),
-                                                );
-                                              },
-                                            ),
-                                          );
-                                        }
-                                        return const SizedBox.shrink();
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+  itemCount: _subfolders.length,
+  itemBuilder: (context, index) {
+    final group = _subfolders[index];
+    // Depuração
+    debugPrint('ListView: index=$index, nome=${group.nome}, idPastaPai=${group.idPastaPai}, albunsCriadosPageDisplayName=${group.albunsCriadosPageDisplayName}');
+
+    return GestureDetector(
+      onTap: () async {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ImagemDetalhesPage(
+              images: group.imagens ?? [],
+              tags: group.tags ?? [],
+              subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
+            ),
+          ),
+        );
+      },
+      child: Card(
+        color: Colors.grey[900],
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        elevation: 5,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.folder, color: Colors.white, size: 40),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      group.albunsCriadosPageDisplayName ?? 'Sem nome',
+                      style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _confirmAndDeleteSubfolder(group),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children: (group.tags ?? []).map((tag) => Chip(
+                      label: Text(tag, style: const TextStyle(color: Colors.black)),
+                      backgroundColor: Colors.amberAccent,
+                    )).toList(),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () => _addMultipleImages(group),
+                  icon: const Icon(Icons.add_photo_alternate, color: Colors.black),
+                  label: const Text('Adicionar Imagens', style: TextStyle(color: Colors.black)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFaed513),
+                  ),
+                ),
+              ),
+              if (group.imagens?.isNotEmpty ?? false) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: group.imagens?.length ?? 0,
+                    itemBuilder: (context, imgIndex) {
+                      final img = group.imagens?[imgIndex];
+                      if (img == null) return const SizedBox.shrink();
+                      final String imagePath = img.url;
+                      if (imagePath.isNotEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Image.network(
+                            imagePath,
+                            width: 90,
+                            height: 90,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 90,
+                                height: 90,
+                                color: Colors.grey,
+                                child: const Center(child: Icon(Icons.broken_image, color: Colors.red)),
+                              );
+                            },
                           ),
-                        ),
-                      );
+                        );
+                      }
+                      return const SizedBox.shrink();
                     },
                   ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  },
+),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddSubalbumDialog,

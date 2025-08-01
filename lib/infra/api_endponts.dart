@@ -1,9 +1,9 @@
-// lib/infra/api_endponts.dart
-
 /// Uma classe estática para gerenciar todos os endpoints da API.
 /// Centraliza as URLs para facilitar a manutenção e evitar erros de digitação.
 class ApiEndpoints {
   static const String baseUrl = 'https://api.comppare.com.br/api';
+
+  static const String recoverFolder = '/pasta/recuperar'; // Remover '/api' daqui
 
   /// Endpoint para criar uma assinatura de vendas (admin).
   static String get createSignature => '$baseUrl/admin/vendas/criar-assinatura';

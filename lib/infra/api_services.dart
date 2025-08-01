@@ -253,16 +253,28 @@ Future<Map<String, dynamic>> _sendRequest(
     return user.pastas!;
   }
 
-Future<List<Folder>> fetchSubfoldersAndImages(int folderId) async {
-  final url = Uri.parse('${ApiEndpoints.baseUrl}/pasta/recupera?$folderId'); // Ajuste a rota conforme o backend
+Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
+  final url = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
   final response = await _sendRequest(
     () => _httpClient.get(url, headers: _getHeaders()),
-    successMessage: 'Subpastas e imagens carregadas com sucesso.',
-    errorMessage: 'Falha ao carregar subpastas e imagens.',
+    successMessage: 'Subpastas carregadas com sucesso.',
+    errorMessage: 'Falha ao carregar subpastas.',
   );
 
-  final List<dynamic> subfolders = response['subpastas'] as List<dynamic>? ?? [];
-  return subfolders.map((subfolder) => Folder.fromMap(subfolder as Map<String, dynamic>)).toList();
+  final data = response['data'] as Map<String, dynamic>? ?? {};
+  final List<dynamic> subfolders = data['subpastas'] as List<dynamic>? ?? [];
+  debugPrint('[_fetchSubfolders] Subpastas retornadas pela API: $subfolders');
+
+  return subfolders.map((subfolder) {
+    return Folder.fromMap({
+      'id': subfolder['id'],
+      'nome': subfolder['nome'],
+      'caminho': subfolder['path'] ?? subfolder['pasta_caminho'],
+      'idPastaPai': parentFolderId,
+      'imagens': subfolder['imagens'] ?? [],
+      'subpastas': [],
+    } as Map<String, dynamic>);
+  }).toList();
 }
 
   /// Função para fazer upload de imagens para uma pasta específica.
@@ -357,55 +369,49 @@ Future<List<Folder>> fetchSubfoldersAndImages(int folderId) async {
   }
 
 Future<Map<String, dynamic>> createSubFolder({
-    int? parentFolderId,
-    required int idUsuario,
-    required String folderName,
-    List<String>? tags,
-  }) async {
-    final url = Uri.parse(ApiEndpoints.createSubFolder);
-    String nomePasta = folderName.trim();
+  required int parentFolderId,
+  required int idUsuario,
+  required String folderName,
+  required String parentFolderPath, // Novo parâmetro para o caminho da pasta pai
+  List<String>? tags,
+}) async {
+  final url = Uri.parse(ApiEndpoints.createFolder);
+  String nomePasta = folderName.trim();
 
-    final body = {
-      'idUsuario': idUsuario,
-      'nomePasta': nomePasta,
-      'parentFolderId': parentFolderId,
-      if (tags != null && tags.isNotEmpty) 'tags': tags,
-      'tipo': 'subpasta', // Define explicitamente como subpasta
-    };
-    
-    // Tenta obter os detalhes da pasta pai
-    Map<String, dynamic>? parentFolder;
+  // Constrói o nomePasta usando o caminho da pasta pai
+  if (parentFolderPath.isNotEmpty) {
+    final parentName = parentFolderPath.split('/').last; // Extrai o nome da pasta pai (ex.: "PASTAFOLDER")
+    nomePasta = '$parentName/$folderName';
+  } else {
+    // Fallback: tenta obter o nome da pasta pai via API
     try {
-      parentFolder = await _getParentFolderDetails(parentFolderId!);
+      final parentFolder = await _getParentFolderDetails(parentFolderId);
       if (parentFolder != null && parentFolder['nome'] != null) {
         nomePasta = '${parentFolder['nome']}/$folderName';
-      } else {
-        throw ApiException(
-          'Pasta pai não encontrada ou inválida para o ID: $parentFolderId',
-          statusCode: 404,
-          body: '',
-        );
       }
     } catch (e) {
       foundation.debugPrint('[_createSubFolder] Erro ao buscar pasta pai: $e');
-      // Fallback: Usa o nome original se a pasta pai não puder ser recuperada
-      nomePasta = folderName;
     }
-
-    foundation.debugPrint('[_createSubFolder] Requisição para criar subpasta em: $url com nome: $nomePasta, parentFolderId: $parentFolderId');
-
-    
-
-    return _sendRequest(
-      () => _httpClient.post(
-        url,
-        headers: _getHeaders(includeContentType: true),
-        body: jsonEncode(body),
-      ),
-      successMessage: 'Subpasta criada com sucesso.',
-      errorMessage: 'Falha ao criar subpasta.',
-    );
   }
+
+  foundation.debugPrint('[_createSubFolder] Requisição para criar subpasta em: $url com nome: $nomePasta, parentFolderId: $parentFolderId');
+
+  final body = {
+    'idUsuario': idUsuario,
+    'nomePasta': nomePasta, // Usa a hierarquia completa
+    if (tags != null && tags.isNotEmpty) 'tags': tags,
+  };
+
+  return _sendRequest(
+    () => _httpClient.post(
+      url,
+      headers: _getHeaders(includeContentType: true),
+      body: jsonEncode(body),
+    ),
+    successMessage: 'Subpasta criada com sucesso.',
+    errorMessage: 'Falha ao criar subpasta.',
+  );
+}
 
 // Função de renovação de token (ajuste conforme necessário)
 Future<void> _refreshTokenIfNeeded() async {
@@ -431,22 +437,23 @@ Future<void> _refreshTokenIfNeeded() async {
 }
 
 Future<Map<String, dynamic>?> _getParentFolderDetails(int parentFolderId) async {
-    final url = Uri.parse('${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$parentFolderId'); // Ajuste para a rota correta
-    try {
-      final response = await _sendRequest(
-        () => _httpClient.get(url, headers: _getHeaders()),
-        successMessage: 'Detalhes da pasta pai carregados.',
-        errorMessage: 'Falha ao carregar detalhes da pasta pai.',
-      );
-      return response;
-    } catch (e) {
-      if (e is ApiException && e.statusCode == 404) {
-        foundation.debugPrint('[_getParentFolderDetails] Pasta pai não encontrada para ID: $parentFolderId');
-        return null; // Retorna null em vez de lançar exceção
-      }
-      rethrow;
+  final url = Uri.parse('${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$parentFolderId');
+  try {
+    final response = await _sendRequest(
+      () => _httpClient.get(url, headers: _getHeaders()),
+      successMessage: 'Detalhes da pasta pai carregados.',
+      errorMessage: 'Falha ao carregar detalhes da pasta pai.',
+    );
+    foundation.debugPrint('[_getParentFolderDetails] Resposta da API: $response');
+    return response;
+  } catch (e) {
+    if (e is ApiException && e.statusCode == 404) {
+      foundation.debugPrint('[_getParentFolderDetails] Pasta pai não encontrada para ID: $parentFolderId');
+      return null;
     }
+    rethrow;
   }
+}
 // lib/infra/api_services.dart
 Future<Map<String, dynamic>> fetchFolderDetails(int folderId) async {
   final url = Uri.parse('${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$folderId');

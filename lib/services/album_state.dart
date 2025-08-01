@@ -29,7 +29,7 @@ class AlbumState extends ChangeNotifier {
     }
 
     try {
-      final fetchedGroups = await _apiService.fetchSubfoldersAndImages(folderId);
+      final fetchedGroups = await _apiService.fetchSubfolders(folderId);
       _imageGroups = fetchedGroups;
       devtools.log('Subálbuns carregados: ${_imageGroups.map((g) => g.nome).join(', ')}');
     } on ApiException catch (e) {
@@ -73,7 +73,7 @@ class AlbumState extends ChangeNotifier {
         folderName: fullFolderNameForApi,
         tags: tags,
         parentFolderId: parentFolderId, 
-        idUsuario: userId,
+        idUsuario: userId, parentFolderPath: parentPath,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
