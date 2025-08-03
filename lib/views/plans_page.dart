@@ -87,21 +87,21 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     final plans = widget.availablePlans ?? [widget.initialPlan];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7), // Fundo cinza claro como Apple
+      backgroundColor: Colors.black, // Fundo preto como PrincipalPage
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Escolha seu Plano',
           style: TextStyle(
-            fontSize: 28.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            fontSize: 25,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFaed513), // Cor verde da PrincipalPage
           ),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.black, // Fundo preto como PrincipalPage
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFaed513)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -110,32 +110,6 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           child: Column(
             children: [
               // Header com título e subtítulo
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                child: Column(
-                  children: [
-                    Text(
-                      'Comppare Premium',
-                      style: TextStyle(
-                        fontSize: 28.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 6.h),
-                    Text(
-                      'Acesse todos os recursos premium',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: Colors.grey[600],
-                        height: 1.3,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
 
               // Carrossel de planos com botões de navegação
               Stack(
@@ -185,11 +159,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.grey[
+                                900], // Cor similar aos cards da PrincipalPage
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: Colors.black.withOpacity(0.5),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -204,7 +179,8 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             },
                             icon: const Icon(
                               Icons.arrow_back_ios,
-                              color: Colors.black87,
+                              color: Color(
+                                  0xFFaed513), // Cor verde da PrincipalPage
                               size: 20,
                             ),
                           ),
@@ -223,11 +199,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.grey[
+                                900], // Cor similar aos cards da PrincipalPage
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: Colors.black.withOpacity(0.5),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -242,7 +219,8 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             },
                             icon: const Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.black87,
+                              color: Color(
+                                  0xFFaed513), // Cor verde da PrincipalPage
                               size: 20,
                             ),
                           ),
@@ -266,8 +244,10 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: plans[index].id == selectedPlan.id
-                            ? const Color(0xFF007AFF)
-                            : Colors.grey[300],
+                            ? const Color(
+                                0xFFaed513) // Cor verde da PrincipalPage
+                            : Colors
+                                .grey[600], // Cor mais escura para fundo preto
                       ),
                     ),
                   ),
@@ -310,7 +290,7 @@ class PlanCard extends StatelessWidget {
         case 'enterprise':
           return const Color(0xFFAF52DE); // Roxo
         default:
-          return const Color(0xFF007AFF); // Azul padrão
+          return const Color(0xFFaed513); // Verde da PrincipalPage
       }
     }
 
@@ -318,19 +298,19 @@ class PlanCard extends StatelessWidget {
       width: 400,
       height: 500,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
+        color: Colors.grey[900], // Cor similar aos cards da PrincipalPage
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: isSelected
                 ? getPlanColor().withOpacity(0.3)
-                : Colors.black.withOpacity(0.1),
+                : Colors.black.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
-          color: isSelected ? getPlanColor() : Colors.transparent,
+          color: isSelected ? getPlanColor() : Colors.grey[800]!,
           width: 2,
         ),
       ),
@@ -354,7 +334,7 @@ class PlanCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Colors.white, // Texto branco como PrincipalPage
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -407,7 +387,7 @@ class PlanCard extends StatelessWidget {
                     plan.descricao,
                     style: const TextStyle(
                       fontSize: 13,
-                      color: Colors.grey,
+                      color: Colors.white54, // Cor similar ao PrincipalPage
                       height: 1.2,
                     ),
                     textAlign: TextAlign.center,
@@ -416,6 +396,8 @@ class PlanCard extends StatelessWidget {
 
                   // Recursos do plano
                   Wrap(
+                    spacing: 20,
+                    runSpacing: 10,
                     children: [
                       _buildFeature('📸 ${plan.quantidadeFotos} fotos',
                           Icons.photo_library),
@@ -471,14 +453,11 @@ class PlanCard extends StatelessWidget {
   }
 
   Widget _buildFeature(String text, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 18,
-          color: Colors.grey,
-        ),
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 18,
+        color: Colors.white54, // Cor similar ao PrincipalPage
       ),
     );
   }

@@ -21,10 +21,9 @@ import 'package:application_progress/views/user_dashboard.dart';
 
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:application_progress/infra/api_endponts.dart';
+
 import 'package:application_progress/infra/api_exception.dart';
 
 
