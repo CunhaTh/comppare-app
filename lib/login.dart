@@ -3,9 +3,9 @@
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert'; // Para json.decode
-import 'package:application_progress/infra/token_helper.dart'; // Importa o TokenHelper corrigido
+// Importa o TokenHelper corrigido
 import 'package:application_progress/infra/api_services.dart'; // Importa o ApiService
-import 'package:application_progress/infra/user_helper.dart'; // Importa o UserHelper
+// Importa o UserHelper
 import 'package:application_progress/cadastro.dart'; // Ajuste o nome do arquivo se for diferente
 import 'package:application_progress/views/recupera_senha.dart';
 import 'package:application_progress/principal.dart'; // Importa a PrincipalPage
@@ -206,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onTap: () {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => RecoverPasswordScreen()),
+                            MaterialPageRoute(builder: (context) => const RecoverPasswordScreen()),
                           );
                         },
                         child: const Text(

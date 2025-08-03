@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:application_progress/albuns_criados.dart'; // Importa a AlbunsCriadosPage
 import 'package:application_progress/chat_button.dart';
@@ -11,7 +10,6 @@ import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
-import 'package:application_progress/main.dart' as main_app;
 import 'package:application_progress/main.dart';
 
 // IMPORTAÇÕES CORRETAS DOS MODELOS
@@ -132,12 +130,10 @@ Future<void> _fetchPlansAsync() async {
           parentFolderId: null,
         );
         debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
-        if (response is Map<String, dynamic>) {
-          debugPrint('[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
-        }
-        debugPrint('[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
+        debugPrint('[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
+              debugPrint('[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
-        if (response is Map<String, dynamic> && mounted) {
+        if (mounted) {
           final newFolder = Folder.fromMap(response);
           debugPrint('[_addFolder] Novo folder criado: id=${newFolder.id}, nome=${newFolder.nome}');
           // Adiciona com placeholder se nome for nulo
@@ -546,7 +542,7 @@ Future<void> _fetchPlansAsync() async {
                                   child: ListTile(
                                     leading: const Icon(Icons.folder, color: Colors.white, size: 40),
                                     title: Text(
-                                      folder.pageDisplayName?.isNotEmpty == true ? folder.pageDisplayName : 'Pasta sem nome',
+                                      folder.pageDisplayName.isNotEmpty == true ? folder.pageDisplayName : 'Pasta sem nome',
                                       style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
                                     ),
                                     trailing: IconButton(
@@ -586,7 +582,7 @@ Future<void> _fetchPlansAsync() async {
               title: const Text('Início'),
               onTap: () {
                 Navigator.pop(context);
-                showDialog(context: context, builder: (context) => UserDashboardScreen(folders: [],));
+                showDialog(context: context, builder: (context) => const UserDashboardScreen(folders: [],));
               },
             ),
             ListTile(
@@ -594,7 +590,7 @@ Future<void> _fetchPlansAsync() async {
               title: const Text('Ranking'),
               onTap: () {
                 Navigator.pop(context);
-                showDialog(context: context, builder: (context) => DialogRanking());
+                showDialog(context: context, builder: (context) => const DialogRanking());
               },
             ),
             ListTile(

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
@@ -9,7 +8,6 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:html' as html; // Para web, se aplicável
 import 'package:application_progress/main.dart' as main_app;
 import 'package:http/http.dart' as http; // Adicione este import para fazer requisições HTTP
@@ -22,12 +20,12 @@ class ImagemDetalhesPage extends StatefulWidget {
   //final int idSubfolder;
 
   const ImagemDetalhesPage({
-    Key? key,
+    super.key,
     required this.images,
     required this.tags,
     required this.subAlbumName, 
    // required this.idSubfolder,
-  }) : super(key: key);
+  });
 
   @override
   State<ImagemDetalhesPage> createState() => _ImagemDetalhesPageState();
@@ -94,7 +92,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     }
 
     // Cria o ImageItem com o ID explícito de MyImage
-    items.add(ImageModel.fromMyImage(myImage as ImageModel, imageData: imageData));
+    items.add(ImageModel.fromMyImage(myImage, imageData: imageData));
     debugPrint('Preparando imagem com URL: ${myImage.url}, imageData: ${myImage.imageData != null}');
   }
   _imageItems = items.cast<ImageModel>(); // Atualiza a lista no estado
@@ -107,7 +105,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   void initState() {
     super.initState();
     tags = widget.tags;
-    _imageItemsFuture = _prepareImageItems() as Future<List<ImageModel>>; // Inicia o carregamento assíncrono
+    _imageItemsFuture = _prepareImageItems(); // Inicia o carregamento assíncrono
     
   }
   
@@ -226,7 +224,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                   // Adicione um placeholder ou tratamento de erro visual para 'Image.memory'
                                   errorBuilder: (context, error, stackTrace) {
                                     debugPrint('Erro ao renderizar imagem do GridView: $error');
-                                    return Center(
+                                    return const Center(
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
@@ -398,7 +396,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                           imageItem.imageData!,
                           fit: BoxFit.cover,
                         )
-                      : Center(child: Text('Imagem não disponível')), // Placeholder para imagem vazia
+                      : const Center(child: Text('Imagem não disponível')), // Placeholder para imagem vazia
                 ),
                 SizedBox(height: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044),
                 if (tags.isNotEmpty)
@@ -709,20 +707,20 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
     }
   }
 
-  final ScrollController _localScrollController = ScrollController(); // Usar um controller local para o diálogo
+  final ScrollController localScrollController = ScrollController(); // Usar um controller local para o diálogo
 
   // Funções de scroll para as miniaturas
-  void _scrollLeft() {
-    _localScrollController.animateTo(
-      _localScrollController.offset - (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
+  void scrollLeft() {
+    localScrollController.animateTo(
+      localScrollController.offset - (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
   }
 
-  void _scrollRight() {
-    _localScrollController.animateTo(
-      _localScrollController.offset + (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
+  void scrollRight() {
+    localScrollController.animateTo(
+      localScrollController.offset + (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
@@ -746,15 +744,13 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               // Inicializa _selectedIndex com a primeira imagem exibida
-              int? _selectedIndex;
-              if (_selectedIndex == null) {
-                // Encontra o índice da primeira imagem exibida na lista original 'allSelectedImages'
-                _selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
-                if (_selectedIndex == -1 && allSelectedImages.isNotEmpty) {
-                  _selectedIndex = 0; // fallback se não encontrar, seleciona o primeiro
-                }
+              int? selectedIndex;
+              // Encontra o índice da primeira imagem exibida na lista original 'allSelectedImages'
+              selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
+              if (selectedIndex == -1 && allSelectedImages.isNotEmpty) {
+                selectedIndex = 0; // fallback se não encontrar, seleciona o primeiro
               }
-
+            
               void onThumbnailTap(ImageModel tappedImage, int tappedIndexInAllSelected) {
                 setState(() {
                   // A lógica aqui deve ser: a imagem clicada se torna a primeira (esquerda)
@@ -781,7 +777,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                   }
 
                   // Atualiza o _selectedIndex para refletir a imagem que está agora à esquerda
-                  _selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
+                  selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
 
                   // Atualiza os controladores de texto com os dados das novas imagens exibidas
                   controllers.forEach((tag, controllerList) {
@@ -958,7 +954,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                                             ),
                                           ),
                                         );
-                                      }).toList(),
+                                      }),
                                     ],
                                   );
                                 }).toList(),
@@ -1037,7 +1033,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                         padding: const EdgeInsets.only(bottom: 11),
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          controller: _localScrollController,
+                          controller: localScrollController,
                           child: Row(
                             children: allSelectedImages.asMap().entries.map((entry) {
                               final int index = entry.key;
@@ -1052,8 +1048,8 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                                   margin: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                                   decoration: BoxDecoration(
                                     border: Border.all(
-                                      color: _selectedIndex == index ? Colors.blue : Colors.grey,
-                                      width: _selectedIndex == index ? 3 : 1,
+                                      color: selectedIndex == index ? Colors.blue : Colors.grey,
+                                      width: selectedIndex == index ? 3 : 1,
                                     ),
                                     borderRadius: BorderRadius.zero,
                                   ),
@@ -1088,7 +1084,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                             color: const Color(0xFFaed513),
                             size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
-                          onPressed: _scrollLeft,
+                          onPressed: scrollLeft,
                           tooltip: 'Rolar para a esquerda',
                         ),
                       ),
@@ -1101,7 +1097,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                             color: const Color(0xFFaed513),
                             size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
-                          onPressed: _scrollRight,
+                          onPressed: scrollRight,
                           tooltip: 'Rolar para a direita',
                         ),
                       ),

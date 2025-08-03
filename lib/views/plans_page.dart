@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../controllers/controllers.dart';
+import '../infra/api_services.dart';
+
 class SubscriptionPage extends StatefulWidget {
   final Plano initialPlan;
   final List<Plano>? availablePlans; // Lista opcional de planos para escolha
@@ -22,10 +25,14 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   late PageController _pageController;
   int _currentPageIndex = 0;
 
+  late PlansController controller;
+
   @override
   void initState() {
     super.initState();
     // Inicializa com o plano passado ou o primeiro da lista, se disponível
+    controller = PlansController(apiService: ApiService());
+
     selectedPlan = widget.availablePlans?.isNotEmpty == true
         ? widget.availablePlans!.first
         : widget.initialPlan;
@@ -140,7 +147,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             child: PlanCard(
                               plan: plan,
                               isSelected: isSelected,
-                              onSubscribe: _subscribe,
+                              // onSubscribe: _subscribe,
+                              onSubscribe: () =>
+                                  controller.subscribePlanByPix(plan),
                               loading: loading,
                             ),
                           ),

@@ -11,7 +11,7 @@
         //     "file": "c:\\Users\\Thiago Gomes\\Documents\\app_progresso\\application_progress\\web\\index.html"
         // }
         {
-            "name": "Flutter for web (hot reloadable)",
+            "name": "DEBUG/PROD - Flutter for web (hot reloadable)",
             "type": "dart",
             "request": "launch",
             "program": "lib/main.dart",
@@ -20,8 +20,23 @@
               "-d",
               "chrome",
               "--web-experimental-hot-reload",
+              "--dart-define=API_ENDPOINT=https://api.comppare.com.br/api"
             ]
-          }
+          },
+        {
+            "name": "DEBUG/DEV - Flutter for web (hot reloadable)",
+            "type": "dart",
+            "request": "launch",
+            "program": "lib/main.dart",
+            "flutterMode": "debug",
+            "args": [
+              "-d",
+              "chrome",
+              "--web-experimental-hot-reload",
+              "--dart-define=API_ENDPOINT=apidev.comppare.com.br/"
+            ]
+          },
+        
         
     ]
 }

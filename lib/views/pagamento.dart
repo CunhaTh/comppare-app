@@ -1,13 +1,11 @@
 import 'dart:convert';
 
-import 'package:application_progress/main.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
-import 'package:application_progress/cartao-token.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

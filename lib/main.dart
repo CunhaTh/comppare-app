@@ -1,20 +1,8 @@
-import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/login.dart';
-import 'package:application_progress/planos.dart';
 import 'package:application_progress/principal.dart' hide LoginScreen;
-import 'package:application_progress/views/admpage.dart';
-import 'package:application_progress/views/auth_wrapper.dart';
-import 'package:application_progress/views/comppareimg.dart';
-import 'package:application_progress/views/pagamento.dart';
-import 'package:application_progress/views/pagemconstrucao.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:application_progress/models/image_model.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -65,14 +53,17 @@ class Plano {
       tempoGratuidade: json['tempoGratuidade'] ?? 1,
     );
   }
-} 
+}
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  
-  await GetStorage.init(); 
-  debugPrint('GetStorage inicializado e TokenHelper pronto.'); // <--- Adicione este
-  debugPrint('Token na inicialização do app: ${TokenHelper().token}'); // <--- E este
-  debugPrint('User ID na inicialização do app: ${TokenHelper().userId}'); 
+  await GetStorage.init();
+  debugPrint(
+      'GetStorage inicializado e TokenHelper pronto.'); // <--- Adicione este
+  debugPrint(
+      'Token na inicialização do app: ${TokenHelper().token}'); // <--- E este
+  debugPrint('User ID na inicialização do app: ${TokenHelper().userId}');
   await TokenHelper().init();
   runApp(const MyApp());
 }
@@ -82,8 +73,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit( // Adiciona o ScreenUtilInit para inicializar o flutter_screenutil
-      designSize: const Size(360, 690), // Tamanho base do design (ajuste conforme necessário)
+    return ScreenUtilInit(
+      // Adiciona o ScreenUtilInit para inicializar o flutter_screenutil
+      designSize: const Size(
+          360, 690), // Tamanho base do design (ajuste conforme necessário)
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
@@ -97,21 +90,22 @@ class MyApp extends StatelessWidget {
           onGenerateRoute: (settings) {
             switch (settings.name) {
               case AwaitingPayment.route:
-                return MaterialPageRoute(builder: (_) => const AwaitingPayment());
+                return MaterialPageRoute(
+                    builder: (_) => const AwaitingPayment());
               case CadastroScreen.route:
                 return MaterialPageRoute(
                   builder: (_) => CadastroScreen(
-                    idPlano: int.tryParse(Uri.base.queryParameters['pId'] ?? ''),
+                    idPlano:
+                        int.tryParse(Uri.base.queryParameters['pId'] ?? ''),
                   ),
                 );
               default:
                 return MaterialPageRoute(
-                  
-                  builder: (_) => //PrincipalPage() 
-                                // const AuthWrapper(),
-                                //Urlimg() 
-                                 const MyHomePage(title: ''),
-                                //const Pagemconstrucao() 
+                  builder: (_) => //PrincipalPage()
+                      // const AuthWrapper(),
+                      //Urlimg()
+                      const MyHomePage(title: ''),
+                  //const Pagemconstrucao()
                 );
             }
           },
@@ -131,9 +125,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-
-
- class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> {
   bool isLoading = false;
   int? selectedQuestionIndex;
   List<Plano> plans = [];
@@ -152,7 +144,8 @@ class MyHomePage extends StatefulWidget {
       isLoading = true;
     });
     try {
-      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      final response = await http
+          .get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];
@@ -195,7 +188,8 @@ class MyHomePage extends StatefulWidget {
   final List<Map<String, String>> faqs = [
     {
       "question": "Como faço para assinar um plano?",
-      "answer": "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
+      "answer":
+          "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
     },
     {
       "question": "Quais são os métodos de pagamento aceitos?",
@@ -203,11 +197,13 @@ class MyHomePage extends StatefulWidget {
     },
     {
       "question": "Posso cancelar minha assinatura?",
-      "answer": "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
+      "answer":
+          "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
     },
     {
       "question": "Como posso mudar meu plano?",
-      "answer": "Para mudar seu plano, entre em contato com o suporte ao cliente."
+      "answer":
+          "Para mudar seu plano, entre em contato com o suporte ao cliente."
     },
   ];
 
@@ -248,7 +244,8 @@ class MyHomePage extends StatefulWidget {
                       return GestureDetector(
                         onTap: () {
                           setState(() {
-                            selectedQuestionIndex = selectedQuestionIndex == index ? null : index;
+                            selectedQuestionIndex =
+                                selectedQuestionIndex == index ? null : index;
                           });
                         },
                         child: Card(
@@ -260,7 +257,8 @@ class MyHomePage extends StatefulWidget {
                               children: [
                                 Text(
                                   faqs[index]["question"]!,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 if (selectedQuestionIndex == index) ...[
                                   const SizedBox(height: 5),
@@ -366,12 +364,11 @@ class MyHomePage extends StatefulWidget {
             plan.nome.toLowerCase().contains('mensal') ||
             plan.nome.toLowerCase().contains('gratuito'))
         .toList();
-    
 
     final annualPlans = plans
         .where((plan) => plan.nome.toLowerCase().contains('anual'))
         .toList();
-    
+
     final allMonthlyPlans = _buildMonthlyPlans(monthlyPlans);
     final allAnnualPlans = _buildAnnualPlans(annualPlans);
 
@@ -442,10 +439,12 @@ class MyHomePage extends StatefulWidget {
               : showMonthlyPlans
                   ? (allMonthlyPlans.isNotEmpty
                       ? Column(children: allMonthlyPlans)
-                      : const Center(child: Text('Nenhum plano mensal disponível')))
+                      : const Center(
+                          child: Text('Nenhum plano mensal disponível')))
                   : (allAnnualPlans.isNotEmpty
                       ? Column(children: allAnnualPlans)
-                      : const Center(child: Text('Nenhum plano anual disponível'))),
+                      : const Center(
+                          child: Text('Nenhum plano anual disponível'))),
         ],
       ),
     );
@@ -545,7 +544,6 @@ class MyHomePage extends StatefulWidget {
         isPopular: false,
       ),
     );
-    
 
     return planCards;
   }
@@ -653,7 +651,6 @@ class MyHomePage extends StatefulWidget {
                 color: isSelected ? const Color(0xFFaed513) : Colors.black87,
               ),
               textAlign: TextAlign.center,
-
             ),
             const SizedBox(height: 12),
             Text(
@@ -792,5 +789,5 @@ class MyHomePage extends StatefulWidget {
         ],
       ),
     );
-  } 
-} 
+  }
+}

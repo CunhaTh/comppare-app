@@ -1,1 +1,1 @@
-export 'plans_controller.dart';
+export 'plans/plans.dart';

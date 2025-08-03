@@ -1,4 +1,3 @@
-import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/principal.dart';
@@ -93,8 +92,15 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
   }
 
-  Future<void> _cadastrarUsuario(String nome, String sobrenome, String apelido, String cpf, String email,
-      String telefone, String senha, String nascimento) async {
+  Future<void> _cadastrarUsuario(
+      String nome,
+      String sobrenome,
+      String apelido,
+      String cpf,
+      String email,
+      String telefone,
+      String senha,
+      String nascimento) async {
     if (!mounted) return;
 
     setState(() {
@@ -120,11 +126,13 @@ class CadastroScreenState extends State<CadastroScreen> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        if (responseData['sucesso'] == true || responseData['codigoRetorno'] == 200) {
+        if (responseData['sucesso'] == true ||
+            responseData['codigoRetorno'] == 200) {
           if (![1, 2].contains(widget.idPlano)) {
             final userId = responseData['idUser'];
             final redirected = await launchUrl(
-              Uri.parse('https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
+              Uri.parse(
+                  'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
             );
             if (redirected && mounted) {
               Navigator.pushNamed(context, AwaitingPayment.route);
@@ -135,7 +143,8 @@ class CadastroScreenState extends State<CadastroScreen> {
               if (mounted) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const PrincipalPage()),
+                  MaterialPageRoute(
+                      builder: (context) => const PrincipalPage()),
                 );
               }
             }
@@ -194,13 +203,16 @@ class CadastroScreenState extends State<CadastroScreen> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
-        if (data.containsKey('token') && data.containsKey('dados') && data['dados'] is Map) {
+        if (data.containsKey('token') &&
+            data.containsKey('dados') &&
+            data['dados'] is Map) {
           final String token = data['token'];
           final Map<String, dynamic> userData = data['dados'];
 
           // Cria um objeto User a partir dos dados recebidos
           // Certifique-se de que a classe User tem um construtor que aceita esses parâmetros
-          final User loggedInUser = User( // <--- CORRIGIDO: Usando a classe User
+          final User loggedInUser = User(
+            // <--- CORRIGIDO: Usando a classe User
             id: userData['id'] as int?,
             nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
             cpf: userData['cpf'] as String?,
@@ -213,13 +225,18 @@ class CadastroScreenState extends State<CadastroScreen> {
           // Extrai e anexa a lista de pastas ao objeto User
           if (data.containsKey('pastas') && data['pastas'] is List) {
             final List<dynamic> pastasJson = data['pastas'] as List<dynamic>;
-            loggedInUser.pastas = pastasJson.map((item) => Folder.fromMap(item as Map<String, dynamic>)).toList();
+            loggedInUser.pastas = pastasJson
+                .map((item) => Folder.fromMap(item as Map<String, dynamic>))
+                .toList();
           } else {
-            loggedInUser.pastas = []; // Garante que a lista de pastas não seja nula
+            loggedInUser.pastas =
+                []; // Garante que a lista de pastas não seja nula
           }
 
-          await UserHelper().setUser(loggedInUser); // <--- CORRIGIDO: Passando o objeto User completo
-          print('User saved: ${loggedInUser}'); // Imprime o objeto completo para debug
+          await UserHelper().setUser(
+              loggedInUser); // <--- CORRIGIDO: Passando o objeto User completo
+          print(
+              'User saved: $loggedInUser'); // Imprime o objeto completo para debug
           return true;
         } else {
           _showErrorDialog('Resposta da API inválida ou estrutura inesperada.');
@@ -282,9 +299,11 @@ class CadastroScreenState extends State<CadastroScreen> {
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => Pagemconstrucao()) // MyHomePage(title: '')),
-                );
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const Pagemconstrucao()) // MyHomePage(title: '')),
+                    );
               },
               child: const Text('OK'),
             ),
@@ -301,13 +320,15 @@ class CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
-    if (widget.idPlano == null) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showNoPlanSelectedDialog();
-      return;
-    }
+    ///TODO(Abimael): Verificar este fluxo com o Andrew
+    // if (widget.idPlano == null) {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+
+    //   //_showNoPlanSelectedDialog();
+    //   return;
+    // }
 
     String nome = _nameController.text.trim();
     String sobrenome = _surnameController.text.trim();
@@ -319,8 +340,17 @@ class CadastroScreenState extends State<CadastroScreen> {
     String senha = _passwordController.text.trim();
     String confirmSenha = _confirmPasswordController.text.trim();
 
-    if ([nome, sobrenome, apelido, cpf, email, nascimento, telefone, senha, confirmSenha]
-        .any((field) => field.isEmpty)) {
+    if ([
+      nome,
+      sobrenome,
+      apelido,
+      cpf,
+      email,
+      nascimento,
+      telefone,
+      senha,
+      confirmSenha
+    ].any((field) => field.isEmpty)) {
       _showErrorDialog('Por favor, preencha todos os campos!');
       setState(() => _isLoading = false);
       return;
@@ -372,7 +402,8 @@ class CadastroScreenState extends State<CadastroScreen> {
         _showErrorDialog('Usuário já cadastrado com este CPF!');
         setState(() => _isLoading = false);
       } else {
-        await _cadastrarUsuario(nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
+        await _cadastrarUsuario(
+            nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
       }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
@@ -419,7 +450,8 @@ class CadastroScreenState extends State<CadastroScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => /*Pagemconstrucao()*/ const MyHomePage(
+                                  builder: (context) => /*Pagemconstrucao()*/
+                                      const MyHomePage(
                                     title: '',
                                   ),
                                 ),

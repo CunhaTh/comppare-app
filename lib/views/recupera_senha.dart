@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart'; // Importe conforme necessário
+// Importe conforme necessário
 
 // MyApp (Ponto de entrada da aplicação)
 class MyApp extends StatelessWidget {

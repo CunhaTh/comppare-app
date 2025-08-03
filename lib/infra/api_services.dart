@@ -303,7 +303,7 @@ Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
 
     for (var i = 0; i < images.length; i++) {
       final fileItem = images[i];
-      if (fileItem.bytes != null && fileItem.platformFile.name != null) {
+      if (fileItem.bytes != null) {
         foundation.debugPrint('Upload: Adicionando arquivo ${fileItem.platformFile.name} (tamanho: ${fileItem.bytes!.length} bytes) ao campo image[]');
         request.files.add(
           http.MultipartFile.fromBytes(
