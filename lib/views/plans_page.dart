@@ -1,35 +1,73 @@
 import 'package:application_progress/infra/user_helper.dart';
+import 'package:application_progress/main.dart';
+import 'package:application_progress/views/awaiting_payment.dart';
 import 'package:flutter/material.dart';
-import 'package:get/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../infra/repositories/plans_repository.dart';
-import '../planos.dart';
-import 'awaiting_payment.dart';
+class SubscriptionPage extends StatefulWidget {
+  final Plano initialPlan;
+  final List<Plano>? availablePlans; // Lista opcional de planos para escolha
 
-class PlansPage extends StatefulWidget {
-  const PlansPage({super.key});
+  const SubscriptionPage({super.key, required this.initialPlan, this.availablePlans});
 
   @override
-  State<PlansPage> createState() => _PlansPageState();
+  State<SubscriptionPage> createState() => _SubscriptionPageState();
 }
 
-class _PlansPageState extends State<PlansPage> {
-  List<Plano> plans = [];
-
-  Plano? get currentUSerPlan {
-    return plans.firstWhereOrNull(
-      (p) => p.id == UserHelper().user?.idPlano,
-    );
-  }
+class _SubscriptionPageState extends State<SubscriptionPage> {
+  bool loading = false;
+  late Plano selectedPlan; // Plano selecionado pelo usuário
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() async {
-      plans = await PlansRepository.getPlans();
-      setState(() {});
-    });
+    // Inicializa com o plano passado ou o primeiro da lista, se disponível
+    selectedPlan = widget.availablePlans?.isNotEmpty == true
+        ? widget.availablePlans!.first
+        : widget.initialPlan;
+  }
+
+  Future<void> _subscribe() async {
+    setState(() => loading = true);
+    final userId = UserHelper().user?.id;
+    if (userId != null) {
+      final url = Uri.parse(
+          'https://dev.comppare.com.br/payment.php?pid=${selectedPlan.id}&uid=$userId');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AwaitingPayment()),
+          );
+        }
+      } else {
+        if (mounted) {
+          _showErrorDialog('Não foi possível iniciar o pagamento.');
+        }
+      }
+    } else {
+      if (mounted) {
+        _showErrorDialog('Usuário não autenticado.');
+      }
+    }
+    setState(() => loading = false);
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Erro'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -38,140 +76,72 @@ class _PlansPageState extends State<PlansPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text(
-          'Planos',
+          'Assinar Plano',
           style: TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: const Color(0xFFaed513),
           ),
           textAlign: TextAlign.center,
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (currentUSerPlan != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 30),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.grey[300]!,
-                      width: 2,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Seu plano atual',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        PlanWidget(plan: currentUSerPlan!),
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          onPressed: () async {
-                            bool error = false;
-                            final navigator = Navigator.of(context);
-
-                            await showDialog(
-                              context: context,
-                              builder: (contextDialog) => DialogChangePlan(
-                                pressContinue: (planId) async {
-                                  final navigatorDialog =
-                                      Navigator.of(contextDialog);
-
-                                  bool canUpdatePlan =
-                                      await PlansRepository.getCheckUpdatePlan(
-                                          planId);
-                                  var userId = UserHelper().user?.id;
-
-                                  if (canUpdatePlan && userId != null) {
-                                    final redirected = await launchUrl(
-                                      Uri.parse(
-                                        'https://dev.comppare.com.br/payment.php?pid=${planId.toString()}&uid=${userId.toString()}',
-                                      ),
-                                    );
-                                    if (redirected && mounted) {
-                                      navigatorDialog.pushNamed(
-                                        AwaitingPayment.route,
-                                      );
-                                    }
-                                  } else {
-                                    navigatorDialog.pop();
-                                    error = true;
-                                  }
-                                },
-                                plans: plans
-                                    .where((p) => p.id != currentUSerPlan?.id)
-                                    .toList(),
-                              ),
-                            );
-
-                            if (error && mounted) {
-                              showDialog(
-                                context: navigator.context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Erro'),
-                                  content: const Text(
-                                      'Não foi possível fazer a mudança de plano'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                      },
-                                      child: const Text('Fechar'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFaed513),
-                          ),
-                          child: const Text(
-                            'Quero mudar o meu plano',
-                            style: TextStyle(
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            const Text(
-              'Todos os planos disponíveis',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            // Dropdown ou ListView para escolher o plano
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
                 color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: Wrap(
-                spacing: 20,
-                runSpacing: 20,
-                alignment: WrapAlignment.center,
-                children: plans.map((p) {
-                  return PlanWidget(plan: p);
+              child: DropdownButton<Plano>(
+                value: selectedPlan,
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
+                iconSize: 24,
+                elevation: 16,
+                style: const TextStyle(color: Colors.black87, fontSize: 16),
+                underline: const SizedBox(),
+                onChanged: (Plano? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      selectedPlan = newValue;
+                    });
+                  }
+                },
+                items: (widget.availablePlans ?? [widget.initialPlan])
+                    .map<DropdownMenuItem<Plano>>((Plano value) {
+                  return DropdownMenuItem<Plano>(
+                    value: value,
+                    child: Text(value.nome),
+                  );
                 }).toList(),
               ),
-            )
+            ),
+            const SizedBox(height: 20),
+            PlanWidget(plan: selectedPlan),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: loading ? null : _subscribe,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFaed513),
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.black87,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text('Confirmar Assinatura'),
+            ),
           ],
         ),
       ),
@@ -180,15 +150,14 @@ class _PlansPageState extends State<PlansPage> {
 }
 
 class PlanWidget extends StatelessWidget {
-  const PlanWidget({super.key, required this.plan});
-
   final Plano plan;
+
+  const PlanWidget({super.key, required this.plan});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 300,
-      margin: const EdgeInsets.symmetric(vertical: 1),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -199,10 +168,7 @@ class PlanWidget extends StatelessWidget {
             offset: Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: Colors.grey[300]!,
-          width: 2,
-        ),
+        border: Border.all(color: Colors.grey[300]!, width: 2),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -220,10 +186,7 @@ class PlanWidget extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             plan.descricao,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[700],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -239,124 +202,15 @@ class PlanWidget extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Tags: ${plan.quantidadeTags} | Fotos: ${plan.quantidadeFotos}',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            'Convites: ${plan.quantidadeConvites} | Pastas: ${plan.quantidadePastas}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class DialogChangePlan extends StatefulWidget {
-  const DialogChangePlan({
-    super.key,
-    required this.plans,
-    required this.pressContinue,
-  });
-
-  final List<Plano> plans;
-  final Future<void> Function(int planId) pressContinue;
-
-  @override
-  State<DialogChangePlan> createState() => _DialogChangePlanState();
-}
-
-class _DialogChangePlanState extends State<DialogChangePlan> {
-  Plano? selectedPlan;
-  bool loading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.7,
-      child: AlertDialog(
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              const Text(
-                'Selecione abaixo o plano que deseja adquirir:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 10),
-              ...widget.plans.map((p) {
-                return CheckboxListTile(
-                  title: Text(
-                    p.nome,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w800),
-                  ),
-                  value: selectedPlan == p,
-                  activeColor: const Color(0xFFaed513),
-                  checkColor: Colors.black,
-                  onChanged: (value) {
-                    selectedPlan = p;
-                    setState(() {});
-                  },
-                );
-              }),
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: selectedPlan == null
-                          ? () {}
-                          : () async {
-                              setState(() => loading = true);
-
-                              await widget.pressContinue(selectedPlan!.id);
-
-                              setState(() => loading = false);
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: selectedPlan == null
-                            ? Colors.grey
-                            : const Color(0xFFaed513),
-                      ),
-                      child: loading
-                          ? const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 30,
-                                  height: 30,
-                                  child: CircularProgressIndicator.adaptive(
-                                    strokeWidth: 2,
-                                    backgroundColor: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              'Continuar',
-                              style: TextStyle(
-                                color: Colors.black87,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Tooltip(
-                    message: 'Ao clicar em "Continuar", sua '
-                        'solicitação será enviada e, caso seja '
-                        'aprovada, você será redirecionado para '
-                        'inserir os dados que serão usados no '
-                        'pagamento do novo plano',
-                    child: Icon(
-                      Icons.info_outline,
-                      size: 30,
-                      color: Colors.black,
-                    ),
-                  )
-                ],
-              )
-            ],
-          ),
-        ),
       ),
     );
   }
