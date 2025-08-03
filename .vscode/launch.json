@@ -15,6 +15,7 @@
             "type": "dart",
             "request": "launch",
             "program": "lib/main.dart",
+            "flutterMode": "debug",
             "args": [
               "-d",
               "chrome",

@@ -415,14 +415,18 @@ class PlanCard extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   // Recursos do plano
-                  _buildFeature(
-                      '📸 ${plan.quantidadeFotos} fotos', Icons.photo_library),
-                  _buildFeature('🏷️ ${plan.quantidadeTags} tags', Icons.label),
-                  _buildFeature(
-                      '📁 ${plan.quantidadePastas} pastas', Icons.folder),
-                  _buildFeature(
-                      '👥 ${plan.quantidadeConvites} convites', Icons.people),
-
+                  Wrap(
+                    children: [
+                      _buildFeature('📸 ${plan.quantidadeFotos} fotos',
+                          Icons.photo_library),
+                      _buildFeature(
+                          '🏷️ ${plan.quantidadeTags} tags', Icons.label),
+                      _buildFeature(
+                          '📁 ${plan.quantidadePastas} pastas', Icons.folder),
+                      _buildFeature('👥 ${plan.quantidadeConvites} convites',
+                          Icons.people),
+                    ],
+                  ),
                   const Spacer(),
 
                   // Botão de assinatura
@@ -469,22 +473,12 @@ class PlanCard extends StatelessWidget {
   Widget _buildFeature(String text, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: Colors.grey,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
-            ),
-          ),
-        ],
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 18,
+          color: Colors.grey,
+        ),
       ),
     );
   }
