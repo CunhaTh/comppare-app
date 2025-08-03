@@ -115,7 +115,8 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
               Stack(
                 children: [
                   SizedBox(
-                    height: 500,
+                    height:
+                        400, // Altura reduzida para card com altura dinâmica
                     child: PageView.builder(
                       controller: _pageController,
                       itemCount: plans.length,
@@ -296,7 +297,6 @@ class PlanCard extends StatelessWidget {
 
     return Container(
       width: 400,
-      height: 500,
       decoration: BoxDecoration(
         color: Colors.grey[900], // Cor similar aos cards da PrincipalPage
         borderRadius: BorderRadius.circular(20),
@@ -381,7 +381,10 @@ class PlanCard extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
                 children: [
+                  const Spacer(),
                   // Descrição
                   Text(
                     plan.descricao,
