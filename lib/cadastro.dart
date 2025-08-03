@@ -1,3 +1,4 @@
+import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/principal.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'helpers/snackbar/snackbar.dart';
 import 'views/awaiting_payment.dart';
 import 'infra/user_helper.dart'; // Importa o UserHelper (agora com a classe User)
 
@@ -120,48 +122,66 @@ class CadastroScreenState extends State<CadastroScreen> {
           "email": email,
           "senha": senha,
           "telefone": telefone,
-          "idPlano": widget.idPlano,
+          //"idPlano": widget.idPlano,
+          "idPlano": 1,
         }),
       );
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        if (responseData['sucesso'] == true ||
-            responseData['codigoRetorno'] == 200) {
-          if (![1, 2].contains(widget.idPlano)) {
-            final userId = responseData['idUser'];
-            final redirected = await launchUrl(
-              Uri.parse(
-                  'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
-            );
-            if (redirected && mounted) {
-              Navigator.pushNamed(context, AwaitingPayment.route);
-            }
-          } else {
-            final success = await _loginAfterCadastro(cpf, senha);
-            if (success && mounted) {
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const PrincipalPage()),
-                );
-              }
-            }
-          }
-        } else {
-          _showErrorDialog(responseData['mensagem'] ?? 'Erro ao cadastrar.');
-        }
+      if (response.statusCode > 200 && response.statusCode < 300) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+        appSnackBar(
+          context: context,
+          message: 'Cadastro realizado com sucesso',
+        );
       } else {
-        final errResponse = jsonDecode(response.body);
-        late String msg = '';
-        if (errResponse["codRetorno"] == 201) {
-          msg = '''Cadastro concluido com sucesso''';
-        } else {
-          msg = 'falha';
-        }
-        _showErrorDialog(msg);
+        appSnackBar(
+          context: context,
+          message: 'Erro ao cadastrar usuário',
+        );
       }
+
+      ///TODO(Abimael): Verificar este fluxo com o Andrew - Sugestão para criar o usuário inicialmente setando com plano gratúito
+      // if (response.statusCode == 200) {
+      //   final responseData = jsonDecode(response.body);
+      //   if (responseData['sucesso'] == true ||
+      //       responseData['codigoRetorno'] == 200) {
+      //     if (![1, 2].contains(widget.idPlano)) {
+      //       final userId = responseData['idUser'];
+      //       final redirected = await launchUrl(
+      //         Uri.parse(
+      //             'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
+      //       );
+      //       if (redirected && mounted) {
+      //         Navigator.pushNamed(context, AwaitingPayment.route);
+      //       }
+      //     } else {
+      //       final success = await _loginAfterCadastro(cpf, senha);
+      //       if (success && mounted) {
+      //         if (mounted) {
+      //           Navigator.pushReplacement(
+      //             context,
+      //             MaterialPageRoute(
+      //                 builder: (context) => const PrincipalPage()),
+      //           );
+      //         }
+      //       }
+      //     }
+      //   } else {
+      //     _showErrorDialog(responseData['mensagem'] ?? 'Erro ao cadastrar.');
+      //   }
+      // } else {
+      //   final errResponse = jsonDecode(response.body);
+      //   late String msg = '';
+      //   if (errResponse["codRetorno"] == 201) {
+      //     msg = '''Cadastro concluido com sucesso''';
+      //   } else {
+      //     msg = 'falha';
+      //   }
+      //   _showErrorDialog(msg);
+      // }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
     } finally {

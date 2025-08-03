@@ -33,7 +33,7 @@
               "-d",
               "chrome",
               "--web-experimental-hot-reload",
-              "--dart-define=API_ENDPOINT=apidev.comppare.com.br/"
+              "--dart-define=API_ENDPOINT=apidev.comppare.com.br"
             ]
           },
         
