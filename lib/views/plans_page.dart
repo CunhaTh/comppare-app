@@ -8,7 +8,8 @@ class SubscriptionPage extends StatefulWidget {
   final Plano initialPlan;
   final List<Plano>? availablePlans; // Lista opcional de planos para escolha
 
-  const SubscriptionPage({super.key, required this.initialPlan, this.availablePlans});
+  const SubscriptionPage(
+      {super.key, required this.initialPlan, this.availablePlans});
 
   @override
   State<SubscriptionPage> createState() => _SubscriptionPageState();
