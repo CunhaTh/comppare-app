@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:application_progress/albuns_criados.dart'; // Importa a AlbunsCriadosPage
 import 'package:application_progress/chat_button.dart';
@@ -11,7 +10,6 @@ import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
-import 'package:application_progress/main.dart' as main_app;
 import 'package:application_progress/main.dart';
 
 // IMPORTAÇÕES CORRETAS DOS MODELOS
@@ -22,11 +20,12 @@ import 'package:application_progress/views/user_dashboard.dart';
 
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:application_progress/infra/api_endponts.dart';
+
 import 'package:application_progress/infra/api_exception.dart';
+
+import 'infra/api_endponts.dart';
 
 
 class PrincipalPage extends StatefulWidget {
@@ -80,7 +79,7 @@ Future<void> _fetchPlansAsync() async {
       isLoading = true;
     });
     try {
-      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      final response = await http.get(Uri.parse("${ApiEndpoints.baseUrl}/planos/listar"));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];
@@ -143,41 +142,45 @@ Future<void> _fetchPlansAsync() async {
     final String folderNameForApi = folderName.trim();
     debugPrint('[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
 
-    final response = await _apiService.createFolder(
-      idUsuario: user.id!,
-      folderName: folderNameForApi,
-      parentFolderId: null,
-    );
-    debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
-    if (response is Map<String, dynamic>) {
-      debugPrint('[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
-    }
-    debugPrint('[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
+        final response = await _apiService.createFolder(
+          idUsuario: user.id!,
+          folderName: folderNameForApi,
+          parentFolderId: null,
+        );
+        debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
+        debugPrint('[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
+              debugPrint('[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
-    if (response is Map<String, dynamic> && mounted) {
-      // Usar diretamente os valores da resposta da API
-      final folderId = response['pasta_id'] as int? ?? 0;
-      final folderNameFromApi = response['pasta_nome'] as String? ?? folderNameForApi;
-      final folderPath = response['pasta_caminho'] as String?;
-      final folderType = response['tipo'] as String?;
-      final folderStructure = response['estrutura_completa'] as String? ?? folderNameFromApi;
-
-      final folderToAdd = Folder(
-        id: folderId,
-        nome: folderNameFromApi, // Prioriza o nome da API
-        caminho: folderPath!,
-        principalPageDisplayName: folderStructure, // Usa estrutura_completa para exibição
-        idPastaPai: null,
-        imagens: [],
-        tags: [],
-        subpastas: [],
-      );
-
-      // Atualiza a UI imediatamente com o novo folder
-      setState(() {
-        _folders.add(folderToAdd);
-      });
-      debugPrint('[_addFolder] Folder adicionado: id=${folderToAdd.id}, nome=${folderToAdd.nome}');
+        if (mounted) {
+          final newFolder = Folder.fromMap(response);
+          debugPrint('[_addFolder] Novo folder criado: id=${newFolder.id}, nome=${newFolder.nome}');
+          // Adiciona com placeholder se nome for nulo
+          final folderToAdd = Folder(
+            id: newFolder.id,
+            nome: newFolder.nome ?? folderNameForApi, // Placeholder se nome for nulo
+            caminho: newFolder.caminho,
+            principalPageDisplayName: newFolder.principalPageDisplayName ?? folderNameForApi,
+            idPastaPai: newFolder.idPastaPai,
+            imagens: newFolder.imagens,
+            tags: newFolder.tags,
+            subpastas: newFolder.subpastas,
+          );
+          setState(() {
+            _folders.add(folderToAdd);
+          });
+          debugPrint('[_addFolder] Folder adicionado: id=${folderToAdd.id}, nome=${folderToAdd.nome}');
+        } else {
+          debugPrint('[_addFolder] Resposta inválida ou não montado: $response');
+        }
+      } catch (e) {
+        debugPrint('[_addFolder] Erro ao criar álbum: $e');
+        if (e is ApiException && mounted) {
+          _showErrorDialog('Falha ao criar o álbum: ${e.message}');
+          if (e.statusCode == 401) {
+            _navigateToLogin();
+          }
+        }
+      }
 
       // Atualiza a lista completa para sincronizar com os dados reais
       if (mounted) {
@@ -567,7 +570,7 @@ Future<void> _fetchPlansAsync() async {
                                   child: ListTile(
                                     leading: const Icon(Icons.folder, color: Colors.white, size: 40),
                                     title: Text(
-                                      folder.pageDisplayName?.isNotEmpty == true ? folder.pageDisplayName : 'Pasta sem nome',
+                                      folder.pageDisplayName.isNotEmpty == true ? folder.pageDisplayName : 'Pasta sem nome',
                                       style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
                                     ),
                                     trailing: IconButton(
@@ -607,7 +610,7 @@ Future<void> _fetchPlansAsync() async {
               title: const Text('Início'),
               onTap: () {
                 Navigator.pop(context);
-                showDialog(context: context, builder: (context) => UserDashboardScreen(folders: [],));
+                showDialog(context: context, builder: (context) => const UserDashboardScreen(folders: [],));
               },
             ),
             ListTile(
@@ -615,7 +618,7 @@ Future<void> _fetchPlansAsync() async {
               title: const Text('Ranking'),
               onTap: () {
                 Navigator.pop(context);
-                showDialog(context: context, builder: (context) => DialogRanking());
+                showDialog(context: context, builder: (context) => const DialogRanking());
               },
             ),
             ListTile(

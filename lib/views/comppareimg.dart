@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
@@ -10,8 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html;
+import 'dart:html' as html; // Para web, se aplicável
 import 'package:application_progress/main.dart' as main_app;
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
@@ -23,11 +21,12 @@ class ImagemDetalhesPage extends StatefulWidget {
   final String subAlbumName;
 
   const ImagemDetalhesPage({
-    Key? key,
+    super.key,
     required this.images,
     required this.tags,
-    required this.subAlbumName,
-  }) : super(key: key);
+    required this.subAlbumName, 
+   // required this.idSubfolder,
+  });
 
   @override
   State<ImagemDetalhesPage> createState() => _ImagemDetalhesPageState();
@@ -66,41 +65,29 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   }
 
   Future<List<ImageModel>> _prepareImageItems() async {
-    List<ImageModel> items = [];
-    for (int i = 0; i < widget.images.length; i++) {
-      final ImageModel myImage = widget.images[i];
-      Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
-      if (imageData == null || imageData.isEmpty) {
-        debugPrint('ATENÇÃO: Não foi possível obter dados válidos para a imagem ID: ${myImage.id}, Path: ${myImage.url}. Usando placeholder.');
-        imageData = Uint8List(0);
-      }
+  List<ImageModel> items = [];
+  for (int i = 0; i < widget.images.length; i++) {
+    final ImageModel myImage = widget.images[i];
+    Uint8List? imageData;
 
-      // Carrega tags persistidas
-      final prefs = await SharedPreferences.getInstance();
-      final tagKey = 'image_tags_${myImage.id}';
-      final existingTags = jsonDecode(prefs.getString(tagKey) ?? '{}') as Map<String, dynamic>? ?? {};
+    devtools.debugPrint('Processando MyImage ID: ${myImage.id}, Path: ${myImage.url}');
 
-      items.add(ImageModel(
-        id: myImage.id,
-        url: myImage.url,
-        imageData: imageData,
-        date: existingTags['Data'] ?? myImage.date,
-        weight: existingTags['Peso'] ?? myImage.weight,
-        waist: existingTags['Série'] ?? myImage.waist,
-        observation: existingTags['Obs'] ?? myImage.observation,
-        customTags: {
-          for (var tag in widget.tags)
-            if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
-              tag: existingTags[tag] ?? myImage.customTags[tag] ?? '',
-        },
-        takenAt: myImage.url,
-        isSelected: myImage.isSelected,
-      ));
-      debugPrint('Preparando imagem com URL: ${myImage.url}, imageData: ${imageData != null}, tags carregadas: $existingTags');
+    // Sempre tenta carregar da URL
+    imageData = await _loadImageBytesFromUrl(myImage.url);
+    if (imageData != null && imageData.isNotEmpty) {
+      devtools.debugPrint('Bytes carregados da URL para ID: ${myImage.id}. Tamanho: ${imageData.length} bytes.');
+    } else {
+      devtools.debugPrint('ATENÇÃO: Não foi possível obter dados válidos para a imagem ID: ${myImage.id}, Path: ${myImage.url}. Usando placeholder.');
+      imageData = Uint8List(0); // Placeholder
     }
-    _imageItems = items.cast<ImageModel>();
-    return items;
+
+    // Cria o ImageItem com o ID explícito de MyImage
+    items.add(ImageModel.fromMyImage(myImage, imageData: imageData));
+    debugPrint('Preparando imagem com URL: ${myImage.url}, imageData: ${myImage.imageData != null}');
   }
+  _imageItems = items.cast<ImageModel>(); // Atualiza a lista no estado
+  return items;
+}
 
   Uint8List? _placeholderBytes;
 
@@ -108,7 +95,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   void initState() {
     super.initState();
     tags = widget.tags;
-    _imageItemsFuture = _prepareImageItems();
+    _imageItemsFuture = _prepareImageItems(); // Inicia o carregamento assíncrono
+    
   }
 
   @override
@@ -223,7 +211,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     debugPrint('Erro ao renderizar imagem do GridView: $error');
-                                    return Center(
+                                    return const Center(
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
@@ -412,9 +400,13 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                     border: Border.all(color: Colors.grey, width: 1),
                     borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                   ),
-                  child: imageItem.imageData!.isNotEmpty
-                      ? Image.memory(imageItem.imageData!, fit: BoxFit.cover)
-                      : Center(child: Text('Imagem não disponível')),
+                  // Verifica se imageData não está vazia para evitar erro com Image.memory
+                  child: imageItem.imageData!.isEmpty
+                      ? Image.memory(
+                          imageItem.imageData!,
+                          fit: BoxFit.cover,
+                        )
+                      : const Center(child: Text('Imagem não disponível')), // Placeholder para imagem vazia
                 ),
                 SizedBox(height: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044),
                 if (tags.isNotEmpty)
@@ -720,20 +712,20 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
     }
   }
 
-  final ScrollController _localScrollController = ScrollController(); // Usar um controller local para o diálogo
+  final ScrollController localScrollController = ScrollController(); // Usar um controller local para o diálogo
 
   // Funções de scroll para as miniaturas
-  void _scrollLeft() {
-    _localScrollController.animateTo(
-      _localScrollController.offset - (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
+  void scrollLeft() {
+    localScrollController.animateTo(
+      localScrollController.offset - (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
   }
 
-  void _scrollRight() {
-    _localScrollController.animateTo(
-      _localScrollController.offset + (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
+  void scrollRight() {
+    localScrollController.animateTo(
+      localScrollController.offset + (screenWidth * 0.25), // Ajuste o valor de scroll conforme necessário
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
@@ -757,15 +749,13 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               // Inicializa _selectedIndex com a primeira imagem exibida
-              int? _selectedIndex;
-              if (_selectedIndex == null) {
-                // Encontra o índice da primeira imagem exibida na lista original 'allSelectedImages'
-                _selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
-                if (_selectedIndex == -1 && allSelectedImages.isNotEmpty) {
-                  _selectedIndex = 0; // fallback se não encontrar, seleciona o primeiro
-                }
+              int? selectedIndex;
+              // Encontra o índice da primeira imagem exibida na lista original 'allSelectedImages'
+              selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
+              if (selectedIndex == -1 && allSelectedImages.isNotEmpty) {
+                selectedIndex = 0; // fallback se não encontrar, seleciona o primeiro
               }
-
+            
               void onThumbnailTap(ImageModel tappedImage, int tappedIndexInAllSelected) {
                 setState(() {
                   // A lógica aqui deve ser: a imagem clicada se torna a primeira (esquerda)
@@ -792,7 +782,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                   }
 
                   // Atualiza o _selectedIndex para refletir a imagem que está agora à esquerda
-                  _selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
+                  selectedIndex = allSelectedImages.indexOf(displayedImages[0]);
 
                   // Atualiza os controladores de texto com os dados das novas imagens exibidas
                   controllers.forEach((tag, controllerList) {
@@ -969,7 +959,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                                             ),
                                           ),
                                         );
-                                      }).toList(),
+                                      }),
                                     ],
                                   );
                                 }).toList(),
@@ -1048,7 +1038,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                         padding: const EdgeInsets.only(bottom: 11),
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          controller: _localScrollController,
+                          controller: localScrollController,
                           child: Row(
                             children: allSelectedImages.asMap().entries.map((entry) {
                               final int index = entry.key;
@@ -1063,8 +1053,8 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                                   margin: EdgeInsets.symmetric(horizontal: isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                                   decoration: BoxDecoration(
                                     border: Border.all(
-                                      color: _selectedIndex == index ? Colors.blue : Colors.grey,
-                                      width: _selectedIndex == index ? 3 : 1,
+                                      color: selectedIndex == index ? Colors.blue : Colors.grey,
+                                      width: selectedIndex == index ? 3 : 1,
                                     ),
                                     borderRadius: BorderRadius.zero,
                                   ),
@@ -1099,7 +1089,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                             color: const Color(0xFFaed513),
                             size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
-                          onPressed: _scrollLeft,
+                          onPressed: scrollLeft,
                           tooltip: 'Rolar para a esquerda',
                         ),
                       ),
@@ -1112,7 +1102,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                             color: const Color(0xFFaed513),
                             size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.056,
                           ),
-                          onPressed: _scrollRight,
+                          onPressed: scrollRight,
                           tooltip: 'Rolar para a direita',
                         ),
                       ),

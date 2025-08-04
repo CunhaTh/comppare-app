@@ -1,4 +1,3 @@
-import 'package:application_progress/main.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
@@ -94,7 +93,7 @@ class _AdmPageState extends State<AdmPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => Pagemconstrucao() //const MyHomePage(title: '',),
+                                builder: (context) => const Pagemconstrucao() //const MyHomePage(title: '',),
                               ),
                             );
                           },

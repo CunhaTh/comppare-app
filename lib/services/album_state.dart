@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/token_helper.dart';
-import 'package:application_progress/models/image_model.dart';
 import 'dart:developer' as devtools;
 
 class AlbumState extends ChangeNotifier {
@@ -21,9 +20,9 @@ class AlbumState extends ChangeNotifier {
     _isLoading = true;
     notifyListeners(); // Notifica a UI que o estado de carregamento mudou
 
-    final int? userId = TokenHelper().userId;
+    final int userId = TokenHelper().userId;
 
-    if (!TokenHelper().hasToken() || userId == null || userId == 0) {
+    if (!TokenHelper().hasToken() || userId == 0) {
       _handleAuthError(context);
       return;
     }

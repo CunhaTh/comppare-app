@@ -1,17 +1,15 @@
 // lib/file_picker_helper.dart
 
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart'; // Para kIsWeb
 import 'package:flutter/material.dart' as devtools;
 import 'package:image_picker/image_picker.dart'; // Para XFile
 import 'package:file_picker/file_picker.dart'; // Para PlatformFile
-import 'dart:developer' as devtools; // Para devtools.debugPrint
+// Para devtools.debugPrint
 
 // Importa PickedFileItem do seu modelo
 import 'package:application_progress/models/image_model.dart';
 
 // Importações condicionais para web e mobile
-import 'dart:io' if (dart.library.html) 'dart:html' as platform_specific_io;
 
 
 class FilePickerHelper {
@@ -49,9 +47,9 @@ class FilePickerHelper {
       // Mobile: Usar image_picker (ou file_picker se preferir)
       try {
         final ImagePicker picker = ImagePicker();
-        final List<XFile>? images = await picker.pickMultiImage(); // Ou picker.pickImage() para uma única
+        final List<XFile> images = await picker.pickMultiImage(); // Ou picker.pickImage() para uma única
 
-        if (images == null || images.isEmpty) {
+        if (images.isEmpty) {
           devtools.debugPrint('Nenhum arquivo selecionado no mobile.');
           return [];
         }

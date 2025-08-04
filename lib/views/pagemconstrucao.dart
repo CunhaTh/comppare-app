@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; // For opening URLs
 
 class Pagemconstrucao extends StatefulWidget {
@@ -17,7 +16,7 @@ class _Pagemconstrucao extends State<Pagemconstrucao> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) { // Check if the widget is still in the widget tree
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $url')),
+          const SnackBar(content: Text('Could not launch $url')),
         );
       }
       throw 'Could not launch $uri';
@@ -102,7 +101,7 @@ class _Pagemconstrucao extends State<Pagemconstrucao> {
                       ),
                       child: const Text('FAÇA O SEU PRÉ-CADASTRO'),
                     ),
-                    SizedBox(height: 50,)
+                    const SizedBox(height: 50,)
                   ],
                 ),
               ),
