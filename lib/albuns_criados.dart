@@ -79,7 +79,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
   Future<void> _loadAvailableTags() async {
     final prefs = await SharedPreferences.getInstance();
-    final tagsString = prefs.getString('global_tags');
+    final tagsString = prefs.getString('global_tags ');
     if (tagsString != null) {
       setState(() {
         _availableTags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
