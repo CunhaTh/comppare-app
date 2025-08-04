@@ -317,178 +317,180 @@ class _PagamentoPageState extends State<PagamentoPage> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // Header com título
-              Text(
-                'Resumo do Pedido',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white, // Texto branco como SubscriptionPage
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Header com título
+                Text(
+                  'Resumo do Pedido',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white, // Texto branco como SubscriptionPage
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // Card do plano selecionado
-              if (widget.plano != null)
-                _buildPlanCard(widget.plano!)
-              else
-                _buildGenericPlanCard(),
-              const SizedBox(height: 30),
+                // Card do plano selecionado
+                if (widget.plano != null)
+                  _buildPlanCard(widget.plano!)
+                else
+                  _buildGenericPlanCard(),
+                const SizedBox(height: 30),
 
-              Text(
-                'Método de Pagamento',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white, // Texto branco como SubscriptionPage
+                Text(
+                  'Método de Pagamento',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white, // Texto branco como SubscriptionPage
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // Card de métodos de pagamento
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors
-                      .grey[900], // Cor similar aos cards da SubscriptionPage
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[800]!),
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Cartão de Crédito/Débito',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                // Card de métodos de pagamento
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors
+                        .grey[900], // Cor similar aos cards da SubscriptionPage
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[800]!),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: const Text(
+                          'Cartão de Crédito/Débito',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      leading: Radio<String>(
-                        value: 'cartao',
-                        groupValue: _selectedPaymentMethod,
-                        activeColor: const Color(
-                            0xFFaed513), // Cor verde da SubscriptionPage
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedPaymentMethod = value;
-                            _qrCodeData =
-                                null; // Limpar QR Code ao mudar de método
-                          });
-                        },
-                      ),
-                    ),
-                    ListTile(
-                      title: const Text(
-                        'PIX',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                      leading: Radio<String>(
-                        value: 'pix',
-                        groupValue: _selectedPaymentMethod,
-                        activeColor: const Color(
-                            0xFFaed513), // Cor verde da SubscriptionPage
-                        onChanged: (value) {
-                          // Método para gerar o QR Code
-                          void generatePixQRCode(String pixCode) {
+                        leading: Radio<String>(
+                          value: 'cartao',
+                          groupValue: _selectedPaymentMethod,
+                          activeColor: const Color(
+                              0xFFaed513), // Cor verde da SubscriptionPage
+                          onChanged: (value) {
                             setState(() {
+                              _selectedPaymentMethod = value;
                               _qrCodeData =
-                                  pixCode; // Defina a chave PIX ou o código que deseja usar para gerar o QR Code
+                                  null; // Limpar QR Code ao mudar de método
                             });
-                          }
+                          },
+                        ),
+                      ),
+                      ListTile(
+                        title: const Text(
+                          'PIX',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                        leading: Radio<String>(
+                          value: 'pix',
+                          groupValue: _selectedPaymentMethod,
+                          activeColor: const Color(
+                              0xFFaed513), // Cor verde da SubscriptionPage
+                          onChanged: (value) {
+                            // Método para gerar o QR Code
+                            void generatePixQRCode(String pixCode) {
+                              setState(() {
+                                _qrCodeData =
+                                    pixCode; // Defina a chave PIX ou o código que deseja usar para gerar o QR Code
+                              });
+                            }
 
-                          setState(() {
-                            _selectedPaymentMethod = value;
-                            generatePixQRCode(
-                                'pixCode5204000053039865405'); // Gerar QR Code imediatamente
-                          });
-                        },
-                      ),
-                    ),
-                    if (_selectedPaymentMethod == 'pix' &&
-                        _qrCodeData != null) ...[
-                      const SizedBox(height: 20),
-                      Text(
-                        'Escaneie o QR Code para pagar R\$ ${widget.plano?.valor.toStringAsFixed(2).replaceAll('.', ',') ?? '80,00'}:',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                            setState(() {
+                              _selectedPaymentMethod = value;
+                              generatePixQRCode(
+                                  'pixCode5204000053039865405'); // Gerar QR Code imediatamente
+                            });
+                          },
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      QrImageView(
-                        data: _qrCodeData!,
-                        version: QrVersions.auto,
-                        size: 200.0,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Código PIX: $_qrCodeData',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                    if (_selectedPaymentMethod == 'cartao') ...[
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _cardNumberController,
-                        decoration: const InputDecoration(
-                          labelText: 'Número do Cartão',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _cardHolderController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nome do Titular',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _expiryDateController,
-                              decoration: const InputDecoration(
-                                labelText: 'Data de Validade (MM/AA)',
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.datetime,
-                            ),
+                      if (_selectedPaymentMethod == 'pix' &&
+                          _qrCodeData != null) ...[
+                        const SizedBox(height: 20),
+                        Text(
+                          'Escaneie o QR Code para pagar R\$ ${widget.plano?.valor.toStringAsFixed(2).replaceAll('.', ',') ?? '80,00'}:',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _cvvController,
-                              decoration: const InputDecoration(
-                                labelText: 'CVV',
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.number,
-                            ),
+                        ),
+                        const SizedBox(height: 10),
+                        QrImageView(
+                          data: _qrCodeData!,
+                          version: QrVersions.auto,
+                          size: 200.0,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Código PIX: $_qrCodeData',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
+                      if (_selectedPaymentMethod == 'cartao') ...[
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _cardNumberController,
+                          decoration: const InputDecoration(
+                            labelText: 'Número do Cartão',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _cardHolderController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nome do Titular',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _expiryDateController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Data de Validade (MM/AA)',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.datetime,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _cvvController,
+                                decoration: const InputDecoration(
+                                  labelText: 'CVV',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
