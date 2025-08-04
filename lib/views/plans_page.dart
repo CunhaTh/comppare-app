@@ -148,8 +148,52 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                               plan: plan,
                               isSelected: isSelected,
                               // onSubscribe: _subscribe,
-                              onSubscribe: () =>
-                                  controller.subscribePlanByPix(plan),
+                              // onSubscribe: () =>  controller.subscribePlanByPix(plan),
+                              onSubscribe: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title:
+                                          Text('Escolha a forma de pagamento.'),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ListTile(
+                                            leading: Icon(Icons.pix),
+                                            title: Text('PIX'),
+                                            onTap: () {
+                                              Navigator.of(context).pop();
+                                              SnackBar(
+                                                content:
+                                                    Text('Pix selecionado'),
+                                              );
+                                            },
+                                          ),
+                                          ListTile(
+                                            leading: Icon(Icons.credit_card),
+                                            title: Text('CARTÃO DE CRÉDITO'),
+                                            onTap: () {
+                                              Navigator.of(context).pop();
+                                              SnackBar(
+                                                content:
+                                                    Text('Boleto selecionado'),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          child: const Text('Cancelar'),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
                               loading: loading,
                             ),
                           ),
