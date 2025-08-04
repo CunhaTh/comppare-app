@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../controllers/controllers.dart';
 import '../infra/api_services.dart';
+import 'pagamento_page.dart';
 
 class SubscriptionPage extends StatefulWidget {
   final Plano initialPlan;
@@ -150,49 +151,57 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                               // onSubscribe: _subscribe,
                               // onSubscribe: () =>  controller.subscribePlanByPix(plan),
                               onSubscribe: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title:
-                                          Text('Escolha a forma de pagamento.'),
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          ListTile(
-                                            leading: Icon(Icons.pix),
-                                            title: Text('PIX'),
-                                            onTap: () {
-                                              Navigator.of(context).pop();
-                                              SnackBar(
-                                                content:
-                                                    Text('Pix selecionado'),
-                                              );
-                                            },
-                                          ),
-                                          ListTile(
-                                            leading: Icon(Icons.credit_card),
-                                            title: Text('CARTÃO DE CRÉDITO'),
-                                            onTap: () {
-                                              Navigator.of(context).pop();
-                                              SnackBar(
-                                                content:
-                                                    Text('Boleto selecionado'),
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          child: const Text('Cancelar'),
-                                          onPressed: () =>
-                                              Navigator.of(context).pop(),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PagamentoPage(
+                                      idPlano: plan.id,
+                                    ),
+                                  ),
                                 );
+                                // showDialog(
+                                //   context: context,
+                                //   builder: (BuildContext context) {
+                                //     return AlertDialog(
+                                //       title:
+                                //           Text('Escolha a forma de pagamento.'),
+                                //       content: Column(
+                                //         mainAxisSize: MainAxisSize.min,
+                                //         children: [
+                                //           ListTile(
+                                //             leading: Icon(Icons.pix),
+                                //             title: Text('PIX'),
+                                //             onTap: () {
+                                //               Navigator.of(context).pop();
+                                //               SnackBar(
+                                //                 content:
+                                //                     Text('Pix selecionado'),
+                                //               );
+                                //             },
+                                //           ),
+                                //           ListTile(
+                                //             leading: Icon(Icons.credit_card),
+                                //             title: Text('CARTÃO DE CRÉDITO'),
+                                //             onTap: () {
+                                //               Navigator.of(context).pop();
+                                //               SnackBar(
+                                //                 content:
+                                //                     Text('Boleto selecionado'),
+                                //               );
+                                //             },
+                                //           ),
+                                //         ],
+                                //       ),
+                                //       actions: [
+                                //         TextButton(
+                                //           child: const Text('Cancelar'),
+                                //           onPressed: () =>
+                                //               Navigator.of(context).pop(),
+                                //         ),
+                                //       ],
+                                //     );
+                                //   },
+                                // );
                               },
                               loading: loading,
                             ),
