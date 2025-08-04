@@ -1,15 +1,26 @@
+import 'dart:developer';
+
 /// Uma classe estática para gerenciar todos os endpoints da API.
 /// Centraliza as URLs para facilitar a manutenção e evitar erros de digitação.
 class ApiEndpoints {
-  static const String baseUrl = 'https://api.comppare.com.br/api';
+  // Pega a URL da variável de ambiente ou usa a padrão
+  static String get baseUrl {
+    const apiEndpoint = String.fromEnvironment('API_ENDPOINT');
+    log('API_ENDPOINT: $apiEndpoint');
+    return apiEndpoint.isNotEmpty
+        ? apiEndpoint
+        : 'https://api.comppare.com.br/api';
+  }
 
-  static const String recoverFolder = '/pasta/recuperar'; // Remover '/api' daqui
+  static const String recoverFolder =
+      '/pasta/recuperar'; // Remover '/api' daqui
 
   /// Endpoint para criar uma assinatura de vendas (admin).
   static String get createSignature => '$baseUrl/admin/vendas/criar-assinatura';
 
   /// Endpoint para obter a classificação do ranking de usuários.
-  static String get rankingClassification => '$baseUrl/usuarios/ranking/classificacao';
+  static String get rankingClassification =>
+      '$baseUrl/usuarios/ranking/classificacao';
 
   /// Endpoint para atualizar o ranking (admin).
   static String get updateRanking => '$baseUrl/admin/ranking/atualizar';

@@ -4,7 +4,6 @@ import 'package:application_progress/infra/token_helper.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter/foundation.dart' as foundation;
 import 'package:application_progress/models/folder_model.dart';
-import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/infra/api_services.dart';
 
 class User {

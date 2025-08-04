@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart'; // Importe conforme necessário
+
+import '../infra/api_endponts.dart';
+// Importe conforme necessário
 
 // MyApp (Ponto de entrada da aplicação)
 class MyApp extends StatelessWidget {
@@ -15,7 +17,8 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const RecoverPasswordScreen(), // Inicia na tela de recuperação de senha
+      home:
+          const RecoverPasswordScreen(), // Inicia na tela de recuperação de senha
     );
   }
 }
@@ -66,15 +69,17 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('https://api.comppare.com.br/api/usuarios/esqueceu-senha'),
+      final response = await http
+          .post(
+        Uri.parse('${ApiEndpoints.baseUrl}/usuarios/esqueceu-senha'),
         headers: {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
           'email': email,
         }),
-      ).timeout(const Duration(seconds: 10), onTimeout: () {
+      )
+          .timeout(const Duration(seconds: 10), onTimeout: () {
         throw Exception('Tempo limite excedido ao conectar à API.');
       });
 
@@ -87,13 +92,17 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
               builder: (context) => VerifyCodeScreen(email: email),
             ),
           );
-          _emailController.clear(); // Limpa o campo de e-mail após o envio bem-sucedido
+          _emailController
+              .clear(); // Limpa o campo de e-mail após o envio bem-sucedido
         }
       } else if (response.statusCode == 404) {
-        _showMessage('E-mail não encontrado. Verifique e tente novamente.', false);
+        _showMessage(
+            'E-mail não encontrado. Verifique e tente novamente.', false);
       } else if (response.statusCode == 400) {
         final errorBody = jsonDecode(response.body);
-        _showMessage(errorBody['message'] ?? 'Erro na requisição. Tente novamente.', false);
+        _showMessage(
+            errorBody['message'] ?? 'Erro na requisição. Tente novamente.',
+            false);
       } else {
         _showMessage(
             'Erro ao recuperar a senha. Código: ${response.statusCode}. Tente novamente.',
@@ -179,7 +188,8 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         )
                       : const Text(
                           'Enviar',
@@ -198,7 +208,8 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                       children: [
                         Icon(
                           _isSuccess ? Icons.check_circle : Icons.error,
-                          color: _isSuccess ? Colors.green[700] : Colors.red[700],
+                          color:
+                              _isSuccess ? Colors.green[700] : Colors.red[700],
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -206,13 +217,17 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                             _message!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: _isSuccess ? Colors.green[700] : Colors.red[700],
+                              color: _isSuccess
+                                  ? Colors.green[700]
+                                  : Colors.red[700],
                             ),
                           ),
                         ),
                         IconButton(
                           icon: Icon(Icons.close,
-                              color: _isSuccess ? Colors.green[700] : Colors.red[700]),
+                              color: _isSuccess
+                                  ? Colors.green[700]
+                                  : Colors.red[700]),
                           onPressed: () {
                             setState(() {
                               _message = null;
@@ -279,7 +294,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
         MaterialPageRoute(
           builder: (context) => ResetPasswordScreen(
             email: widget.email, // E-mail vindo da tela anterior
-            code: code,          // Código digitado nesta tela
+            code: code, // Código digitado nesta tela
           ),
         ),
       );
@@ -366,7 +381,8 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         )
                       : const Text(
                           'Confirmar',
@@ -385,7 +401,8 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                       children: [
                         Icon(
                           _isSuccess ? Icons.check_circle : Icons.error,
-                          color: _isSuccess ? Colors.green[700] : Colors.red[700],
+                          color:
+                              _isSuccess ? Colors.green[700] : Colors.red[700],
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -393,13 +410,17 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                             _message!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: _isSuccess ? Colors.green[700] : Colors.red[700],
+                              color: _isSuccess
+                                  ? Colors.green[700]
+                                  : Colors.red[700],
                             ),
                           ),
                         ),
                         IconButton(
                           icon: Icon(Icons.close,
-                              color: _isSuccess ? Colors.green[700] : Colors.red[700]),
+                              color: _isSuccess
+                                  ? Colors.green[700]
+                                  : Colors.red[700]),
                           onPressed: () {
                             setState(() {
                               _message = null;
@@ -421,9 +442,10 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
 // ResetPasswordScreen (Tela para o usuário definir a nova senha)
 class ResetPasswordScreen extends StatefulWidget {
   final String email; // Recebe o e-mail da tela anterior
-  final String code;  // Recebe o código de verificação da tela anterior
+  final String code; // Recebe o código de verificação da tela anterior
 
-  const ResetPasswordScreen({super.key, required this.email, required this.code});
+  const ResetPasswordScreen(
+      {super.key, required this.email, required this.code});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -431,7 +453,8 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _isLoading = false;
   String? _message;
   bool _isSuccess = false;
@@ -459,7 +482,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _showMessage('As senhas não coincidem.', false);
       return;
     }
-    if (newPassword.length < 6) { // Exemplo de validação de comprimento mínimo
+    if (newPassword.length < 6) {
+      // Exemplo de validação de comprimento mínimo
       _showMessage('A nova senha deve ter pelo menos 6 caracteres.', false);
       return;
     }
@@ -473,22 +497,27 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     try {
       // ATENÇÃO: Endpoint ajustado conforme sua última instrução.
       // Verifique com seu backend se este é o endpoint correto para FINALIZAR a redefinição de senha.
-      final response = await http.post(
-        Uri.parse('https://api.comppare.com.br/api/usuarios/atualizar-senha'), // Endpoint ajustado
+      final response = await http
+          .post(
+        Uri.parse(
+            '${ApiEndpoints.baseUrl}/usuarios/atualizar-senha'), // Endpoint ajustado
         headers: {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
           'email': widget.email, // E-mail recebido da tela anterior
-          'codigo': widget.code,   // Código de verificação recebido da tela anterior
-          'senha': newPassword,  // Nova senha
+          'codigo':
+              widget.code, // Código de verificação recebido da tela anterior
+          'senha': newPassword, // Nova senha
         }),
-      ).timeout(const Duration(seconds: 10), onTimeout: () {
+      )
+          .timeout(const Duration(seconds: 10), onTimeout: () {
         throw Exception('Tempo limite excedido ao redefinir a senha.');
       });
 
       if (response.statusCode == 200) {
-        _showMessage('Senha redefinida com sucesso! Você pode fazer login agora.', true);
+        _showMessage(
+            'Senha redefinida com sucesso! Você pode fazer login agora.', true);
         if (mounted) {
           // Navega de volta para a primeira tela da pilha (geralmente a tela de login)
           Navigator.popUntil(context, (route) => route.isFirst);
@@ -498,7 +527,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       } else if (response.statusCode == 400) {
         // Tenta decodificar a mensagem de erro do corpo da resposta da API
         final errorBody = jsonDecode(response.body);
-        _showMessage(errorBody['message'] ?? 'Erro ao redefinir a senha. Tente novamente.', false);
+        _showMessage(
+            errorBody['message'] ??
+                'Erro ao redefinir a senha. Tente novamente.',
+            false);
       } else {
         _showMessage(
             'Erro ao redefinir a senha. Código: ${response.statusCode}. Tente novamente.',
@@ -580,7 +612,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                        _obscureNewPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {
@@ -600,7 +634,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                        _obscureConfirmPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {
@@ -619,7 +655,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         )
                       : const Text(
                           'Redefinir Senha',
@@ -638,7 +675,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       children: [
                         Icon(
                           _isSuccess ? Icons.check_circle : Icons.error,
-                          color: _isSuccess ? Colors.green[700] : Colors.red[700],
+                          color:
+                              _isSuccess ? Colors.green[700] : Colors.red[700],
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -646,13 +684,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             _message!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: _isSuccess ? Colors.green[700] : Colors.red[700],
+                              color: _isSuccess
+                                  ? Colors.green[700]
+                                  : Colors.red[700],
                             ),
                           ),
                         ),
                         IconButton(
                           icon: Icon(Icons.close,
-                              color: _isSuccess ? Colors.green[700] : Colors.red[700]),
+                              color: _isSuccess
+                                  ? Colors.green[700]
+                                  : Colors.red[700]),
                           onPressed: () {
                             setState(() {
                               _message = null;

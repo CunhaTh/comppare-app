@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
@@ -7,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'helpers/snackbar/snackbar.dart';
+import 'infra/api_endponts.dart';
 import 'views/awaiting_payment.dart';
 import 'infra/user_helper.dart'; // Importa o UserHelper (agora com a classe User)
 
@@ -34,7 +38,7 @@ class CadastroScreenState extends State<CadastroScreen> {
 
   DateTime? _nascimentoDate;
   bool _isLoading = false;
-  final String _baseUrl = 'https://api.comppare.com.br/api';
+  //final String _baseUrl = 'https://api.comppare.com.br/api';
 
   // Método para mostrar o seletor de data
   Future<void> _selectDataNascimento(BuildContext context) async {
@@ -73,8 +77,9 @@ class CadastroScreenState extends State<CadastroScreen> {
 
   Future<bool> _checarExistenciaCpf(String cpf) async {
     try {
+      log('URL BASE PARA VALIDAR CPF: ${ApiEndpoints.baseUrl}/usuarios/valida-existencia-usuario');
       final verificaExistenciaResponse = await http.post(
-        Uri.parse('$_baseUrl/usuarios/valida-existencia-usuario'),
+        Uri.parse('${ApiEndpoints.baseUrl}/usuarios/valida-existencia-usuario'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"cpf": cpf}),
       );
@@ -93,8 +98,15 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
   }
 
-  Future<void> _cadastrarUsuario(String nome, String sobrenome, String apelido, String cpf, String email,
-      String telefone, String senha, String nascimento) async {
+  Future<void> _cadastrarUsuario(
+      String nome,
+      String sobrenome,
+      String apelido,
+      String cpf,
+      String email,
+      String telefone,
+      String senha,
+      String nascimento) async {
     if (!mounted) return;
 
     setState(() {
@@ -102,57 +114,79 @@ class CadastroScreenState extends State<CadastroScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/usuarios/cadastrar'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "primeiroNome": nome,
-          "sobrenome": sobrenome,
-          "apelido": apelido,
-          "cpf": cpf,
-          "nascimento": nascimento,
-          "email": email,
-          "senha": senha,
-          "telefone": telefone,
-          "idPlano": widget.idPlano,
-        }),
-      );
+      log('URL BASE PARA CADASTRO: ${ApiEndpoints.baseUrl}/usuarios/cadastrar');
+      // final response = await http.post(
+      //   Uri.parse('$_baseUrl/usuarios/cadastrar'),
+      //   headers: {"Content-Type": "application/json"},
+      //   body: jsonEncode({
+      //     "primeiroNome": nome,
+      //     "sobrenome": sobrenome,
+      //     "apelido": apelido,
+      //     "cpf": cpf,
+      //     "nascimento": nascimento,
+      //     "email": email,
+      //     "senha": senha,
+      //     "telefone": telefone,
+      //     //"idPlano": widget.idPlano,
+      //     "idPlano": 1,
+      //   }),
+      // );
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        if (responseData['sucesso'] == true || responseData['codigoRetorno'] == 200) {
-          if (![1, 2].contains(widget.idPlano)) {
-            final userId = responseData['idUser'];
-            final redirected = await launchUrl(
-              Uri.parse('https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
-            );
-            if (redirected && mounted) {
-              Navigator.pushNamed(context, AwaitingPayment.route);
-            }
-          } else {
-            final success = await _loginAfterCadastro(cpf, senha);
-            if (success && mounted) {
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const PrincipalPage()),
-                );
-              }
-            }
-          }
-        } else {
-          _showErrorDialog(responseData['mensagem'] ?? 'Erro ao cadastrar.');
-        }
-      } else {
-        final errResponse = jsonDecode(response.body);
-        late String msg = '';
-        if (errResponse["codRetorno"] == 201) {
-          msg = '''Cadastro concluido com sucesso''';
-        } else {
-          msg = 'falha';
-        }
-        _showErrorDialog(msg);
-      }
+      // if (response.statusCode > 200 && response.statusCode < 300) {
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (_) => const LoginScreen()),
+      //   );
+      //   appSnackBar(
+      //     context: context,
+      //     message: 'Cadastro realizado com sucesso',
+      //   );
+      // } else {
+      //   appSnackBar(
+      //     context: context,
+      //     message: 'Erro ao cadastrar usuário',
+      //   );
+      // }
+
+      ///TODO(Abimael): Verificar este fluxo com o Andrew - Sugestão para criar o usuário inicialmente setando com plano gratúito
+      // if (response.statusCode == 200) {
+      //   final responseData = jsonDecode(response.body);
+      //   if (responseData['sucesso'] == true ||
+      //       responseData['codigoRetorno'] == 200) {
+      //     if (![1, 2].contains(widget.idPlano)) {
+      //       final userId = responseData['idUser'];
+      //       final redirected = await launchUrl(
+      //         Uri.parse(
+      //             'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
+      //       );
+      //       if (redirected && mounted) {
+      //         Navigator.pushNamed(context, AwaitingPayment.route);
+      //       }
+      //     } else {
+      //       final success = await _loginAfterCadastro(cpf, senha);
+      //       if (success && mounted) {
+      //         if (mounted) {
+      //           Navigator.pushReplacement(
+      //             context,
+      //             MaterialPageRoute(
+      //                 builder: (context) => const PrincipalPage()),
+      //           );
+      //         }
+      //       }
+      //     }
+      //   } else {
+      //     _showErrorDialog(responseData['mensagem'] ?? 'Erro ao cadastrar.');
+      //   }
+      // } else {
+      //   final errResponse = jsonDecode(response.body);
+      //   late String msg = '';
+      //   if (errResponse["codRetorno"] == 201) {
+      //     msg = '''Cadastro concluido com sucesso''';
+      //   } else {
+      //     msg = 'falha';
+      //   }
+      //   _showErrorDialog(msg);
+      // }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
     } finally {
@@ -171,7 +205,7 @@ class CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
-    const String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
+    final String url = '${ApiEndpoints.baseUrl}/usuarios/autenticar';
     final Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
@@ -194,13 +228,16 @@ class CadastroScreenState extends State<CadastroScreen> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
-        if (data.containsKey('token') && data.containsKey('dados') && data['dados'] is Map) {
+        if (data.containsKey('token') &&
+            data.containsKey('dados') &&
+            data['dados'] is Map) {
           final String token = data['token'];
           final Map<String, dynamic> userData = data['dados'];
 
           // Cria um objeto User a partir dos dados recebidos
           // Certifique-se de que a classe User tem um construtor que aceita esses parâmetros
-          final User loggedInUser = User( // <--- CORRIGIDO: Usando a classe User
+          final User loggedInUser = User(
+            // <--- CORRIGIDO: Usando a classe User
             id: userData['id'] as int?,
             nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
             cpf: userData['cpf'] as String?,
@@ -213,13 +250,18 @@ class CadastroScreenState extends State<CadastroScreen> {
           // Extrai e anexa a lista de pastas ao objeto User
           if (data.containsKey('pastas') && data['pastas'] is List) {
             final List<dynamic> pastasJson = data['pastas'] as List<dynamic>;
-            loggedInUser.pastas = pastasJson.map((item) => Folder.fromMap(item as Map<String, dynamic>)).toList();
+            loggedInUser.pastas = pastasJson
+                .map((item) => Folder.fromMap(item as Map<String, dynamic>))
+                .toList();
           } else {
-            loggedInUser.pastas = []; // Garante que a lista de pastas não seja nula
+            loggedInUser.pastas =
+                []; // Garante que a lista de pastas não seja nula
           }
 
-          await UserHelper().setUser(loggedInUser); // <--- CORRIGIDO: Passando o objeto User completo
-          print('User saved: ${loggedInUser}'); // Imprime o objeto completo para debug
+          await UserHelper().setUser(
+              loggedInUser); // <--- CORRIGIDO: Passando o objeto User completo
+          print(
+              'User saved: $loggedInUser'); // Imprime o objeto completo para debug
           return true;
         } else {
           _showErrorDialog('Resposta da API inválida ou estrutura inesperada.');
@@ -282,9 +324,11 @@ class CadastroScreenState extends State<CadastroScreen> {
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => Pagemconstrucao()) // MyHomePage(title: '')),
-                );
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const Pagemconstrucao()) // MyHomePage(title: '')),
+                    );
               },
               child: const Text('OK'),
             ),
@@ -301,13 +345,15 @@ class CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
-    if (widget.idPlano == null) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showNoPlanSelectedDialog();
-      return;
-    }
+    ///TODO(Abimael): Verificar este fluxo com o Andrew
+    // if (widget.idPlano == null) {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+
+    //   //_showNoPlanSelectedDialog();
+    //   return;
+    // }
 
     String nome = _nameController.text.trim();
     String sobrenome = _surnameController.text.trim();
@@ -319,8 +365,17 @@ class CadastroScreenState extends State<CadastroScreen> {
     String senha = _passwordController.text.trim();
     String confirmSenha = _confirmPasswordController.text.trim();
 
-    if ([nome, sobrenome, apelido, cpf, email, nascimento, telefone, senha, confirmSenha]
-        .any((field) => field.isEmpty)) {
+    if ([
+      nome,
+      sobrenome,
+      apelido,
+      cpf,
+      email,
+      nascimento,
+      telefone,
+      senha,
+      confirmSenha
+    ].any((field) => field.isEmpty)) {
       _showErrorDialog('Por favor, preencha todos os campos!');
       setState(() => _isLoading = false);
       return;
@@ -372,7 +427,8 @@ class CadastroScreenState extends State<CadastroScreen> {
         _showErrorDialog('Usuário já cadastrado com este CPF!');
         setState(() => _isLoading = false);
       } else {
-        await _cadastrarUsuario(nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
+        await _cadastrarUsuario(
+            nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
       }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
@@ -419,7 +475,8 @@ class CadastroScreenState extends State<CadastroScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => /*Pagemconstrucao()*/ const MyHomePage(
+                                  builder: (context) => /*Pagemconstrucao()*/
+                                      const MyHomePage(
                                     title: '',
                                   ),
                                 ),
