@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:application_progress/principal.dart';
+import 'package:application_progress/main.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
@@ -39,8 +40,9 @@ import 'package:uuid/uuid.dart';
 
 class PagamentoPage extends StatefulWidget {
   final int? idPlano;
+  final Plano? plano;
 
-  const PagamentoPage({super.key, required this.idPlano});
+  const PagamentoPage({super.key, required this.idPlano, this.plano});
 
   @override
   _PagamentoPageState createState() => _PagamentoPageState();
@@ -80,7 +82,8 @@ class _PagamentoPageState extends State<PagamentoPage> {
   void _generatePixQRCode(dynamic pixCode5204000053039865405) {
     const uuid = Uuid();
     String pixCode = uuid.v4(); // Gera um código único para o PIX
-    String value = '80.00'; // Valor da compra (ajuste conforme necessário)
+    String value = widget.plano?.valor.toStringAsFixed(2) ??
+        '80.00'; // Valor do plano selecionado
 
     _qrCodeData =
         '00020101021129370014BR.GOV.BCB.PIX0136$pixCode5204000053039865405${('${value.replaceAll('.', '')}0000')}';
@@ -93,6 +96,201 @@ class _PagamentoPageState extends State<PagamentoPage> {
         _cardHolderController.text.isNotEmpty &&
         _expiryDateController.text.isNotEmpty &&
         _cvvController.text.isNotEmpty;
+  }
+
+  Widget _buildPlanCard(Plano plano) {
+    // Cores baseadas no tipo de plano (inspirado na Apple One)
+    Color getPlanColor() {
+      switch (plano.nome.toLowerCase()) {
+        case 'básico':
+        case 'individual':
+          return const Color(0xFFFF9500); // Laranja
+        case 'premium':
+        case 'familiar':
+          return const Color(0xFFFF3B30); // Vermelho
+        case 'pro':
+        case 'enterprise':
+          return const Color(0xFFAF52DE); // Roxo
+        default:
+          return const Color(0xFFaed513); // Verde da PrincipalPage
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[900], // Cor similar aos cards da PrincipalPage
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: getPlanColor().withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: getPlanColor(),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Header do plano
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: getPlanColor().withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Título do plano
+                Text(
+                  plano.nome,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white, // Texto branco como PrincipalPage
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+
+                // Preço
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'R\$',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: getPlanColor(),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      plano.valor.toStringAsFixed(2).replaceAll('.', ','),
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: getPlanColor(),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text(
+                      '/mês',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Conteúdo do plano
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // Descrição
+                Text(
+                  plano.descricao,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white54, // Cor similar ao PrincipalPage
+                    height: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+
+                // Recursos do plano
+                Wrap(
+                  spacing: 20,
+                  runSpacing: 15,
+                  children: [
+                    _buildFeature('📸 ${plano.quantidadeFotos} fotos',
+                        Icons.photo_library),
+                    _buildFeature(
+                        '🏷️ ${plano.quantidadeTags} tags', Icons.label),
+                    _buildFeature(
+                        '📁 ${plano.quantidadePastas} pastas', Icons.folder),
+                    _buildFeature('👥 ${plano.quantidadeConvites} convites',
+                        Icons.people),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeature(String text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Colors.white54, // Cor similar ao PrincipalPage
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenericPlanCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[900], // Cor similar aos cards da SubscriptionPage
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[800]!),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Plano Selecionado',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'R\$ 80,00',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFaed513), // Cor verde da SubscriptionPage
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '/mês',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -133,46 +331,11 @@ class _PagamentoPageState extends State<PagamentoPage> {
               ),
               const SizedBox(height: 20),
 
-              // Card de resumo
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors
-                      .grey[900], // Cor similar aos cards da SubscriptionPage
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[800]!),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Produto 1: R\$ 50,00',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white54,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Produto 2: R\$ 30,00',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white54,
-                      ),
-                    ),
-                    const Divider(color: Colors.grey),
-                    const Text(
-                      'Total: R\$ 80,00',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            Color(0xFFaed513), // Cor verde da SubscriptionPage
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Card do plano selecionado
+              if (widget.plano != null)
+                _buildPlanCard(widget.plano!)
+              else
+                _buildGenericPlanCard(),
               const SizedBox(height: 30),
 
               Text(
@@ -253,14 +416,28 @@ class _PagamentoPageState extends State<PagamentoPage> {
                     if (_selectedPaymentMethod == 'pix' &&
                         _qrCodeData != null) ...[
                       const SizedBox(height: 20),
-                      const Text('Escaneie o QR Code para pagar:'),
+                      Text(
+                        'Escaneie o QR Code para pagar R\$ ${widget.plano?.valor.toStringAsFixed(2).replaceAll('.', ',') ?? '80,00'}:',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       QrImageView(
                         data: _qrCodeData!,
                         version: QrVersions.auto,
                         size: 200.0,
                       ),
                       const SizedBox(height: 10),
-                      Text('Código PIX: $_qrCodeData'),
+                      Text(
+                        'Código PIX: $_qrCodeData',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
                     ],
                     if (_selectedPaymentMethod == 'cartao') ...[
                       const SizedBox(height: 20),
@@ -385,7 +562,9 @@ class _PagamentoPageState extends State<PagamentoPage> {
                     );
                   }
                 },
-                child: const Text('Finalizar Compra'),
+                child: Text(
+                  'Finalizar Compra - R\$ ${widget.plano?.valor.toStringAsFixed(2).replaceAll('.', ',') ?? '80,00'}',
+                ),
               ),
             ),
             const SizedBox(width: 16),
