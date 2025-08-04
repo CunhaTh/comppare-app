@@ -8,10 +8,16 @@ import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/comppareimg.dart' hide FilePickerHelper;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:developer' as devtools;
 
 // Meus imports
+import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/main.dart' as main_app;
 import 'package:application_progress/infra/token_helper.dart';
+import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/file_picker_helper.dart';
 import 'package:flutter/material.dart' as devtools;
@@ -50,8 +56,9 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   final _subalbumNameController = TextEditingController();
   final _tagsController = TextEditingController();
 
-  final String _searchQuery = '';
-  List<Folder> _subfolders = []; // Renomeado de imageGroups para _subfolders
+  String _searchQuery = '';
+  List<Folder> _subfolders = [];
+  List<String> _availableTags = [];
   bool _isLoading = true;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
@@ -72,7 +79,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
   Future<void> _loadAvailableTags() async {
     final prefs = await SharedPreferences.getInstance();
-    final tagsString = prefs.getString('global_tags ');
+    final tagsString = prefs.getString('global_tags');
     if (tagsString != null) {
       setState(() {
         _availableTags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
@@ -207,7 +214,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       );
       debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
 
-      if (mounted) {
+      if (response is Map<String, dynamic> && mounted) {
         final newSubfolder = Folder.fromMap({
           'id': response['pasta_id'] ?? 0,
           'nome': response['estrutura_completa'] ?? '${response['pasta_nome'] ?? subfolderNameForApi}',
