@@ -131,61 +131,55 @@ Future<void> _fetchPlansAsync() async {
   }*/
 
     Future<void> _addFolder(String folderName) async {
-      final user = UserHelper().user;
-      if (user == null || user.id == null || user.nome == null) {
-        debugPrint('[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
-        _showErrorDialog('Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
-        _navigateToLogin();
-        return;
-      }
+  final user = UserHelper().user;
+  if (user == null || user.id == null || user.nome == null) {
+    debugPrint('[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
+    _showErrorDialog('Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
+    _navigateToLogin();
+    return;
+  }
 
-      try {
-        final String folderNameForApi = folderName.trim();
-        debugPrint('[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
+  try {
+    final String folderNameForApi = folderName.trim();
+    debugPrint('[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
 
-        final response = await _apiService.createFolder(
-          idUsuario: user.id!,
-          folderName: folderNameForApi,
-          parentFolderId: null,
-        );
-        debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
-        if (response is Map<String, dynamic>) {
-          debugPrint('[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
-        }
-        debugPrint('[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
+    final response = await _apiService.createFolder(
+      idUsuario: user.id!,
+      folderName: folderNameForApi,
+      parentFolderId: null,
+    );
+    debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
+    if (response is Map<String, dynamic>) {
+      debugPrint('[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
+    }
+    debugPrint('[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
-        if (response is Map<String, dynamic> && mounted) {
-          final newFolder = Folder.fromMap(response);
-          debugPrint('[_addFolder] Novo folder criado: id=${newFolder.id}, nome=${newFolder.nome}');
-          // Adiciona com placeholder se nome for nulo
-          final folderToAdd = Folder(
-            id: newFolder.id,
-            nome: newFolder.nome ?? folderNameForApi, // Placeholder se nome for nulo
-            caminho: newFolder.caminho,
-            principalPageDisplayName: newFolder.principalPageDisplayName ?? folderNameForApi,
-            idPastaPai: newFolder.idPastaPai,
-            imagens: newFolder.imagens,
-            tags: newFolder.tags,
-            subpastas: newFolder.subpastas,
-          );
-          setState(() {
-            _folders.add(folderToAdd);
-          });
-          debugPrint('[_addFolder] Folder adicionado: id=${folderToAdd.id}, nome=${folderToAdd.nome}');
-        } else {
-          debugPrint('[_addFolder] Resposta inválida ou não montado: $response');
-        }
-      } catch (e) {
-        debugPrint('[_addFolder] Erro ao criar álbum: $e');
-        if (e is ApiException && mounted) {
-          _showErrorDialog('Falha ao criar o álbum: ${e.message}');
-          if (e.statusCode == 401) {
-            _navigateToLogin();
-          }
-        }
-      }
+    if (response is Map<String, dynamic> && mounted) {
+      // Usar diretamente os valores da resposta da API
+      final folderId = response['pasta_id'] as int? ?? 0;
+      final folderNameFromApi = response['pasta_nome'] as String? ?? folderNameForApi;
+      final folderPath = response['pasta_caminho'] as String?;
+      final folderType = response['tipo'] as String?;
+      final folderStructure = response['estrutura_completa'] as String? ?? folderNameFromApi;
 
-      // Atualiza a lista completa como fallback para sincronizar com os dados reais
+      final folderToAdd = Folder(
+        id: folderId,
+        nome: folderNameFromApi, // Prioriza o nome da API
+        caminho: folderPath!,
+        principalPageDisplayName: folderStructure, // Usa estrutura_completa para exibição
+        idPastaPai: null,
+        imagens: [],
+        tags: [],
+        subpastas: [],
+      );
+
+      // Atualiza a UI imediatamente com o novo folder
+      setState(() {
+        _folders.add(folderToAdd);
+      });
+      debugPrint('[_addFolder] Folder adicionado: id=${folderToAdd.id}, nome=${folderToAdd.nome}');
+
+      // Atualiza a lista completa para sincronizar com os dados reais
       if (mounted) {
         try {
           await _fetchFoldersFromApiAndRefreshState();
@@ -202,6 +196,16 @@ Future<void> _fetchPlansAsync() async {
         }
       }
     }
+  } catch (e) {
+    debugPrint('[_addFolder] Erro ao criar álbum: $e');
+    if (e is ApiException && mounted) {
+      _showErrorDialog('Falha ao criar o álbum: ${e.message}');
+      if (e.statusCode == 401) {
+        _navigateToLogin();
+      }
+    }
+  }
+}
 
   Future<void> _fetchFoldersFromApiAndRefreshState() async {
       if (!mounted) return;
@@ -249,7 +253,7 @@ Future<void> _fetchPlansAsync() async {
           });
         }
       }
-    }
+  }
 
 
  Future<void> _confirmAndDeleteFolder(Folder folder) async {

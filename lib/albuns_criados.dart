@@ -58,9 +58,34 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
   String _searchQuery = '';
   List<Folder> _subfolders = [];
+  List<String> _availableTags = [];
   bool _isLoading = true;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
+
+    @override
+  void initState() {
+    super.initState();
+    _loadAvailableTags();
+    _fetchSubfoldersFromApiAndRefreshState();
+  }
+
+  @override
+  void dispose() {
+    _subalbumNameController.dispose();
+    _tagsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAvailableTags() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tagsString = prefs.getString('global_tags');
+    if (tagsString != null) {
+      setState(() {
+        _availableTags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
+      });
+    }
+  }
 
   // Método para salvar tags no shared_preferences
   Future<void> _saveTags(int folderId, List<String> tags) async {
@@ -74,6 +99,26 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     final prefs = await SharedPreferences.getInstance();
     final tagsString = prefs.getString('tags_$folderId');
     return tagsString != null ? (jsonDecode(tagsString) as List<dynamic>).map((t) => t.toString()).toList() : [];
+  }
+
+  void _addTagToFolder(Folder folder, String tag) {
+    setState(() {
+      final currentTags = folder.tags ?? [];
+      if (!currentTags.contains(tag)) {
+        folder.tags = [...currentTags, tag];
+        _saveTags(folder.id, folder.tags!);
+      }
+    });
+  }
+
+  void _removeTagDaPasta(Folder folder, String tag) {
+    setState(() {
+      final currentTags = folder.tags ?? [];
+      if (currentTags.contains(tag)) {
+        folder.tags = currentTags.where((t) => t != tag).toList();
+        _saveTags(folder.id, folder.tags!);
+      }
+    });
   }
 
   // Método para remover tags ao deletar subpasta
@@ -93,18 +138,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     debugPrint('Tag "$tag" removida do folderId ${folder.id}');
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchSubfoldersFromApiAndRefreshState();
-  }
 
-  @override
-  void dispose() {
-    _subalbumNameController.dispose();
-    _tagsController.dispose();
-    super.dispose();
-  }
   
 
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
@@ -297,6 +331,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                       enabled: !isDialogLoading,
                     ),
                     if (isDialogLoading)
+                      // ignore: dead_code
                       const Padding(
                         padding: EdgeInsets.only(top: 16.0),
                         child: CircularProgressIndicator(),
@@ -616,10 +651,45 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                                           )).toList(),
                                     ),
                                     const SizedBox(width: 8),
+                                    Text('+ tags',style: TextStyle(color: Colors.white),),
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Adicionar Tag'),
+                                            content: DropdownButton<String>(
+                                              hint: const Text('Selecione uma tag'),
+                                              value: null,
+                                              items: _availableTags.map((tag) {
+                                                return DropdownMenuItem<String>(
+                                                  value: tag,
+                                                  child: Text(tag),
+                                                );
+                                              }).toList(),
+                                              onChanged: (value) {
+                                                if (value != null) {
+                                                  _addTagToFolder(group, value);
+                                                  Navigator.of(context).pop();
+                                                }
+                                              },
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(context).pop(),
+                                                child: const Text('Fechar'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
                                     ElevatedButton.icon(
                                       onPressed: () => _addMultipleImages(group),
-                                      icon: const Icon(Icons.add_a_photo, color: Colors.black),
-                                      label: const Text('Imagens', style: TextStyle(color: Colors.black)),
+                                      icon: const Icon(Icons.add_a_photo, color: Colors.black,),
+                                      label: const Text('', style: TextStyle(color: Colors.black)),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color(0xFFaed513),
                                       ),

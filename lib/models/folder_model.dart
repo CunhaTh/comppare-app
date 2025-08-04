@@ -20,7 +20,6 @@ class Folder {
     this.tags,
     this.subpastas,
   });
-  
 
   // Getter para o nome a ser exibido na PrincipalPage (nome da pasta raiz)
   String get pageDisplayName {
@@ -37,12 +36,14 @@ class Folder {
   }
 
   factory Folder.fromMap(Map<String, dynamic> map) {
-    final folderName = map['nome'] as String? ?? 'Pasta sem nome'; // Valor padrão se ausente
+    final folderId = map['pasta_id'] as int? ?? 0; // Corrigido para 'pasta_id'
+    final folderName = map['pasta_nome'] as String? ?? map['estrutura_completa'] as String? ?? 'Pasta sem nome'; // Prioriza 'pasta_nome' ou 'estrutura_completa'
+    final folderPath = map['pasta_caminho'] as String? ?? ''; // Corrigido para 'pasta_caminho'
     return Folder(
-      id: map['id'] as int? ?? 0,
+      id: folderId,
       nome: folderName.isNotEmpty ? folderName : 'Pasta sem nome',
-      caminho: map['path'] as String? ?? map['caminho'] as String? ?? '', // Suporta 'path' ou 'caminho'
-      principalPageDisplayName: map['principalPageDisplayName'] ?? folderName,
+      caminho: folderPath,
+      principalPageDisplayName: map['estrutura_completa'] ?? folderName,
       idPastaPai: map['idPastaPai'] as int?,
       imagens: (map['imagens'] as List<dynamic>?)?.map((img) {
         if (img is Map<String, dynamic>) return ImageModel.fromMap(img);
