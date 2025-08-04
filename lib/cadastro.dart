@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
@@ -8,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'helpers/snackbar/snackbar.dart';
+import 'infra/api_endponts.dart';
 import 'views/awaiting_payment.dart';
 import 'infra/user_helper.dart'; // Importa o UserHelper (agora com a classe User)
 
@@ -35,7 +38,7 @@ class CadastroScreenState extends State<CadastroScreen> {
 
   DateTime? _nascimentoDate;
   bool _isLoading = false;
-  final String _baseUrl = 'https://api.comppare.com.br/api';
+  //final String _baseUrl = 'https://api.comppare.com.br/api';
 
   // Método para mostrar o seletor de data
   Future<void> _selectDataNascimento(BuildContext context) async {
@@ -74,8 +77,9 @@ class CadastroScreenState extends State<CadastroScreen> {
 
   Future<bool> _checarExistenciaCpf(String cpf) async {
     try {
+      log('URL BASE PARA VALIDAR CPF: ${ApiEndpoints.baseUrl}/usuarios/valida-existencia-usuario');
       final verificaExistenciaResponse = await http.post(
-        Uri.parse('$_baseUrl/usuarios/valida-existencia-usuario'),
+        Uri.parse('${ApiEndpoints.baseUrl}/usuarios/valida-existencia-usuario'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"cpf": cpf}),
       );
@@ -110,38 +114,39 @@ class CadastroScreenState extends State<CadastroScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/usuarios/cadastrar'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "primeiroNome": nome,
-          "sobrenome": sobrenome,
-          "apelido": apelido,
-          "cpf": cpf,
-          "nascimento": nascimento,
-          "email": email,
-          "senha": senha,
-          "telefone": telefone,
-          //"idPlano": widget.idPlano,
-          "idPlano": 1,
-        }),
-      );
+      log('URL BASE PARA CADASTRO: ${ApiEndpoints.baseUrl}/usuarios/cadastrar');
+      // final response = await http.post(
+      //   Uri.parse('$_baseUrl/usuarios/cadastrar'),
+      //   headers: {"Content-Type": "application/json"},
+      //   body: jsonEncode({
+      //     "primeiroNome": nome,
+      //     "sobrenome": sobrenome,
+      //     "apelido": apelido,
+      //     "cpf": cpf,
+      //     "nascimento": nascimento,
+      //     "email": email,
+      //     "senha": senha,
+      //     "telefone": telefone,
+      //     //"idPlano": widget.idPlano,
+      //     "idPlano": 1,
+      //   }),
+      // );
 
-      if (response.statusCode > 200 && response.statusCode < 300) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-        appSnackBar(
-          context: context,
-          message: 'Cadastro realizado com sucesso',
-        );
-      } else {
-        appSnackBar(
-          context: context,
-          message: 'Erro ao cadastrar usuário',
-        );
-      }
+      // if (response.statusCode > 200 && response.statusCode < 300) {
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (_) => const LoginScreen()),
+      //   );
+      //   appSnackBar(
+      //     context: context,
+      //     message: 'Cadastro realizado com sucesso',
+      //   );
+      // } else {
+      //   appSnackBar(
+      //     context: context,
+      //     message: 'Erro ao cadastrar usuário',
+      //   );
+      // }
 
       ///TODO(Abimael): Verificar este fluxo com o Andrew - Sugestão para criar o usuário inicialmente setando com plano gratúito
       // if (response.statusCode == 200) {
@@ -200,7 +205,7 @@ class CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
-    const String url = 'https://api.comppare.com.br/api/usuarios/autenticar';
+    final String url = '${ApiEndpoints.baseUrl}/usuarios/autenticar';
     final Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',

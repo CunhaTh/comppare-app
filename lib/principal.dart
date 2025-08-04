@@ -24,6 +24,8 @@ import 'package:http/http.dart' as http;
 
 import 'package:application_progress/infra/api_exception.dart';
 
+import 'infra/api_endponts.dart';
+
 
 class PrincipalPage extends StatefulWidget {
   const PrincipalPage({super.key});
@@ -76,7 +78,7 @@ Future<void> _fetchPlansAsync() async {
       isLoading = true;
     });
     try {
-      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      final response = await http.get(Uri.parse("${ApiEndpoints.baseUrl}/planos/listar"));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];

@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'chat_button.dart';
+import 'infra/api_endponts.dart';
 import 'views/awaiting_payment.dart';
 
 // Placeholder Plano class (replace with your actual Plano class)
@@ -144,8 +145,8 @@ class _MyHomePageState extends State<MyHomePage> {
       isLoading = true;
     });
     try {
-      final response = await http
-          .get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      final response =
+          await http.get(Uri.parse("${ApiEndpoints.baseUrl}/planos/listar"));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];
