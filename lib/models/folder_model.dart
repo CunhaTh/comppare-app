@@ -20,6 +20,7 @@ class Folder {
     this.tags,
     this.subpastas,
   });
+  
 
   // Getter para o nome a ser exibido na PrincipalPage (nome da pasta raiz)
   String get pageDisplayName {

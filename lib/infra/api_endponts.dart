@@ -42,7 +42,7 @@ class ApiEndpoints {
   static String get deleteFolder => '$baseUrl/pasta/excluir';
 
   /// Endpoint para excluir uma subpasta.
-  static String get deleteSubfolder => '$baseUrl/subfolder/excluir';
+  //static String get deleteSubfolder => '$baseUrl/subfolder/excluir';
 
   /// Endpoint para excluir uma imagem específica.
   /// Usa o método DELETE na API.

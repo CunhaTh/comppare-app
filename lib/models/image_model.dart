@@ -26,8 +26,11 @@ class ImageModel {
     this.weight,
     this.waist,
     this.observation,
-    this.customTags = const {}, required String takenAt,
+    this.customTags = const {}, 
+    required String takenAt,
   });
+
+  
 
   
 

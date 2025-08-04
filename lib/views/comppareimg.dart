@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -10,23 +11,22 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html; // Para web, se aplicável
+import 'dart:html' as html;
 import 'package:application_progress/main.dart' as main_app;
-import 'package:http/http.dart' as http; // Adicione este import para fazer requisições HTTP
+import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ImagemDetalhesPage extends StatefulWidget {
   final List<ImageModel> images;
   final List<String> tags;
   final String subAlbumName;
-  //final int idSubfolder;
 
   const ImagemDetalhesPage({
     Key? key,
     required this.images,
     required this.tags,
-    required this.subAlbumName, 
-   // required this.idSubfolder,
+    required this.subAlbumName,
   }) : super(key: key);
 
   @override
@@ -34,83 +34,82 @@ class ImagemDetalhesPage extends StatefulWidget {
 }
 
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
-  // Alterado para um Future para carregar as imagens
   late Future<List<ImageModel>> _imageItemsFuture;
   late List<String> tags;
   final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
   List<ImageModel> allSelectedImages = [];
 
-  // A lista real de ImageItems que será populada após a resolução do Future.
-  // Será usada pelo ListView.builder e no _showEditDialog.
   List<ImageModel>? _imageItems;
 
-  // Função para carregar os bytes de uma URL
-  Future<Uint8List?> _loadImageBytesFromUrl(String url,) async {
+  Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
     try {
       debugPrint('Tentando carregar imagem da URL: $url');
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
-      final contentType = response.headers['content-type'];
-        debugPrint('Content-Type da URL $url: $contentType');
-
+        final contentType = response.headers['content-type'];
         if (contentType != null && (contentType.startsWith('image/') || contentType == 'application/octet-stream')) {
           if (response.bodyBytes.isNotEmpty) {
             debugPrint('Imagem carregada com sucesso da URL: $url. Tamanho: ${response.bodyBytes.length} bytes.');
             return response.bodyBytes;
-          } else {
-            debugPrint('Falha ao carregar imagem da URL: $url. Corpo vazio.');
-            return null;
           }
-        } else {
-          debugPrint('Falha ao carregar imagem da URL: $url. Content-Type inesperado: $contentType. Corpo da resposta: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
-          return null;
         }
-      } else {
-        debugPrint('Falha ao carregar imagem da URL: $url com status ${response.statusCode}. Corpo da resposta: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+        debugPrint('Falha ao carregar imagem da URL: $url. Content-Type inesperado ou corpo vazio.');
         return null;
       }
-    } catch (e) {
-      debugPrint('Erro catastrófico ao carregar imagem da URL $url: $e');
+      debugPrint('Falha ao carregar imagem da URL: $url com status ${response.statusCode}.');
       return null;
-    } 
+    } catch (e) {
+      debugPrint('Erro ao carregar imagem da URL $url: $e');
+      return null;
+    }
   }
 
   Future<List<ImageModel>> _prepareImageItems() async {
-  List<ImageModel> items = [];
-  for (int i = 0; i < widget.images.length; i++) {
-    final ImageModel myImage = widget.images[i];
-    Uint8List? imageData;
+    List<ImageModel> items = [];
+    for (int i = 0; i < widget.images.length; i++) {
+      final ImageModel myImage = widget.images[i];
+      Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
+      if (imageData == null || imageData.isEmpty) {
+        debugPrint('ATENÇÃO: Não foi possível obter dados válidos para a imagem ID: ${myImage.id}, Path: ${myImage.url}. Usando placeholder.');
+        imageData = Uint8List(0);
+      }
 
-    devtools.debugPrint('Processando MyImage ID: ${myImage.id}, Path: ${myImage.url}');
+      // Carrega tags persistidas
+      final prefs = await SharedPreferences.getInstance();
+      final tagKey = 'image_tags_${myImage.id}';
+      final existingTags = jsonDecode(prefs.getString(tagKey) ?? '{}') as Map<String, dynamic>? ?? {};
 
-    // Sempre tenta carregar da URL
-    imageData = await _loadImageBytesFromUrl(myImage.url);
-    if (imageData != null && imageData.isNotEmpty) {
-      devtools.debugPrint('Bytes carregados da URL para ID: ${myImage.id}. Tamanho: ${imageData.length} bytes.');
-    } else {
-      devtools.debugPrint('ATENÇÃO: Não foi possível obter dados válidos para a imagem ID: ${myImage.id}, Path: ${myImage.url}. Usando placeholder.');
-      imageData = Uint8List(0); // Placeholder
+      items.add(ImageModel(
+        id: myImage.id,
+        url: myImage.url,
+        imageData: imageData,
+        date: existingTags['Data'] ?? myImage.date,
+        weight: existingTags['Peso'] ?? myImage.weight,
+        waist: existingTags['Série'] ?? myImage.waist,
+        observation: existingTags['Obs'] ?? myImage.observation,
+        customTags: {
+          for (var tag in widget.tags)
+            if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
+              tag: existingTags[tag] ?? myImage.customTags[tag] ?? '',
+        },
+        takenAt: myImage.url,
+        isSelected: myImage.isSelected,
+      ));
+      debugPrint('Preparando imagem com URL: ${myImage.url}, imageData: ${imageData != null}, tags carregadas: $existingTags');
     }
-
-    // Cria o ImageItem com o ID explícito de MyImage
-    items.add(ImageModel.fromMyImage(myImage as ImageModel, imageData: imageData));
-    debugPrint('Preparando imagem com URL: ${myImage.url}, imageData: ${myImage.imageData != null}');
+    _imageItems = items.cast<ImageModel>();
+    return items;
   }
-  _imageItems = items.cast<ImageModel>(); // Atualiza a lista no estado
-  return items;
-}
 
   Uint8List? _placeholderBytes;
-  
+
   @override
   void initState() {
     super.initState();
     tags = widget.tags;
-    _imageItemsFuture = _prepareImageItems() as Future<List<ImageModel>>; // Inicia o carregamento assíncrono
-    
+    _imageItemsFuture = _prepareImageItems();
   }
-  
 
   @override
   void dispose() {
@@ -176,17 +175,16 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
           ),
         ],
       ),
-      body: FutureBuilder<List<ImageModel>>( // Use FutureBuilder para lidar com o carregamento assíncrono
+      body: FutureBuilder<List<ImageModel>>(
         future: _imageItemsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator()); // Mostra um loader enquanto carrega
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Erro ao carregar imagens: ${snapshot.error}')); // Mostra erro
+            return Center(child: Text('Erro ao carregar imagens: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nenhuma imagem encontrada.')); // Sem dados
+            return const Center(child: Text('Nenhuma imagem encontrada.'));
           } else {
-            // Se os dados foram carregados, exiba o GridView
             final List<ImageModel> loadedImageItems = snapshot.data!.cast<ImageModel>();
             return Stack(
               children: [
@@ -223,7 +221,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                 child: Image.memory(
                                   imageItem.imageData!,
                                   fit: BoxFit.cover,
-                                  // Adicione um placeholder ou tratamento de erro visual para 'Image.memory'
                                   errorBuilder: (context, error, stackTrace) {
                                     debugPrint('Erro ao renderizar imagem do GridView: $error');
                                     return Center(
@@ -250,7 +247,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                               ),
                             ),
                           GestureDetector(
-                            onTap: () => _showEditDialog(context, imageItem, index), // Lembre-se de ajustar _showEditDialog para usar loadedImageItems[index]
+                            onTap: () => _showEditDialog(context, imageItem, index),
                             child: Padding(
                               padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
                               child: Row(
@@ -281,7 +278,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                   right: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
                   bottom: isLargeScreen ? screenHeight * 0.08 : screenHeight * 0.1,
                   child: GestureDetector(
-                    onTap: () => _showComparisonDialog(context, loadedImageItems, tags, widget.subAlbumName), // Lembre-se de ajustar _showComparisonDialog
+                    onTap: () => _showComparisonDialog(context, loadedImageItems, tags, widget.subAlbumName),
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028,
@@ -311,13 +308,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
               ],
             );
           }
-        }
+        },
       ),
     );
-  }  
+  }
 
-  // **MÉTODO _showEditDialog AJUSTADO**
-  // Ele recebe o ImageItem e o index diretamente
   void _showEditDialog(BuildContext context, ImageModel imageItem, int index) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = screenWidth > 520 && MediaQuery.of(context).size.height > 889;
@@ -325,29 +320,54 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
       for (var tag in tags)
         tag: TextEditingController(
           text: tag == 'Data'
-              ? imageItem.date
+              ? imageItem.date ?? ''
               : tag == 'Peso'
-                  ? imageItem.weight
+                  ? imageItem.weight ?? ''
                   : tag == 'Série'
-                      ? imageItem.waist
+                      ? imageItem.waist ?? ''
                       : tag == 'Obs'
-                          ? imageItem.observation
+                          ? imageItem.observation ?? ''
                           : imageItem.customTags[tag] ?? '',
         ),
     };
 
-    void saveChanges(ImageModel updatedItem) {
-      setState(() {
-        // Atualiza o item específico na lista _imageItems
-        // Verificação de nulidade e limites para segurança
-        if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
-          _imageItems![index] = updatedItem;
-        }
-        // Aqui você pode adicionar lógica para persistir as mudanças
-        // Ex: salvar em um banco de dados, SharedPreferences, etc.
-      });
-      Navigator.of(context).pop(updatedItem); // Fecha o diálogo e retorna o item atualizado
+    Future<void> saveChanges(ImageModel updatedItem) async {
+  final prefs = await SharedPreferences.getInstance();
+  final tagKey = 'image_tags_${updatedItem.id}';
+  final existingTags = jsonDecode(prefs.getString(tagKey) ?? '{}') as Map<String, dynamic>? ?? {};
+  final updatedTags = {
+    'Data': controllers['Data']?.text ?? updatedItem.date ?? '',
+    'Peso': controllers['Peso']?.text ?? updatedItem.weight ?? '',
+    'Série': controllers['Série']?.text ?? updatedItem.waist ?? '',
+    'Obs': controllers['Obs']?.text ?? updatedItem.observation ?? '',
+    for (var tag in tags)
+      if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
+        tag: controllers[tag]!.text,
+  };
+  await prefs.setString(tagKey, jsonEncode(updatedTags));
+
+  setState(() {
+    if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
+      _imageItems![index] = ImageModel(
+        id: updatedItem.id,
+        url: updatedItem.url,
+        imageData: updatedItem.imageData,
+        date: updatedTags['Data'],
+        weight: updatedTags['Peso'],
+        waist: updatedTags['Série'],
+        observation: updatedTags['Obs'],
+        customTags: {
+          for (var tag in tags)
+            if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
+              tag: updatedTags[tag]!,
+        },
+        takenAt: updatedItem.toString(),
+        isSelected: updatedItem.isSelected,
+      );
     }
+  });
+  Navigator.of(context).pop(updatedItem);
+}
 
     showDialog(
       context: context,
@@ -392,13 +412,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                     border: Border.all(color: Colors.grey, width: 1),
                     borderRadius: BorderRadius.circular(isLargeScreen ? screenWidth * 0.015 : screenWidth * 0.022),
                   ),
-                  // Verifica se imageData não está vazia para evitar erro com Image.memory
-                  child: imageItem.imageData!.isEmpty
-                      ? Image.memory(
-                          imageItem.imageData!,
-                          fit: BoxFit.cover,
-                        )
-                      : Center(child: Text('Imagem não disponível')), // Placeholder para imagem vazia
+                  child: imageItem.imageData!.isNotEmpty
+                      ? Image.memory(imageItem.imageData!, fit: BoxFit.cover)
+                      : Center(child: Text('Imagem não disponível')),
                 ),
                 SizedBox(height: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.044),
                 if (tags.isNotEmpty)
@@ -470,7 +486,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                   onPressed: () {
                     final updatedItem = ImageModel(
                       id: imageItem.id,
-                      url: controllers['path']?.text ?? imageItem.url, 
+                      url: imageItem.url,
                       imageData: imageItem.imageData,
                       date: controllers['Data']?.text ?? imageItem.date,
                       weight: controllers['Peso']?.text ?? imageItem.weight,
@@ -481,7 +497,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                         for (var tag in tags)
                           if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
                             tag: controllers[tag]!.text,
-                      }, takenAt: '', 
+                      },
+                      takenAt: '',
                     );
                     saveChanges(updatedItem);
                   },
@@ -498,17 +515,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
             ),
           ],
         );
-      },
+      }
     ).then((updatedItem) {
-      // Este bloco .then é chamado quando o showDialog é fechado.
-      // Se saveChanges já atualizou _imageItems e chamou setState,
-      // esta parte pode não precisar fazer nada,
-      // ou pode ser usada para feedback (ex: SnackBar).
-      // Se você está usando um gerenciamento de estado mais complexo (Provider, Bloc, Riverpod),
-      // este é o lugar para notificar o gerenciador de estado sobre a atualização.
+      // Feedback opcional
     });
   }
-
 // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
 void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompare, List<String> tags, String subAlbumName) async {
   final GlobalKey repaintKey = GlobalKey();

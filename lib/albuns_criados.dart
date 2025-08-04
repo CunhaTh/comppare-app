@@ -10,6 +10,7 @@ import 'package:application_progress/views/comppareimg.dart' hide FilePickerHelp
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as devtools;
 
 // Meus imports
@@ -21,6 +22,19 @@ import 'package:application_progress/login.dart';
 import 'package:application_progress/file_picker_helper.dart';
 import 'package:flutter/material.dart' as devtools;
 import 'package:http/http.dart' as http;
+
+// Função auxiliar para copiar Folder
+Folder copyFolder(Folder folder, {List<String>? tags}) {
+  return Folder(
+    id: folder.id,
+    nome: folder.nome,
+    caminho: folder.caminho,
+    idPastaPai: folder.idPastaPai,
+    imagens: folder.imagens,
+    subpastas: folder.subpastas,
+    tags: tags ?? folder.tags ?? [],
+  );
+}
 
 class AlbunsCriadosPage extends StatefulWidget {
   final String initialFolderName;
@@ -43,10 +57,41 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   final _tagsController = TextEditingController();
 
   String _searchQuery = '';
-  List<Folder> _subfolders = []; // Renomeado de imageGroups para _subfolders
+  List<Folder> _subfolders = [];
   bool _isLoading = true;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
+
+  // Método para salvar tags no shared_preferences
+  Future<void> _saveTags(int folderId, List<String> tags) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('tags_$folderId', jsonEncode(tags));
+    debugPrint('Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
+  }
+
+  // Método para recuperar tags do shared_preferences
+  Future<List<String>> _loadTags(int folderId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tagsString = prefs.getString('tags_$folderId');
+    return tagsString != null ? (jsonDecode(tagsString) as List<dynamic>).map((t) => t.toString()).toList() : [];
+  }
+
+  // Método para remover tags ao deletar subpasta
+  Future<void> _removeTags(int folderId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('tags_$folderId');
+    debugPrint('Tags removidas localmente para folderId $folderId');
+  }
+
+  // Método para remover uma tag específica
+  Future<void> _removeTag(Folder folder, String tag) async {
+    if (!mounted) return;
+    setState(() {
+      folder.tags?.remove(tag);
+    });
+    await _saveTags(folder.id, folder.tags ?? []);
+    debugPrint('Tag "$tag" removida do folderId ${folder.id}');
+  }
 
   @override
   void initState() {
@@ -60,54 +105,60 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     _tagsController.dispose();
     super.dispose();
   }
+  
 
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
-  if (!mounted) return;
-  setState(() => _isLoading = true);
-  debugPrint('AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
-  debugPrint('AlbunsCriados: Buscando subpastas para initialFolderId: ${widget.initialFolderId}');
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    debugPrint('AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
+    debugPrint('AlbunsCriados: Buscando subpastas para initialFolderId: ${widget.initialFolderId}');
 
-  try {
-    final user = UserHelper().user;
-    if (user == null || user.id == null || !TokenHelper().hasToken()) {
-      debugPrint('Usuário não autenticado ou token ausente. Redirecionando para login.');
-      _navigateToLogin();
-      return;
-    }
-
-    final List<Folder> subfolders = await _apiService.fetchSubfolders(widget.initialFolderId);
-    debugPrint('Subpastas recebidas da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}').join(', ')}');
-
-    if (mounted) {
-      setState(() {
-        _subfolders = subfolders;
-        debugPrint('Subpastas atualizadas: ${_subfolders.length}');
-      });
-    }
-  } on ApiException catch (e) {
-    debugPrint('Erro ao atualizar subpastas da API: ${e.message}');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar subpastas: ${e.message}')),
-      );
-      if (e.statusCode == 401) {
+    try {
+      final user = UserHelper().user;
+      if (user == null || user.id == null || !TokenHelper().hasToken()) {
+        debugPrint('Usuário não autenticado ou token ausente. Redirecionando para login.');
         _navigateToLogin();
+        return;
+      }
+
+      final List<Folder> subfolders = await _apiService.fetchSubfolders(widget.initialFolderId);
+      debugPrint('Subpastas recebidas da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}, tags=${f.tags?.join(",") ?? "nenhuma"}').join(', ')}');
+
+      if (mounted) {
+        final updatedSubfolders = await Future.wait(subfolders.map((f) async {
+          final localTags = await _loadTags(f.id);
+          return copyFolder(f, tags: localTags.isNotEmpty ? localTags : f.tags ?? []);
+        }).toList());
+        setState(() {
+          _subfolders = updatedSubfolders;
+          debugPrint('Subpastas atualizadas: ${_subfolders.length}');
+        });
+      }
+    } on ApiException catch (e) {
+      debugPrint('Erro ao atualizar subpastas da API: ${e.message}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar subpastas: ${e.message}')),
+        );
+        if (e.statusCode == 401) {
+          _navigateToLogin();
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro inesperado ao atualizar subpastas da API: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ocorreu um erro inesperado ao carregar subpastas.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-  } catch (e) {
-    debugPrint('Erro inesperado ao atualizar subpastas da API: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ocorreu um erro inesperado ao carregar subpastas.')),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
   }
-}
-    Future<void> _addSubfolder(String subfolderName) async {
+
+  Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
     final user = UserHelper().user;
     if (user == null || user.id == null) {
       debugPrint('[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
@@ -118,13 +169,14 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
     try {
       final String subfolderNameForApi = subfolderName.trim();
-      debugPrint('[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}');
+      debugPrint('[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}, tags: ${tags.join(",")}');
 
       final response = await _apiService.createSubFolder(
         parentFolderId: widget.initialFolderId,
         idUsuario: user.id!,
         folderName: subfolderNameForApi,
-        parentFolderPath: widget.folderApiPath, // Passa o caminho da pasta pai
+        parentFolderPath: widget.folderApiPath,
+        tags: tags,
       );
       debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
 
@@ -136,11 +188,13 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
           'idPastaPai': widget.initialFolderId,
           'imagens': [],
           'subpastas': [],
+          'tags': (response['tags'] as List<dynamic>?)?.map((t) => t.toString()).toList() ?? tags,
         });
+        await _saveTags(newSubfolder.id, tags); // Salvar tags localmente
         setState(() {
           _subfolders.add(newSubfolder);
         });
-        debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}');
+        debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}, tags=${newSubfolder.tags?.join(",") ?? "nenhuma"}');
       }
     } catch (e) {
       debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
@@ -166,6 +220,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       }
     }
   }
+
   void _showErrorDialog(String message) {
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -267,9 +322,14 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                         return;
                       }
 
+                      final tagsString = _tagsController.text.trim();
+                      final List<String> tags = tagsString.isNotEmpty
+                          ? tagsString.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList()
+                          : [];
+
                       setDialogState(() => isDialogLoading = true);
                       try {
-                        await _addSubfolder(subalbumName);
+                        await _addSubfolder(subalbumName, tags);
                         if (context.mounted) {
                           Navigator.of(dialogContext).pop();
                         }
@@ -404,6 +464,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
       try {
         await _apiService.deleteFolder(user.id!, subfolder.id);
+        await _removeTags(subfolder.id); // Remover tags persistidas
 
         if (mounted) {
           setState(() {
@@ -448,7 +509,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
           onTap: () {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (context) => PrincipalPage()),
+              MaterialPageRoute(builder: (context) => const PrincipalPage()),
               (Route<dynamic> route) => false,
             );
           },
@@ -496,115 +557,117 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                     ),
                   )
                 : ListView.builder(
-                itemCount: _subfolders.length,
-                itemBuilder: (context, index) {
-                  final group = _subfolders[index];
-                  // Depuração
-                  debugPrint('ListView: index=$index, nome=${group.nome}, idPastaPai=${group.idPastaPai}, albunsCriadosPageDisplayName=${group.albunsCriadosPageDisplayName}');
-            return 
-            GestureDetector(
-              onTap: () async {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ImagemDetalhesPage(
-                      images: group.imagens ?? [],
-                      tags: group.tags ?? [],
-                      subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
-                    ),
-                  ),
-                );
-              },
-              child: Card(
-                color: Colors.grey[900],
-                margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                elevation: 5,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.folder, color: Colors.white, size: 40),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              group.albunsCriadosPageDisplayName ?? 'Sem nome',
-                              style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
+                    itemCount: _subfolders.length,
+                    itemBuilder: (context, index) {
+                      final group = _subfolders[index];
+                      final tags = group.tags ?? [];
+                      debugPrint('ListView: index=$index, nome=${group.nome}, idPastaPai=${group.idPastaPai}, albunsCriadosPageDisplayName=${group.albunsCriadosPageDisplayName}, tags=${tags.join(",") ?? "nenhuma"}');
+                      return GestureDetector(
+                        onTap: () async {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ImagemDetalhesPage(
+                                images: group.imagens ?? [],
+                                tags: tags,
+                                subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
+                              ),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          color: Colors.grey[900],
+                          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                          elevation: 5,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.folder, color: Colors.white, size: 40),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Text(
+                                        group.albunsCriadosPageDisplayName ?? 'Sem nome',
+                                        style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () => _confirmAndDeleteSubfolder(group),
+                                    ),
+                                    const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Wrap(
+                                      spacing: 8.0,
+                                      children: tags.map((tag) => Chip(
+                                            label: Text(tag, style: const TextStyle(color: Colors.black)),
+                                            backgroundColor: Colors.amberAccent,
+                                            deleteIcon: const Icon(Icons.close, size: 18),
+                                            onDeleted: () => _removeTag(group, tag),
+                                          )).toList(),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton.icon(
+                                      onPressed: () => _addMultipleImages(group),
+                                      icon: const Icon(Icons.add_a_photo, color: Colors.black),
+                                      label: const Text('Imagens', style: TextStyle(color: Colors.black)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFaed513),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (group.imagens?.isNotEmpty ?? false) ...[
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: 100,
+                                    child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: group.imagens?.length ?? 0,
+                                      itemBuilder: (context, imgIndex) {
+                                        final img = group.imagens?[imgIndex];
+                                        if (img == null) return const SizedBox.shrink();
+                                        final String imagePath = img.url;
+                                        if (imagePath.isNotEmpty) {
+                                          return Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.network(
+                                              imagePath,
+                                              width: 90,
+                                              height: 90,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  width: 90,
+                                                  height: 90,
+                                                  color: Colors.grey,
+                                                  child: const Center(child: Icon(Icons.broken_image, color: Colors.red)),
+                                                );
+                                              },
+                                            ),
+                                          );
+                                        }
+                                        return const SizedBox.shrink();
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _confirmAndDeleteSubfolder(group),
-                          ),
-                          const Icon(Icons.arrow_forward_ios, color: Colors.white),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 4.0,
-                        children: (group.tags ?? []).map((tag) => Chip(
-                              label: Text(tag, style: const TextStyle(color: Colors.black)),
-                              backgroundColor: Colors.amberAccent,
-                            )).toList(),
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _addMultipleImages(group),
-                          icon: const Icon(Icons.add_photo_alternate, color: Colors.black),
-                          label: const Text('Adicionar Imagens', style: TextStyle(color: Colors.black)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFaed513),
-                          ),
                         ),
-                      ),
-                      if (group.imagens?.isNotEmpty ?? false) ...[
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 100,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: group.imagens?.length ?? 0,
-                            itemBuilder: (context, imgIndex) {
-                              final img = group.imagens?[imgIndex];
-                              if (img == null) return const SizedBox.shrink();
-                              final String imagePath = img.url;
-                              if (imagePath.isNotEmpty) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Image.network(
-                                    imagePath,
-                                    width: 90,
-                                    height: 90,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 90,
-                                        height: 90,
-                                        color: Colors.grey,
-                                        child: const Center(child: Icon(Icons.broken_image, color: Colors.red)),
-                                      );
-                                    },
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ),
-                      ],
-                    ],
+                      );
+                    },
                   ),
-                ),
-              ),
-            );
-          },
-        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddSubalbumDialog,

@@ -17,6 +17,7 @@ import 'package:application_progress/main.dart';
 // IMPORTAÇÕES CORRETAS DOS MODELOS
 import 'package:application_progress/models/folder_model.dart'; // Para o modelo Folder
 import 'package:application_progress/views/plans_page.dart';
+import 'package:application_progress/views/tag_page.dart';
 import 'package:application_progress/views/user_dashboard.dart';
 
 
@@ -113,6 +114,21 @@ Future<void> _fetchPlansAsync() async {
       MaterialPageRoute(builder: (_) => SubscriptionPage(initialPlan: plans.first, availablePlans: plans)),
     );
   }
+
+  /*void _addTagList() {
+    if (plans.isEmpty) {
+      print('Nenhum plano disponível. Tente novamente mais tarde.');
+      return;
+    }
+    final currentPlan = UserHelper().user?.idPlano != null
+        ? plans.firstWhere((p) => p.id == UserHelper().user!.idPlano,
+            orElse: () => plans.first)
+        : plans.first;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SubscriptionPage(initialPlan: plans.first, availablePlans: plans)),
+    );
+  }*/
 
     Future<void> _addFolder(String folderName) async {
       final user = UserHelper().user;
@@ -604,6 +620,16 @@ Future<void> _fetchPlansAsync() async {
               onTap: () {
                 Navigator.pop(context);
                 _navigateToSubscription(); // Chama o método para navegar com um plano
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.tag),
+              title: const Text('Tags'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => CreateTagsPage()),
+                ); // Chama o método para navegar com um plano
               },
             ),
             ListTile(
