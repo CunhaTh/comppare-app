@@ -8,9 +8,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'chat_button.dart';
-import 'controllers/controller.dart';
 import 'infra/api_endponts.dart';
-import 'infra/api_services.dart';
 import 'models/plan_model.dart';
 import 'views/awaiting_payment.dart';
 

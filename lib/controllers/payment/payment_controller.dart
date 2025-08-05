@@ -3,12 +3,10 @@ import 'dart:developer';
 
 import 'package:application_progress/main.dart';
 import 'package:bloc/bloc.dart';
-import 'package:efipay/efipay.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 //import 'dart:js' as dartJsFile;
 
-import 'dart:js' as js;
 
 import '../../helpers/helpers.dart';
 import '../../infra/api_services.dart';

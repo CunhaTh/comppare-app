@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:application_progress/albuns_criados.dart'; // Importa a AlbunsCriadosPage
 import 'package:application_progress/chat_button.dart';
@@ -11,8 +10,6 @@ import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
-import 'package:application_progress/main.dart' as main_app;
-import 'package:application_progress/main.dart';
 
 // IMPORTAÇÕES CORRETAS DOS MODELOS
 import 'package:application_progress/models/folder_model.dart'; // Para o modelo Folder
@@ -21,10 +18,8 @@ import 'package:application_progress/views/tag_page.dart';
 import 'package:application_progress/views/user_dashboard.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/api_exception.dart';
 
 import 'models/plan_model.dart';
@@ -156,14 +151,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
       );
       debugPrint(
           '[_addFolder] Resposta bruta da API: ${json.encode(response)}');
-      if (response is Map<String, dynamic>) {
-        debugPrint(
-            '[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
-      }
       debugPrint(
+          '[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
+          debugPrint(
           '[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
-      if (response is Map<String, dynamic> && mounted) {
+      if (mounted) {
         // Usar diretamente os valores da resposta da API
         final folderId = response['pasta_id'] as int? ?? 0;
         final folderNameFromApi =
@@ -604,7 +597,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                                       leading: const Icon(Icons.folder,
                                           color: Colors.white, size: 40),
                                       title: Text(
-                                        folder.pageDisplayName?.isNotEmpty ==
+                                        folder.pageDisplayName.isNotEmpty ==
                                                 true
                                             ? folder.pageDisplayName
                                             : 'Pasta sem nome',
@@ -656,7 +649,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 Navigator.pop(context);
                 showDialog(
                     context: context,
-                    builder: (context) => UserDashboardScreen(
+                    builder: (context) => const UserDashboardScreen(
                           folders: [],
                         ));
               },
@@ -667,7 +660,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
               onTap: () {
                 Navigator.pop(context);
                 showDialog(
-                    context: context, builder: (context) => DialogRanking());
+                    context: context, builder: (context) => const DialogRanking());
               },
             ),
             ListTile(
@@ -684,7 +677,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => CreateTagsPage()),
+                  MaterialPageRoute(builder: (_) => const CreateTagsPage()),
                 ); // Chama o método para navegar com um plano
               },
             ),

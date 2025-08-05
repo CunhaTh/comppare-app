@@ -1,13 +1,6 @@
-import 'dart:convert';
 
-import 'package:application_progress/principal.dart';
-import 'package:application_progress/main.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../controllers/controller.dart';
 import '../infra/api_services.dart';
@@ -239,9 +232,9 @@ class _PagamentoPageState extends State<PagamentoPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[800]!),
       ),
-      child: Column(
+      child: const Column(
         children: [
-          const Text(
+          Text(
             'Plano Selecionado',
             style: TextStyle(
               fontSize: 20,
@@ -249,8 +242,8 @@ class _PagamentoPageState extends State<PagamentoPage> {
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12),
+          Text(
             'R\$ 80,00',
             style: TextStyle(
               fontSize: 24,
@@ -258,8 +251,8 @@ class _PagamentoPageState extends State<PagamentoPage> {
               color: Color(0xFFaed513), // Cor verde da SubscriptionPage
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             '/mês',
             style: TextStyle(
               fontSize: 14,
@@ -299,9 +292,9 @@ class _PagamentoPageState extends State<PagamentoPage> {
             child: Column(
               children: [
                 // Header com título
-                Text(
+                const Text(
                   'Resumo do Pedido',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white, // Texto branco como SubscriptionPage
@@ -317,9 +310,9 @@ class _PagamentoPageState extends State<PagamentoPage> {
                   _buildGenericPlanCard(),
                 const SizedBox(height: 30),
 
-                Text(
+                const Text(
                   'Método de Pagamento',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.white, // Texto branco como SubscriptionPage

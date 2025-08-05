@@ -8,16 +8,11 @@ import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/comppareimg.dart' hide FilePickerHelper;
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:developer' as devtools;
 
 // Meus imports
-import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/main.dart' as main_app;
 import 'package:application_progress/infra/token_helper.dart';
-import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/file_picker_helper.dart';
 import 'package:flutter/material.dart' as devtools;
@@ -56,7 +51,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   final _subalbumNameController = TextEditingController();
   final _tagsController = TextEditingController();
 
-  String _searchQuery = '';
+  final String _searchQuery = '';
   List<Folder> _subfolders = [];
   List<String> _availableTags = [];
   bool _isLoading = true;
@@ -214,7 +209,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       );
       debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
 
-      if (response is Map<String, dynamic> && mounted) {
+      if (mounted) {
         final newSubfolder = Folder.fromMap({
           'id': response['pasta_id'] ?? 0,
           'nome': response['estrutura_completa'] ?? '${response['pasta_nome'] ?? subfolderNameForApi}',
@@ -651,7 +646,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                                           )).toList(),
                                     ),
                                     const SizedBox(width: 8),
-                                    Text('+ tags',style: TextStyle(color: Colors.white),),
+                                    const Text('+ tags',style: TextStyle(color: Colors.white),),
                                     IconButton(
                                       icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                                       onPressed: () {

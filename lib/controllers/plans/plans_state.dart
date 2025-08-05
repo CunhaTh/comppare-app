@@ -8,7 +8,7 @@ class PlansState extends Equatable   {
   
   });
 
-  PlansState.initial()
+  const PlansState.initial()
       : this(
       
           status: AppStateStatus.initial,

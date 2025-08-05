@@ -14,7 +14,7 @@ part 'plans_state.dart';
 class PlansController extends Cubit<PlansState> {
   PlansController({
     required this.apiService,
-  }) : super(PlansState.initial());
+  }) : super(const PlansState.initial());
 
   final ApiService apiService;
 

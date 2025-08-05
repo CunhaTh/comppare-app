@@ -1,5 +1,4 @@
 import 'package:application_progress/infra/user_helper.dart';
-import 'package:application_progress/main.dart';
 import 'package:application_progress/views/awaiting_payment.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';

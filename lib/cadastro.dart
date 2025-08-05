@@ -1,17 +1,12 @@
 import 'dart:developer';
 
-import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
-import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
-import 'helpers/snackbar/snackbar.dart';
 import 'infra/api_endponts.dart';
-import 'views/awaiting_payment.dart';
 import 'infra/user_helper.dart'; // Importa o UserHelper (agora com a classe User)
 
 class CadastroScreen extends StatefulWidget {

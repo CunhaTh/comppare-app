@@ -1,7 +1,5 @@
 import 'dart:collection';
 import 'dart:convert';
-import 'package:application_progress/infra/api_services.dart';
-import 'package:application_progress/infra/user_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
