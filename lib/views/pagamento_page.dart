@@ -19,15 +19,15 @@ class PagamentoPage extends StatefulWidget {
 
 class _PagamentoPageState extends State<PagamentoPage> {
   final TextEditingController _cardNumberController =
-      TextEditingController(text: "2231158428909025");
+      TextEditingController();
   final TextEditingController _cardHolderController =
-      TextEditingController(text: "ABIMAEL A SILVA");
+      TextEditingController();
   final TextEditingController _expiryDateController =
-      TextEditingController(text: "12/2030");
+      TextEditingController();
   final TextEditingController _cvvController =
-      TextEditingController(text: "842");
+      TextEditingController();
   final TextEditingController _holderDocument =
-      TextEditingController(text: "01940300592");
+      TextEditingController();
   String? _qrCodeData;
 
   late PaymentController paymentController;
