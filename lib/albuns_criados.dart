@@ -211,9 +211,9 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
       if (mounted) {
         final newSubfolder = Folder.fromMap({
-          'id': response['pasta_id'] ?? 0,
-          'nome': response['estrutura_completa'] ?? '${response['pasta_nome'] ?? subfolderNameForApi}',
-          'caminho': response['pasta_caminho'],
+          'id': response['id'] ?? 0,
+          'nome': response['caminho'] ?? '${response['nome'] ?? subfolderNameForApi}',
+          'caminho': response['caminho'],
           'idPastaPai': widget.initialFolderId,
           'imagens': [],
           'subpastas': [],

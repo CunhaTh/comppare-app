@@ -36,14 +36,14 @@ class Folder {
   }
 
   factory Folder.fromMap(Map<String, dynamic> map) {
-    final folderId = map['pasta_id'] as int? ?? 0; // Corrigido para 'pasta_id'
-    final folderName = map['pasta_nome'] as String? ?? map['estrutura_completa'] as String? ?? 'Pasta sem nome'; // Prioriza 'pasta_nome' ou 'estrutura_completa'
-    final folderPath = map['pasta_caminho'] as String? ?? ''; // Corrigido para 'pasta_caminho'
+    final folderId = map['id'] as int? ?? 0; // Alinhado com 'id' da API
+    final folderName = map['nome'] as String? ?? 'Pasta sem nome'; // Alinhado com 'nome'
+    final folderPath = map['path'] as String? ?? ''; // Alinhado com 'path'
     return Folder(
       id: folderId,
       nome: folderName.isNotEmpty ? folderName : 'Pasta sem nome',
       caminho: folderPath,
-      principalPageDisplayName: map['estrutura_completa'] ?? folderName,
+      principalPageDisplayName: folderName, // Usa 'nome' como base
       idPastaPai: map['idPastaPai'] as int?,
       imagens: (map['imagens'] as List<dynamic>?)?.map((img) {
         if (img is Map<String, dynamic>) return ImageModel.fromMap(img);
