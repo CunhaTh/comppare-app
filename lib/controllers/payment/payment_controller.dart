@@ -6,11 +6,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
 import '../../helpers/helpers.dart';
-import '../../infra/api_endponts.dart';
 import '../../infra/api_services.dart';
-import '../../infra/user_helper.dart';
 import '../../services/efipay_service.dart';
-
 part 'payment_state.dart';
 
 class PaymentController extends Cubit<PaymentState> {
@@ -21,23 +18,28 @@ class PaymentController extends Cubit<PaymentState> {
   final ApiService apiService;
 
   Future<String> generateCardToken({
-    required String brand,
+    // required String brand,
     required String number,
     required String cvv,
     required String expirationMonth,
     required String expirationYear,
   }) async {
     try {
-      final token = await EfipayService.generatePaymentToken(
-        brand: brand,
-        number: number,
-        cvv: cvv,
-        expirationMonth: expirationMonth,
-        expirationYear: expirationYear,
+      log(
+        'DADOS DO CARTÃO:  number: $number, cvv: $cvv, expirationMonth: $expirationMonth, expirationYear: $expirationYear',
       );
+      // final token = await EfipayService.generatePaymentToken(
+      //   brand: number.cardBrand,
+      //   number: number,
+      //   cvv: cvv,
+      //   expirationMonth: expirationMonth,
+      //   expirationYear: expirationYear,
+      // );
 
-      emit(state.copyWith(status: AppStateStatus.success, token: token));
-      return token ?? '';
+      // emit(state.copyWith(status: AppStateStatus.success, token: token));
+      // return token ?? '';
+
+      return '';
     } catch (e) {
       emit(state.copyWith(status: AppStateStatus.failure, error: e.toString()));
       _showErrorDialog(e.toString());

@@ -8,6 +8,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
+import '../controllers/controller.dart';
+import '../infra/api_services.dart';
+
 // class PagamentoPage extends StatelessWidget {
 //   const PagamentoPage({super.key});
 
@@ -56,40 +59,48 @@ class _PagamentoPageState extends State<PagamentoPage> {
   final TextEditingController _cvvController = TextEditingController();
   String? _qrCodeData;
 
-  Future<String?> _generatePaymentToken() async {
-    const url =
-        'https://seu-backend.com/generate_payment_token'; // Altere para o seu endpoint
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'card_number': _cardNumberController.text,
-        'card_holder': _cardHolderController.text,
-        'expiry_date': _expiryDateController.text,
-        'cvv': _cvvController.text,
-        'reuse': true // para permitir reutilização do token
-      }),
-    );
+  late PaymentController paymentController;
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return data['payment_token']; // Ajuste conforme a resposta da sua API
-    } else {
-      throw Exception('Falha ao gerar o payment_token');
-    }
+  @override
+  void initState() {
+    super.initState();
+    paymentController = PaymentController(apiService: ApiService());
   }
 
-  void _generatePixQRCode(dynamic pixCode5204000053039865405) {
-    const uuid = Uuid();
-    String pixCode = uuid.v4(); // Gera um código único para o PIX
-    String value = widget.plano?.valor.toStringAsFixed(2) ??
-        '80.00'; // Valor do plano selecionado
+  // Future<String?> _generatePaymentToken() async {
+  //   const url =
+  //       'https://seu-backend.com/generate_payment_token'; // Altere para o seu endpoint
+  //   final response = await http.post(
+  //     Uri.parse(url),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: json.encode({
+  //       'card_number': _cardNumberController.text,
+  //       'card_holder': _cardHolderController.text,
+  //       'expiry_date': _expiryDateController.text,
+  //       'cvv': _cvvController.text,
+  //       'reuse': true // para permitir reutilização do token
+  //     }),
+  //   );
 
-    _qrCodeData =
-        '00020101021129370014BR.GOV.BCB.PIX0136$pixCode5204000053039865405${('${value.replaceAll('.', '')}0000')}';
+  //   if (response.statusCode == 200) {
+  //     final data = json.decode(response.body);
+  //     return data['payment_token']; // Ajuste conforme a resposta da sua API
+  //   } else {
+  //     throw Exception('Falha ao gerar o payment_token');
+  //   }
+  // }
 
-    setState(() {});
-  }
+  // void _generatePixQRCode(dynamic pixCode5204000053039865405) {
+  //   const uuid = Uuid();
+  //   String pixCode = uuid.v4(); // Gera um código único para o PIX
+  //   String value = widget.plano?.valor.toStringAsFixed(2) ??
+  //       '80.00'; // Valor do plano selecionado
+
+  //   _qrCodeData =
+  //       '00020101021129370014BR.GOV.BCB.PIX0136$pixCode5204000053039865405${('${value.replaceAll('.', '')}0000')}';
+
+  //   setState(() {});
+  // }
 
   bool _validateCreditCardFields() {
     return _cardNumberController.text.isNotEmpty &&
@@ -519,42 +530,53 @@ class _PagamentoPageState extends State<PagamentoPage> {
                                 'Por favor, preencha todos os campos do cartão.')),
                       );
                     } else {
-                      try {
-                        String? paymentToken = await _generatePaymentToken();
-                        if (paymentToken != null) {
-                          // Aqui você pode prosseguir com o pagamento usando o paymentToken
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                title: const Text('Pagamento Realizado'),
-                                content: Text(
-                                    'Pagamento realizado com sucesso. Token: $paymentToken'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context)
-                                          .pop(); // Fechar o diálogo
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const PrincipalPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        }
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Erro ao gerar payment token: $e')),
-                        );
+                      if (_selectedPaymentMethod == 'cartao') {
+                        String? paymentToken =
+                            await paymentController.generateCardToken(
+                                number: _cardNumberController.text,
+                                cvv: _cvvController.text,
+                                expirationMonth:
+                                    _expiryDateController.text.split('/')[0],
+                                expirationYear:
+                                    _expiryDateController.text.split('/')[1]);
                       }
+                      // try {
+                      //   String? paymentToken = await _generatePaymentToken();
+                      //   if (paymentToken != null) {
+                      //     // Aqui você pode prosseguir com o pagamento usando o paymentToken
+                      //     showDialog(
+                      //       context: context,
+                      //       builder: (context) {
+                      //         return AlertDialog(
+                      //           title: const Text('Pagamento Realizado'),
+                      //           content: Text(
+                      //               'Pagamento realizado com sucesso. Token: $paymentToken'),
+                      //           actions: [
+                      //             TextButton(
+                      //               onPressed: () {
+                      //                 Navigator.of(context)
+                      //                     .pop(); // Fechar o diálogo
+                      //                 Navigator.of(context).push(
+                      //                   MaterialPageRoute(
+                      //                     builder: (context) =>
+                      //                         const PrincipalPage(),
+                      //                   ),
+                      //                 );
+                      //               },
+                      //               child: const Text('OK'),
+                      //             ),
+                      //           ],
+                      //         );
+                      //       },
+                      //     );
+
+                      //   }
+                      // } catch (e) {
+                      //   ScaffoldMessenger.of(context).showSnackBar(
+                      //     SnackBar(
+                      //         content: Text('Erro ao gerar payment token: $e')),
+                      //   );
+                      // }
                     }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -569,32 +591,32 @@ class _PagamentoPageState extends State<PagamentoPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors
-                      .grey[800], // Cor cinza escura como SubscriptionPage
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 45, vertical: 25),
-                  textStyle: const TextStyle(fontSize: 18),
-                ),
-                onPressed: () async {
-                  const url =
-                      'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c9380849564460a01958274c6b70f23';
-                  if (await canLaunch(url)) {
-                    await launch(url);
-                  } else {
-                    throw 'Não foi possível abrir o URL: $url';
-                  }
-                },
-                child: const Text(
-                  'Mercado Pago',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
+            // const SizedBox(width: 16),
+            // Expanded(
+            //   child: ElevatedButton(
+            //     style: ElevatedButton.styleFrom(
+            //       foregroundColor: Colors.white,
+            //       backgroundColor: Colors
+            //           .grey[800], // Cor cinza escura como SubscriptionPage
+            //       padding:
+            //           const EdgeInsets.symmetric(horizontal: 45, vertical: 25),
+            //       textStyle: const TextStyle(fontSize: 18),
+            //     ),
+            //     onPressed: () async {
+            //       // const url =
+            //       //     'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c9380849564460a01958274c6b70f23';
+            //       // if (await canLaunch(url)) {
+            //       //   await launch(url);
+            //       // } else {
+            //       //   throw 'Não foi possível abrir o URL: $url';
+            //       // }
+            //     },
+            //     child: const Text(
+            //       'Mercado Pago',
+            //       style: TextStyle(fontSize: 16),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),
