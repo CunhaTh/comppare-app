@@ -230,7 +230,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -270,7 +270,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -368,8 +368,8 @@ class PlanCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isSelected
-                ? getPlanColor().withOpacity(0.3)
-                : Colors.black.withOpacity(0.3),
+                ? getPlanColor().withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -385,7 +385,7 @@ class PlanCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: getPlanColor().withOpacity(0.1),
+              color: getPlanColor().withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
