@@ -26,20 +26,21 @@ class PaymentController extends Cubit<PaymentState> {
   }) async {
     try {
       log(
-        'DADOS DO CARTÃO:  number: $number, cvv: $cvv, expirationMonth: $expirationMonth, expirationYear: $expirationYear',
+        'DADOS DO CARTÃO:  brand: ${number.cardBrand}, number: $number, cvv: $cvv, expirationMonth: $expirationMonth, expirationYear: $expirationYear',
       );
-      // final token = await EfipayService.generatePaymentToken(
-      //   brand: number.cardBrand,
-      //   number: number,
-      //   cvv: cvv,
-      //   expirationMonth: expirationMonth,
-      //   expirationYear: expirationYear,
-      // );
+      final token = await EfipayService.generatePaymentToken(
+        brand: number.cardBrand,
+        number: number,
+        cvv: cvv,
+        expirationMonth: expirationMonth,
+        expirationYear: expirationYear,
+      );
 
-      // emit(state.copyWith(status: AppStateStatus.success, token: token));
-      // return token ?? '';
+      emit(state.copyWith(status: AppStateStatus.success, token: token));
+      log('TOKEN RETORNADO DE EFIPAY: $token');
+      return token ?? '';
 
-      return '';
+      //  return '';
     } catch (e) {
       emit(state.copyWith(status: AppStateStatus.failure, error: e.toString()));
       _showErrorDialog(e.toString());

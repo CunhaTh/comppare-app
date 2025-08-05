@@ -455,18 +455,34 @@ class _PagamentoPageState extends State<PagamentoPage> {
                         const SizedBox(height: 20),
                         TextField(
                           controller: _cardNumberController,
+                          style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
                             labelText: 'Número do Cartão',
+                            labelStyle: TextStyle(color: Colors.white70),
                             border: OutlineInputBorder(),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFFaed513)),
+                            ),
                           ),
                           keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: _cardHolderController,
+                          style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
                             labelText: 'Nome do Titular',
+                            labelStyle: TextStyle(color: Colors.white70),
                             border: OutlineInputBorder(),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFFaed513)),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -475,9 +491,18 @@ class _PagamentoPageState extends State<PagamentoPage> {
                             Expanded(
                               child: TextField(
                                 controller: _expiryDateController,
+                                style: const TextStyle(color: Colors.white),
                                 decoration: const InputDecoration(
                                   labelText: 'Data de Validade (MM/AA)',
+                                  labelStyle: TextStyle(color: Colors.white70),
                                   border: OutlineInputBorder(),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Color(0xFFaed513)),
+                                  ),
                                 ),
                                 keyboardType: TextInputType.datetime,
                               ),
@@ -486,9 +511,18 @@ class _PagamentoPageState extends State<PagamentoPage> {
                             Expanded(
                               child: TextField(
                                 controller: _cvvController,
+                                style: const TextStyle(color: Colors.white),
                                 decoration: const InputDecoration(
                                   labelText: 'CVV',
+                                  labelStyle: TextStyle(color: Colors.white70),
                                   border: OutlineInputBorder(),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Color(0xFFaed513)),
+                                  ),
                                 ),
                                 keyboardType: TextInputType.number,
                               ),

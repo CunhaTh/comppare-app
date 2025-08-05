@@ -33,25 +33,6 @@
   <title>application_progress</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- CÓDIGO PARA PAGAMENTO COM CARTÃO DE CRÉDITO - efipay -->
-  <script type="text/javascript" src="https://cdn.efipay.com.br/v1/gn-payment.js"></script>
-
-  <!-- Adicione dentro da tag <body>, antes de </body> -->
-  <script>
-    function getPaymentToken(cardData, callback) {
-      const card = new GNCard({
-        brand: cardData.brand,
-        number: cardData.number,
-        cvv: cardData.cvv,
-        expiration_month: cardData.expiration_month,
-        expiration_year: cardData.expiration_year
-      });
-
-      card.getPaymentToken(function (response) {
-        callback(response);
-      });
-    }
-  </script>
 
 </head>
 
