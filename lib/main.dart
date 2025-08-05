@@ -8,7 +8,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'chat_button.dart';
+import 'controllers/controller.dart';
 import 'infra/api_endponts.dart';
+import 'infra/api_services.dart';
 import 'views/awaiting_payment.dart';
 
 // Placeholder Plano class (replace with your actual Plano class)
@@ -127,6 +129,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late PaymentController paymentController;
   bool isLoading = false;
   int? selectedQuestionIndex;
   List<Plano> plans = [];
@@ -137,6 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    paymentController = PaymentController(apiService: ApiService());
     fetchPlans();
   }
 
@@ -344,10 +348,16 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const PrincipalPage()),
-              );
+              // Navigator.pushReplacement(
+              //   context,
+              //   MaterialPageRoute(builder: (_) => const PrincipalPage()),
+              // );
+              paymentController.generateCardToken(
+                  // number: '4192801899905047',
+                  // cvv: '622',
+                  // expirationMonth: '01',
+                  // expirationYear: '2026',
+                  );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,

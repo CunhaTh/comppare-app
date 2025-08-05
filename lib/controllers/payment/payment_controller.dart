@@ -2,8 +2,12 @@ import 'dart:developer';
 
 import 'package:application_progress/main.dart';
 import 'package:bloc/bloc.dart';
+import 'package:efipay/efipay.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+//import 'dart:js' as dartJsFile;
+
+import 'dart:js' as js;
 
 import '../../helpers/helpers.dart';
 import '../../infra/api_services.dart';
@@ -17,48 +21,19 @@ class PaymentController extends Cubit<PaymentState> {
 
   final ApiService apiService;
 
-  Future<String> generateCardToken({
-    // required String brand,
-    required String number,
-    required String cvv,
-    required String expirationMonth,
-    required String expirationYear,
-  }) async {
-    try {
-      log(
-        'DADOS DO CARTÃO:  brand: ${number.cardBrand}, number: $number, cvv: $cvv, expirationMonth: $expirationMonth, expirationYear: $expirationYear',
-      );
-      final token = await EfipayService.generatePaymentToken(
-        brand: number.cardBrand,
-        number: number,
-        cvv: cvv,
-        expirationMonth: expirationMonth,
-        expirationYear: expirationYear,
-      );
+  void generateCardToken() {
+    final card = js.JsObject.jsify({
+      'number': '4192801899905047',
+      'cvv': '123',
+      'expirationMonth': '08',
+      'expirationYear': '2026',
+      'holderName': 'Gorbadoc Oldbuck',
+      'holderDocument': '94271564656',
+      'reuse': false,
+    });
 
-      emit(state.copyWith(status: AppStateStatus.success, token: token));
-      log('TOKEN RETORNADO DE EFIPAY: $token');
-      return token ?? '';
-
-      //  return '';
-    } catch (e) {
-      emit(state.copyWith(status: AppStateStatus.failure, error: e.toString()));
-      _showErrorDialog(e.toString());
-      rethrow;
-    }
+    js.context.callMethod('generateToken', [card]);
   }
-
-  // void setNickname(String nickname) {
-  //   if (nickname.isEmpty) {
-  //     emit(
-  //       state.copyWith(
-  //         status: AppStateStatus.failure,
-  //         error: 'Nickname is required',
-  //       ),
-  //     );
-  //     return;
-  //   }
-  // }
 }
 
 void _showErrorDialog(String message) {

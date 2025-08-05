@@ -2,6 +2,62 @@
 <html>
 
 <head>
+  <!-- Para pegar EfiPay Token JS -->
+  <script src="https://cdn.jsdelivr.net/npm/payment-token-efi/dist/payment-token-efi-umd.min.js"></script>
+  <script>
+    async function generateToken(card) {
+      try {
+        console.log("Verificando script...");
+        const isBlocked = await EfiPay.CreditCard.isScriptBlocked();
+        if (isBlocked) {
+          alert("Fingerprint bloqueado");
+          return;
+        }
+
+        console.log("Iniciando tokenização...");
+        
+        // Identificar bandeira primeiro
+        const brand = await identifyBrand(card.number);
+        console.log("Bandeira identificada:", brand);
+        
+        const creditCard = EfiPay.CreditCard
+          .setAccount("dab94c73c24695ee58451c59298b151c")
+          .setEnvironment("sandbox")
+          .setCreditCardData({
+            brand: brand,
+            number: card.number,
+            cvv: card.cvv,
+            expirationMonth: card.expirationMonth,
+            expirationYear: card.expirationYear,
+            holderName: card.holderName,
+            holderDocument: card.holderDocument,
+            reuse: card.reuse,
+          })
+          .getPaymentToken();
+
+        console.log("Token gerado", creditCard);
+        return creditCard;
+      } catch (error) {
+        console.error("Erro ao gerar token:", error);
+        return `Erro: ${error.message}`;
+      }
+    }
+
+    async function identifyBrand(creditCardNumber) {
+      try {
+        const brand = await EfiPay.CreditCard
+          .setCardNumber(creditCardNumber)
+          .verifyCardBrand();
+
+        console.log("Bandeira: ", brand);
+        return brand;
+      } catch (error) {
+        console.log("Código: ", error.code);
+        console.log("Nome: ", error.error);
+        console.log("Mensagem: ", error.error_description);
+      }
+    }
+  </script>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
