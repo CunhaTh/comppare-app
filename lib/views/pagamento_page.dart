@@ -27,6 +27,8 @@ class _PagamentoPageState extends State<PagamentoPage> {
       TextEditingController(text: "01/2026");
   final TextEditingController _cvvController =
       TextEditingController(text: "622");
+  final TextEditingController _holderDocument =
+      TextEditingController(text: "94271564656");
   String? _qrCodeData;
 
   late PaymentController paymentController;
@@ -481,6 +483,27 @@ class _PagamentoPageState extends State<PagamentoPage> {
                                 keyboardType: TextInputType.number,
                               ),
                             ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _holderDocument,
+                                inputFormatters: [CpfInputFormatter()],
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  labelText: 'CPF do Titular',
+                                  labelStyle: TextStyle(color: Colors.white70),
+                                  border: OutlineInputBorder(),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Color(0xFFaed513)),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -509,13 +532,13 @@ class _PagamentoPageState extends State<PagamentoPage> {
                   textStyle: const TextStyle(fontSize: 17),
                 ),
                 onPressed: () async {
-                  await paymentController.switchPaymentType(
+                  final response = await paymentController.switchPaymentType(
                     number: _cardNumberController.text,
                     cvv: _cvvController.text,
                     expirationMonth: _expiryDateController.text.split('/')[0],
                     expirationYear: _expiryDateController.text.split('/')[1],
                     holderName: _cardHolderController.text,
-                    holderDocument: '94271564656',
+                    holderDocument: _holderDocument.text,
                   );
                 },
                 child: Text(

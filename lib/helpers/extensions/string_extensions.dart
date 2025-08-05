@@ -1,4 +1,4 @@
-extension CardBrandDetector on String {
+extension AppExtensionForString on String {
   String get cardBrand {
     final cardNumber = replaceAll(RegExp(r'\s+|-'), '');
 
@@ -25,5 +25,16 @@ extension CardBrandDetector on String {
     } else {
       return 'desconhecida';
     }
+  }
+
+  String get toCpfFormat {
+    // Remove tudo que não for dígito
+    final digits = replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digits.length != 11) {
+      return this; // Retorna original se não tiver 11 dígitos
+    }
+
+    return '${digits.substring(0, 3)}.${digits.substring(3, 6)}.${digits.substring(6, 9)}-${digits.substring(9, 11)}';
   }
 }
