@@ -11,10 +11,12 @@ class Pagemconstrucao extends StatefulWidget {
 class _Pagemconstrucao extends State<Pagemconstrucao> {
   // Function to launch the URL for pre-registration
   Future<void> _launchPreRegistrationURL() async {
-    const String url = 'https://docs.google.com/forms/d/1fJ-6ZsErJTVgHWFB8A20dwASyA3xyq5o54u9zCGD9fo/viewform?edit_requested=true'; // IMPORTANT: Replace with your actual pre-registration link!
+    const String url =
+        'https://docs.google.com/forms/d/1fJ-6ZsErJTVgHWFB8A20dwASyA3xyq5o54u9zCGD9fo/viewform?edit_requested=true'; // IMPORTANT: Replace with your actual pre-registration link!
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) { // Check if the widget is still in the widget tree
+      if (mounted) {
+        // Check if the widget is still in the widget tree
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not launch $url')),
         );
@@ -32,20 +34,26 @@ class _Pagemconstrucao extends State<Pagemconstrucao> {
           // Full screen container with repeating background image
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/background_logo_desfocada.png'), // Your repeating background image
-              repeat: ImageRepeat.repeat, // Fill the background with repeating tiles
+              image: AssetImage(
+                  'assets/background_logo_desfocada.png'), // Your repeating background image
+              repeat: ImageRepeat
+                  .repeat, // Fill the background with repeating tiles
               // No 'fit' or 'alignment' needed as it's repeating
             ),
           ),
           child: Center(
             // Center content in the middle of the screen
-            child: SingleChildScrollView( // Allows scrolling if content overflows on small screens
-              padding: const EdgeInsets.all(20.0), // Padding around the central card
+            child: SingleChildScrollView(
+              // Allows scrolling if content overflows on small screens
+              padding:
+                  const EdgeInsets.all(20.0), // Padding around the central card
               child: Container(
                 // The central white card-like container
-                width: MediaQuery.of(context).size.width * 0.9, // 90% of screen width
+                width: MediaQuery.of(context).size.width *
+                    0.9, // 90% of screen width
                 constraints: const BoxConstraints(
-                  maxWidth: 400, // Maximum width for the card (adjust as needed)
+                  maxWidth:
+                      400, // Maximum width for the card (adjust as needed)
                 ),
                 padding: const EdgeInsets.all(25.0), // Padding inside the card
                 decoration: BoxDecoration(
@@ -53,7 +61,7 @@ class _Pagemconstrucao extends State<Pagemconstrucao> {
                   borderRadius: BorderRadius.circular(20.0), // Rounded corners
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       spreadRadius: 5,
                       blurRadius: 15,
                       offset: const Offset(0, 8), // Shadow effect
@@ -61,12 +69,13 @@ class _Pagemconstrucao extends State<Pagemconstrucao> {
                   ],
                 ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min, // Make column content wrap its children
+                  mainAxisSize:
+                      MainAxisSize.min, // Make column content wrap its children
                   children: [
                     // Comppare logo
                     Image.asset(
                       'assets/logo_vertical.png', // Assuming this is the logo with 'comppare' text
-                      height:70, // Adjust height as needed to match the image
+                      height: 70, // Adjust height as needed to match the image
                     ),
                     const SizedBox(height: 30), // Spacing below logo
 
@@ -87,11 +96,14 @@ class _Pagemconstrucao extends State<Pagemconstrucao> {
                     ElevatedButton(
                       onPressed: _launchPreRegistrationURL,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFB5E300), // Button background color
+                        backgroundColor:
+                            const Color(0xFFB5E300), // Button background color
                         foregroundColor: Colors.black, // Button text color
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 15),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30), // More rounded corners for the button
+                          borderRadius: BorderRadius.circular(
+                              30), // More rounded corners for the button
                         ),
                         elevation: 5, // Adds a subtle shadow to the button
                         textStyle: const TextStyle(
@@ -101,7 +113,9 @@ class _Pagemconstrucao extends State<Pagemconstrucao> {
                       ),
                       child: const Text('FAÇA O SEU PRÉ-CADASTRO'),
                     ),
-                    const SizedBox(height: 50,)
+                    const SizedBox(
+                      height: 50,
+                    )
                   ],
                 ),
               ),

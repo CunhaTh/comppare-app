@@ -39,20 +39,22 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    final String cpfDigitado = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
+    final String cpfDigitado =
+        _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
     final String senhaDigitada = _passwordController.text;
 
     print('CPF a ser enviado: $cpfDigitado');
-    print('Senha a ser enviada: $senhaDigitada'); 
+    print('Senha a ser enviada: $senhaDigitada');
 
     try {
       // ⭐ Delega a autenticação para o ApiService
-      final Map<String, dynamic> responseData = await _apiService.authenticateUser(
+      final Map<String, dynamic> responseData =
+          await _apiService.authenticateUser(
         cpfDigitado,
         senhaDigitada,
       );
-      print('Corpo da requisição de autenticação: ${json.encode(responseData)}');
-      
+      print(
+          'Corpo da requisição de autenticação: ${json.encode(responseData)}');
 
       // Se authenticateUser não lançou exceção, significa que foi sucesso
       // O TokenHelper e UserHelper já foram atualizados dentro de authenticateUser
@@ -67,7 +69,8 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const PrincipalPage(), // PrincipalPage agora não precisa de CPF/Senha
+            builder: (context) =>
+                const PrincipalPage(), // PrincipalPage agora não precisa de CPF/Senha
           ),
         );
       }
@@ -122,7 +125,8 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(12)), // Adicionado arredondamento
+                  borderRadius: BorderRadius.all(
+                      Radius.circular(12)), // Adicionado arredondamento
                 ),
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -156,7 +160,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       style: const TextStyle(color: Colors.black),
-                      keyboardType: TextInputType.number, // Ajuda na entrada de CPF
+                      keyboardType:
+                          TextInputType.number, // Ajuda na entrada de CPF
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -178,24 +183,36 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Expanded( // Para que o botão ocupe o espaço disponível
+                          Expanded(
+                            // Para que o botão ocupe o espaço disponível
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 20),
                                 textStyle: const TextStyle(fontSize: 18),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), // Arredondamento
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        8)), // Arredondamento
                               ),
                               onPressed: _isLoading ? null : _login,
                               child: _isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text('Entrar', style: TextStyle(color: Colors.white)),
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white)
+                                  : const Text('Entrar',
+                                      style: TextStyle(color: Colors.white)),
                             ),
                           ),
                           const SizedBox(width: 20),
-                          Expanded( // Para que o botão ocupe o espaço disponível
-                            child: _buildActionButton(context, 'Cadastrar', const CadastroScreen(idPlano: null,)),
+                          Expanded(
+                            // Para que o botão ocupe o espaço disponível
+                            child: _buildActionButton(
+                                context,
+                                'Cadastrar',
+                                const CadastroScreen(
+                                  idPlano: null,
+                                )),
                           ),
                         ],
                       ),
@@ -206,12 +223,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         onTap: () {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => const RecoverPasswordScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const RecoverPasswordScreen()),
                           );
                         },
                         child: const Text(
                           'Esqueceu a senha?',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Color.fromARGB(165, 0, 0, 0)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(165, 0, 0, 0)),
                         ),
                       ),
                     ),
@@ -230,13 +251,14 @@ class _LoginScreenState extends State<LoginScreen> {
       width: 100,
       height: 60,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(30),
       ),
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, Widget targetPage) {
+  Widget _buildActionButton(
+      BuildContext context, String label, Widget targetPage) {
     return ElevatedButton(
       onPressed: () {
         Navigator.push(
@@ -249,7 +271,8 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.black,
         padding: const EdgeInsets.symmetric(vertical: 20),
         textStyle: const TextStyle(fontSize: 18),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), // Arredondamento
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8)), // Arredondamento
       ),
       child: Text(label),
     );

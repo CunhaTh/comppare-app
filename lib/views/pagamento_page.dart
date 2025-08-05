@@ -18,16 +18,11 @@ class PagamentoPage extends StatefulWidget {
 }
 
 class _PagamentoPageState extends State<PagamentoPage> {
-  final TextEditingController _cardNumberController =
-      TextEditingController();
-  final TextEditingController _cardHolderController =
-      TextEditingController();
-  final TextEditingController _expiryDateController =
-      TextEditingController();
-  final TextEditingController _cvvController =
-      TextEditingController();
-  final TextEditingController _holderDocument =
-      TextEditingController();
+  final TextEditingController _cardNumberController = TextEditingController();
+  final TextEditingController _cardHolderController = TextEditingController();
+  final TextEditingController _expiryDateController = TextEditingController();
+  final TextEditingController _cvvController = TextEditingController();
+  final TextEditingController _holderDocument = TextEditingController();
   String? _qrCodeData;
 
   late PaymentController paymentController;
@@ -97,7 +92,7 @@ class _PagamentoPageState extends State<PagamentoPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: getPlanColor().withOpacity(0.3),
+            color: getPlanColor().withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -113,7 +108,7 @@ class _PagamentoPageState extends State<PagamentoPage> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: getPlanColor().withOpacity(0.1),
+              color: getPlanColor().withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
