@@ -40,4 +40,20 @@ class PlanModel {
       tempoGratuidade: json['tempoGratuidade'] ?? 1,
     );
   }
+
+  factory PlanModel.empty() {
+    return PlanModel(
+      id: 0,
+      nome: '',
+      descricao: '',
+      valor: 0.0,
+      quantidadeTags: 0,
+      quantidadeFotos: 0,
+      quantidadeConvites: 0,
+      quantidadePastas: 0,
+      status: 0,
+      frequenciaCobranca: 0,
+      tempoGratuidade: 0,
+    );
+  }
 }

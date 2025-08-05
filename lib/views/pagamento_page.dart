@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../controllers/controller.dart';
+import '../helpers/helpers.dart';
 import '../infra/api_services.dart';
 import '../models/models.dart';
 import '../services/efipay_service.dart';
@@ -36,6 +36,8 @@ class _PagamentoPageState extends State<PagamentoPage> {
     super.initState();
     paymentController = PaymentController(
         apiService: ApiService(), efipayService: EfipayService());
+
+    paymentController.setPlan(widget.plano ?? PlanModel.empty());
   }
 
   // bool _validateCreditCardFields() {
@@ -335,22 +337,21 @@ class _PagamentoPageState extends State<PagamentoPage> {
                     children: [
                       ListTile(
                         title: const Text(
-                          'Cartão de Crédito/Débito',
+                          'Cartão de Crédito',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                           ),
                         ),
-                        leading: Radio<String>(
-                          value: 'cartao',
-                          groupValue: _selectedPaymentMethod,
+                        leading: Radio<EnumPaymentType>(
+                          value: EnumPaymentType.creditCard,
+                          groupValue: paymentController.state.paymentType,
                           activeColor: const Color(
                               0xFFaed513), // Cor verde da SubscriptionPage
                           onChanged: (value) {
                             setState(() {
-                              _selectedPaymentMethod = value;
-                              _qrCodeData =
-                                  null; // Limpar QR Code ao mudar de método
+                              paymentController.setPaymentType(
+                                  value ?? EnumPaymentType.creditCard);
                             });
                           },
                         ),
@@ -363,29 +364,21 @@ class _PagamentoPageState extends State<PagamentoPage> {
                             fontSize: 16,
                           ),
                         ),
-                        leading: Radio<String>(
-                          value: 'pix',
-                          groupValue: _selectedPaymentMethod,
+                        leading: Radio<EnumPaymentType>(
+                          value: EnumPaymentType.pix,
+                          groupValue: paymentController.state.paymentType,
                           activeColor: const Color(
                               0xFFaed513), // Cor verde da SubscriptionPage
                           onChanged: (value) {
-                            // Método para gerar o QR Code
-                            void generatePixQRCode(String pixCode) {
-                              setState(() {
-                                _qrCodeData =
-                                    pixCode; // Defina a chave PIX ou o código que deseja usar para gerar o QR Code
-                              });
-                            }
-
                             setState(() {
-                              _selectedPaymentMethod = value;
-                              generatePixQRCode(
-                                  'pixCode5204000053039865405'); // Gerar QR Code imediatamente
+                              paymentController
+                                  .setPaymentType(value ?? EnumPaymentType.pix);
                             });
                           },
                         ),
                       ),
-                      if (_selectedPaymentMethod == 'pix' &&
+                      if (paymentController.state.paymentType ==
+                              EnumPaymentType.pix &&
                           _qrCodeData != null) ...[
                         const SizedBox(height: 20),
                         Text(
@@ -411,7 +404,8 @@ class _PagamentoPageState extends State<PagamentoPage> {
                           ),
                         ),
                       ],
-                      if (_selectedPaymentMethod == 'cartao') ...[
+                      if (paymentController.state.paymentType ==
+                          EnumPaymentType.creditCard) ...[
                         const SizedBox(height: 20),
                         TextField(
                           controller: _cardNumberController,
@@ -515,16 +509,14 @@ class _PagamentoPageState extends State<PagamentoPage> {
                   textStyle: const TextStyle(fontSize: 17),
                 ),
                 onPressed: () async {
-                  if (_selectedPaymentMethod == 'cartao') {
-                    await paymentController.generateCardToken(
-                      number: _cardNumberController.text,
-                      cvv: _cvvController.text,
-                      expirationMonth: _expiryDateController.text.split('/')[0],
-                      expirationYear: _expiryDateController.text.split('/')[1],
-                      holderName: _cardHolderController.text,
-                      holderDocument: '94271564656',
-                    );
-                  }
+                  await paymentController.switchPaymentType(
+                    number: _cardNumberController.text,
+                    cvv: _cvvController.text,
+                    expirationMonth: _expiryDateController.text.split('/')[0],
+                    expirationYear: _expiryDateController.text.split('/')[1],
+                    holderName: _cardHolderController.text,
+                    holderDocument: '94271564656',
+                  );
                 },
                 child: Text(
                   'Finalizar Compra - R\$ ${widget.plano?.valor.toStringAsFixed(2).replaceAll('.', ',') ?? '80,00'}',
