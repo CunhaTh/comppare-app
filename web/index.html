@@ -20,9 +20,10 @@
         const brand = await identifyBrand(card.number);
         console.log("Bandeira identificada:", brand);
         
+     
         const creditCard = EfiPay.CreditCard
           .setAccount("dab94c73c24695ee58451c59298b151c")
-          .setEnvironment("sandbox")
+          .setEnvironment("production") // 'production' or 'sandbox'
           .setCreditCardData({
             brand: brand,
             number: card.number,
