@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:application_progress/main.dart';
@@ -17,22 +18,36 @@ part 'payment_state.dart';
 class PaymentController extends Cubit<PaymentState> {
   PaymentController({
     required this.apiService,
+    required this.efipayService,
   }) : super(const PaymentState.initial());
 
   final ApiService apiService;
 
-  void generateCardToken() {
-    final card = js.JsObject.jsify({
-      'number': '4192801899905047',
-      'cvv': '123',
-      'expirationMonth': '08',
-      'expirationYear': '2026',
-      'holderName': 'Gorbadoc Oldbuck',
-      'holderDocument': '94271564656',
-      'reuse': false,
-    });
+  final EfipayService efipayService;
 
-    js.context.callMethod('generateToken', [card]);
+  Future<void> generateCardToken({
+    required String number,
+    required String cvv,
+    required String expirationMonth,
+    required String expirationYear,
+    required String holderName,
+    required String holderDocument,
+  }) async {
+    try {
+      final token = await efipayService.generateCardToken(
+        number: number,
+        cvv: cvv,
+        expirationMonth: expirationMonth,
+        expirationYear: expirationYear,
+        holderName: holderName,
+        holderDocument: holderDocument,
+      );
+      log('Token gerado e recebido no DART(generateCardToken): $token');
+    } catch (e) {
+      log('Erro ao gerar token: $e');
+      // Em caso de erro, trate e propague a exceção
+      rethrow;
+    }
   }
 }
 

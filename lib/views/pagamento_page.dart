@@ -11,10 +11,12 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../controllers/controller.dart';
 import '../infra/api_services.dart';
+import '../models/models.dart';
+import '../services/efipay_service.dart';
 
 class PagamentoPage extends StatefulWidget {
   final int? idPlano;
-  final Plano? plano;
+  final PlanModel? plano;
 
   const PagamentoPage({super.key, required this.idPlano, this.plano});
 
@@ -33,49 +35,48 @@ class _PagamentoPageState extends State<PagamentoPage> {
   final TextEditingController _cvvController =
       TextEditingController(text: "622");
   String? _qrCodeData;
-  InAppWebViewController? _webViewController;
-  String? _generatedToken;
 
   late PaymentController paymentController;
 
   @override
   void initState() {
     super.initState();
-    paymentController = PaymentController(apiService: ApiService());
+    paymentController = PaymentController(
+        apiService: ApiService(), efipayService: EfipayService());
   }
 
-  bool _validateCreditCardFields() {
-    return _cardNumberController.text.isNotEmpty &&
-        _cardHolderController.text.isNotEmpty &&
-        _expiryDateController.text.isNotEmpty &&
-        _cvvController.text.isNotEmpty;
-  }
+  // bool _validateCreditCardFields() {
+  //   return _cardNumberController.text.isNotEmpty &&
+  //       _cardHolderController.text.isNotEmpty &&
+  //       _expiryDateController.text.isNotEmpty &&
+  //       _cvvController.text.isNotEmpty;
+  // }
 
-  void _generatePixQRCode() {
-    const uuid = Uuid();
-    String pixCode = uuid.v4();
-    String value = widget.plano?.valor.toStringAsFixed(2) ?? '80.00';
+  // void _generatePixQRCode() {
+  //   const uuid = Uuid();
+  //   String pixCode = uuid.v4();
+  //   String value = widget.plano?.valor.toStringAsFixed(2) ?? '80.00';
 
-    setState(() {
-      _qrCodeData =
-          '00020101021129370014BR.GOV.BCB.PIX0136$pixCode${('${value.replaceAll('.', '')}0000')}';
-    });
-  }
+  //   setState(() {
+  //     _qrCodeData =
+  //         '00020101021129370014BR.GOV.BCB.PIX0136$pixCode${('${value.replaceAll('.', '')}0000')}';
+  //   });
+  // }
 
-  void _handleTokenGenerated(String token) {
-    setState(() {
-      _generatedToken = token;
-    });
+  // void _handleTokenGenerated(String token) {
+  //   setState(() {
+  //     _generatedToken = token;
+  //   });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Token gerado com sucesso: $token'),
-        backgroundColor: const Color(0xFFaed513),
-      ),
-    );
-  }
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('Token gerado com sucesso: $token'),
+  //       backgroundColor: const Color(0xFFaed513),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildPlanCard(Plano plano) {
+  Widget _buildPlanCard(PlanModel plano) {
     // Cores baseadas no tipo de plano (inspirado na Apple One)
     Color getPlanColor() {
       switch (plano.nome.toLowerCase()) {
@@ -521,39 +522,14 @@ class _PagamentoPageState extends State<PagamentoPage> {
                   textStyle: const TextStyle(fontSize: 17),
                 ),
                 onPressed: () async {
-                  if (_selectedPaymentMethod != null) {
-                    if (_selectedPaymentMethod == 'cartao') {
-                      if (_generatedToken != null) {
-                        // Token já foi gerado pelo WebView
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Pagamento processado com token: $_generatedToken'),
-                            backgroundColor: const Color(0xFFaed513),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Por favor, preencha os dados do cartão e gere o token.'),
-                          ),
-                        );
-                      }
-                    } else if (_selectedPaymentMethod == 'pix') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Pagamento PIX processado.'),
-                          backgroundColor: const Color(0xFFaed513),
-                        ),
-                      );
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Por favor, selecione um método de pagamento.'),
-                      ),
+                  if (_selectedPaymentMethod == 'cartao') {
+                    await paymentController.generateCardToken(
+                      number: _cardNumberController.text,
+                      cvv: _cvvController.text,
+                      expirationMonth: _expiryDateController.text.split('/')[0],
+                      expirationYear: _expiryDateController.text.split('/')[1],
+                      holderName: _cardHolderController.text,
+                      holderDocument: '94271564656',
                     );
                   }
                 },

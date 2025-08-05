@@ -8,11 +8,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../controllers/controller.dart';
 
 import '../infra/api_services.dart';
+import '../models/models.dart';
 import 'pagamento_page.dart';
 
 class SubscriptionPage extends StatefulWidget {
-  final Plano initialPlan;
-  final List<Plano>? availablePlans; // Lista opcional de planos para escolha
+  final PlanModel initialPlan;
+  final List<PlanModel>?
+      availablePlans; // Lista opcional de planos para escolha
 
   const SubscriptionPage(
       {super.key, required this.initialPlan, this.availablePlans});
@@ -23,7 +25,7 @@ class SubscriptionPage extends StatefulWidget {
 
 class _SubscriptionPageState extends State<SubscriptionPage> {
   bool loading = false;
-  late Plano selectedPlan; // Plano selecionado pelo usuário
+  late PlanModel selectedPlan; // Plano selecionado pelo usuário
   late PageController _pageController;
   int _currentPageIndex = 0;
 
@@ -327,7 +329,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 }
 
 class PlanCard extends StatelessWidget {
-  final Plano plan;
+  final PlanModel plan;
   final bool isSelected;
   final VoidCallback onSubscribe;
   final bool loading;

@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:application_progress/main.dart';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -9,6 +7,7 @@ import '../../helpers/helpers.dart';
 import '../../infra/api_endponts.dart';
 import '../../infra/api_services.dart';
 import '../../infra/user_helper.dart';
+import '../../models/plan_model.dart';
 
 part 'plans_state.dart';
 
@@ -31,7 +30,7 @@ class PlansController extends Cubit<PlansState> {
     }
   }
 
-  Future<void> subscribePlanByPix(Plano plan) async {
+  Future<void> subscribePlanByPix(PlanModel plan) async {
     emit(state.copyWith(status: AppStateStatus.loading));
 
     try {

@@ -20,7 +20,6 @@ import 'package:application_progress/views/plans_page.dart';
 import 'package:application_progress/views/tag_page.dart';
 import 'package:application_progress/views/user_dashboard.dart';
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
@@ -28,6 +27,7 @@ import 'package:http/http.dart' as http;
 import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/api_exception.dart';
 
+import 'models/plan_model.dart';
 
 class PrincipalPage extends StatefulWidget {
   const PrincipalPage({super.key});
@@ -36,7 +36,6 @@ class PrincipalPage extends StatefulWidget {
   _PrincipalPageState createState() => _PrincipalPageState();
 }
 
-
 class _PrincipalPageState extends State<PrincipalPage> {
   List<Folder> _folders = [];
   String _searchQuery = '';
@@ -44,7 +43,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
   bool _isLoading = true;
   int? selectedQuestionIndex;
   bool isLoading = false; // Para outras operações, se aplicável
-  List<Plano> plans = [];
+  List<PlanModel> plans = [];
   bool showMonthlyPlans = true;
   Map<int, bool> selectedPlans = {};
   bool isPlansLoading = true; // Novo estado para carregamento de planos
@@ -62,7 +61,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     super.didChangeDependencies();
     _fetchFoldersFromApiAndRefreshState();
   }
-Future<void> _fetchPlansAsync() async {
+
+  Future<void> _fetchPlansAsync() async {
     setState(() {
       isPlansLoading = true;
     });
@@ -80,12 +80,13 @@ Future<void> _fetchPlansAsync() async {
       isLoading = true;
     });
     try {
-      final response = await http.get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      final response = await http
+          .get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];
         setState(() {
-          plans = planosJson.map((json) => Plano.fromJson(json)).toList();
+          plans = planosJson.map((json) => PlanModel.fromJson(json)).toList();
           selectedPlans = {for (var plan in plans) plan.id: false};
         });
       } else {
@@ -111,7 +112,9 @@ Future<void> _fetchPlansAsync() async {
         : plans.first;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => SubscriptionPage(initialPlan: plans.first, availablePlans: plans)),
+      MaterialPageRoute(
+          builder: (_) => SubscriptionPage(
+              initialPlan: plans.first, availablePlans: plans)),
     );
   }
 
@@ -130,190 +133,137 @@ Future<void> _fetchPlansAsync() async {
     );
   }*/
 
-    Future<void> _addFolder(String folderName) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null || user.nome == null) {
-    debugPrint('[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
-    _showErrorDialog('Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
-    _navigateToLogin();
-    return;
-  }
-
-  try {
-    final String folderNameForApi = folderName.trim();
-    debugPrint('[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
-
-    final response = await _apiService.createFolder(
-      idUsuario: user.id!,
-      folderName: folderNameForApi,
-      parentFolderId: null,
-    );
-    debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
-    if (response is Map<String, dynamic>) {
-      debugPrint('[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
+  Future<void> _addFolder(String folderName) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null || user.nome == null) {
+      debugPrint(
+          '[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
+      _showErrorDialog(
+          'Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
+      _navigateToLogin();
+      return;
     }
-    debugPrint('[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
-    if (response is Map<String, dynamic> && mounted) {
-      // Usar diretamente os valores da resposta da API
-      final folderId = response['pasta_id'] as int? ?? 0;
-      final folderNameFromApi = response['pasta_nome'] as String? ?? folderNameForApi;
-      final folderPath = response['pasta_caminho'] as String?;
-      final folderType = response['tipo'] as String?;
-      final folderStructure = response['estrutura_completa'] as String? ?? folderNameFromApi;
+    try {
+      final String folderNameForApi = folderName.trim();
+      debugPrint(
+          '[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
 
-      final folderToAdd = Folder(
-        id: folderId,
-        nome: folderNameFromApi, // Prioriza o nome da API
-        caminho: folderPath!,
-        principalPageDisplayName: folderStructure, // Usa estrutura_completa para exibição
-        idPastaPai: null,
-        imagens: [],
-        tags: [],
-        subpastas: [],
+      final response = await _apiService.createFolder(
+        idUsuario: user.id!,
+        folderName: folderNameForApi,
+        parentFolderId: null,
       );
+      debugPrint(
+          '[_addFolder] Resposta bruta da API: ${json.encode(response)}');
+      if (response is Map<String, dynamic>) {
+        debugPrint(
+            '[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
+      }
+      debugPrint(
+          '[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
-      // Atualiza a UI imediatamente com o novo folder
-      setState(() {
-        _folders.add(folderToAdd);
-      });
-      debugPrint('[_addFolder] Folder adicionado: id=${folderToAdd.id}, nome=${folderToAdd.nome}');
+      if (response is Map<String, dynamic> && mounted) {
+        // Usar diretamente os valores da resposta da API
+        final folderId = response['pasta_id'] as int? ?? 0;
+        final folderNameFromApi =
+            response['pasta_nome'] as String? ?? folderNameForApi;
+        final folderPath = response['pasta_caminho'] as String?;
+        final folderType = response['tipo'] as String?;
+        final folderStructure =
+            response['estrutura_completa'] as String? ?? folderNameFromApi;
 
-      // Atualiza a lista completa para sincronizar com os dados reais
-      if (mounted) {
-        try {
-          await _fetchFoldersFromApiAndRefreshState();
-          folderNameController.clear();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
-          );
-          debugPrint('[_addFolder] Lista atualizada com sucesso via _fetchFoldersFromApiAndRefreshState');
-        } catch (e) {
-          debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
-          if (mounted) {
-            _showErrorDialog('Erro ao atualizar a lista de álbuns.');
+        final folderToAdd = Folder(
+          id: folderId,
+          nome: folderNameFromApi, // Prioriza o nome da API
+          caminho: folderPath!,
+          principalPageDisplayName:
+              folderStructure, // Usa estrutura_completa para exibição
+          idPastaPai: null,
+          imagens: [],
+          tags: [],
+          subpastas: [],
+        );
+
+        // Atualiza a UI imediatamente com o novo folder
+        setState(() {
+          _folders.add(folderToAdd);
+        });
+        debugPrint(
+            '[_addFolder] Folder adicionado: id=${folderToAdd.id}, nome=${folderToAdd.nome}');
+
+        // Atualiza a lista completa para sincronizar com os dados reais
+        if (mounted) {
+          try {
+            await _fetchFoldersFromApiAndRefreshState();
+            folderNameController.clear();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text('Álbum "$folderName" criado com sucesso!')),
+            );
+            debugPrint(
+                '[_addFolder] Lista atualizada com sucesso via _fetchFoldersFromApiAndRefreshState');
+          } catch (e) {
+            debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
+            if (mounted) {
+              _showErrorDialog('Erro ao atualizar a lista de álbuns.');
+            }
           }
         }
       }
-    }
-  } catch (e) {
-    debugPrint('[_addFolder] Erro ao criar álbum: $e');
-    if (e is ApiException && mounted) {
-      _showErrorDialog('Falha ao criar o álbum: ${e.message}');
-      if (e.statusCode == 401) {
-        _navigateToLogin();
+    } catch (e) {
+      debugPrint('[_addFolder] Erro ao criar álbum: $e');
+      if (e is ApiException && mounted) {
+        _showErrorDialog('Falha ao criar o álbum: ${e.message}');
+        if (e.statusCode == 401) {
+          _navigateToLogin();
+        }
       }
     }
   }
-}
 
   Future<void> _fetchFoldersFromApiAndRefreshState() async {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = true;
-      });
-      debugPrint('PRINT do setState e mounted no Inicio da _fetch: $mounted');
-
-      debugPrint('PrincipalPage: Token no início de _fetchFoldersFromApiAndRefreshState: ${TokenHelper().token}');
-
-      try {
-        final user = UserHelper().user;
-        if (user == null || user.id == null) {
-          debugPrint('Usuário não autenticado. Redirecionando para login.');
-          _navigateToLogin();
-          return;
-        }
-
-        // Recarrega as pastas do UserHelper atualizado
-        final List<Folder> updatedFolders = await _apiService.getAllFoldersForUser();
-        if (mounted) {
-          setState(() {
-            _folders = updatedFolders;
-            debugPrint('Pastas atualizadas do UserHelper: ${_folders.length}');
-            debugPrint('PRINT do setState e mounted Na classe FOLDER : $mounted');
-          });
-        }
-      } on ApiException catch (e) {
-        debugPrint('Erro ao atualizar pastas da API: ${e.message}');
-        if (mounted) {
-          _showErrorDialog('Não foi possível atualizar seus álbuns. ${e.message}');
-          if (e.statusCode == 401) {
-            _navigateToLogin();
-          }
-        }
-      } catch (e) {
-        debugPrint('Erro inesperado ao atualizar pastas da API: $e');
-        if (mounted) {
-          _showErrorDialog('Ocorreu um erro inesperado ao atualizar seus álbuns.');
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-  }
-
-
- Future<void> _confirmAndDeleteFolder(Folder folder) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null || !TokenHelper().hasToken()) {
-    _navigateToLogin();
-    return;
-  }
-
-  final bool? confirm = await showDialog<bool>(
-    context: context,
-    builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: const Text('Confirmar Exclusão'),
-        content: Text('Tem certeza que deseja excluir a pasta "${folder.principalPageDisplayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      );
-    },
-  );
-
-  if (confirm == true) {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
+    debugPrint('PRINT do setState e mounted no Inicio da _fetch: $mounted');
+
+    debugPrint(
+        'PrincipalPage: Token no início de _fetchFoldersFromApiAndRefreshState: ${TokenHelper().token}');
 
     try {
-      await _apiService.deleteFolder(user.id!, folder.id);
+      final user = UserHelper().user;
+      if (user == null || user.id == null) {
+        debugPrint('Usuário não autenticado. Redirecionando para login.');
+        _navigateToLogin();
+        return;
+      }
 
+      // Recarrega as pastas do UserHelper atualizado
+      final List<Folder> updatedFolders =
+          await _apiService.getAllFoldersForUser();
       if (mounted) {
-        // Remove o folder da lista local imediatamente
         setState(() {
-          _folders.removeWhere((f) => f.id == folder.id);
+          _folders = updatedFolders;
+          debugPrint('Pastas atualizadas do UserHelper: ${_folders.length}');
+          debugPrint('PRINT do setState e mounted Na classe FOLDER : $mounted');
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pasta "${folder.principalPageDisplayName}" excluída com sucesso!')),
-        );
-        // Sincroniza com a API para garantir consistência
-        await _fetchFoldersFromApiAndRefreshState();
       }
     } on ApiException catch (e) {
-      debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
+      debugPrint('Erro ao atualizar pastas da API: ${e.message}');
       if (mounted) {
-        _showErrorDialog('Não foi possível excluir a pasta: ${e.message}');
+        _showErrorDialog(
+            'Não foi possível atualizar seus álbuns. ${e.message}');
         if (e.statusCode == 401) {
           _navigateToLogin();
         }
       }
     } catch (e) {
-      debugPrint('Erro inesperado em _confirmAndDeleteFolder: $e');
+      debugPrint('Erro inesperado ao atualizar pastas da API: $e');
       if (mounted) {
-        _showErrorDialog('Ocorreu um erro inesperado ao excluir a pasta.');
+        _showErrorDialog(
+            'Ocorreu um erro inesperado ao atualizar seus álbuns.');
       }
     } finally {
       if (mounted) {
@@ -323,7 +273,79 @@ Future<void> _fetchPlansAsync() async {
       }
     }
   }
-}
+
+  Future<void> _confirmAndDeleteFolder(Folder folder) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null || !TokenHelper().hasToken()) {
+      _navigateToLogin();
+      return;
+    }
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: Text(
+              'Tem certeza que deseja excluir a pasta "${folder.principalPageDisplayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        await _apiService.deleteFolder(user.id!, folder.id);
+
+        if (mounted) {
+          // Remove o folder da lista local imediatamente
+          setState(() {
+            _folders.removeWhere((f) => f.id == folder.id);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Pasta "${folder.principalPageDisplayName}" excluída com sucesso!')),
+          );
+          // Sincroniza com a API para garantir consistência
+          await _fetchFoldersFromApiAndRefreshState();
+        }
+      } on ApiException catch (e) {
+        debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
+        if (mounted) {
+          _showErrorDialog('Não foi possível excluir a pasta: ${e.message}');
+          if (e.statusCode == 401) {
+            _navigateToLogin();
+          }
+        }
+      } catch (e) {
+        debugPrint('Erro inesperado em _confirmAndDeleteFolder: $e');
+        if (mounted) {
+          _showErrorDialog('Ocorreu um erro inesperado ao excluir a pasta.');
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
   void _showErrorDialog(String message) {
     if (!mounted) return;
 
@@ -373,7 +395,8 @@ Future<void> _fetchPlansAsync() async {
                 children: [
                   TextField(
                     controller: folderNameController,
-                    decoration: const InputDecoration(hintText: "Nome do Álbum"),
+                    decoration:
+                        const InputDecoration(hintText: "Nome do Álbum"),
                     enabled: !isDialogLoading,
                   ),
                   if (isDialogLoading)
@@ -387,42 +410,48 @@ Future<void> _fetchPlansAsync() async {
               actions: [
                 TextButton(
                   // ignore: dead_code
-                  onPressed: isDialogLoading ? null : () {
-                    folderNameController.clear();
-                    Navigator.of(dialogContext).pop();
-                  },
+                  onPressed: isDialogLoading
+                      ? null
+                      : () {
+                          folderNameController.clear();
+                          Navigator.of(dialogContext).pop();
+                        },
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
                   // ignore: dead_code
-                  onPressed: isDialogLoading ? null : () async {
-                    String folderName = folderNameController.text.trim();
-                    if (folderName.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Por favor, insira um nome para o álbum.')),
-                      );
-                      return;
-                    }
+                  onPressed: isDialogLoading
+                      ? null
+                      : () async {
+                          String folderName = folderNameController.text.trim();
+                          if (folderName.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Por favor, insira um nome para o álbum.')),
+                            );
+                            return;
+                          }
 
-                    setDialogState(() {
-                      isDialogLoading = true;
-                    });
+                          setDialogState(() {
+                            isDialogLoading = true;
+                          });
 
-                    try {
-                      await _addFolder(folderName);
-                      if (context.mounted) {
-                        Navigator.of(dialogContext).pop();
-                      }
-                    } catch (e) {
-                      debugPrint('Erro no modal de criar álbum: $e');
-                    } finally {
-                      if (context.mounted) {
-                        setDialogState(() {
-                          isDialogLoading = false;
-                        });
-                      }
-                    }
-                  },
+                          try {
+                            await _addFolder(folderName);
+                            if (context.mounted) {
+                              Navigator.of(dialogContext).pop();
+                            }
+                          } catch (e) {
+                            debugPrint('Erro no modal de criar álbum: $e');
+                          } finally {
+                            if (context.mounted) {
+                              setDialogState(() {
+                                isDialogLoading = false;
+                              });
+                            }
+                          }
+                        },
                   child: const Text('Salvar'),
                 ),
               ],
@@ -432,7 +461,6 @@ Future<void> _fetchPlansAsync() async {
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -469,7 +497,8 @@ Future<void> _fetchPlansAsync() async {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFaed513)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFaed513)))
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -484,7 +513,8 @@ Future<void> _fetchPlansAsync() async {
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.black,
                           backgroundColor: const Color(0xFFaed513),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 25),
                         ),
                         child: const Icon(Icons.add_sharp, size: 25),
                       ),
@@ -501,15 +531,15 @@ Future<void> _fetchPlansAsync() async {
                   ),
                   const SizedBox(height: 80),
                   const Padding(
-                      padding: EdgeInsets.only(bottom: 20),
-                      child: Text(
-                          'Álbuns Criados',
-                          style: TextStyle(color: Colors.white, fontSize: 30),
-                      ),
+                    padding: EdgeInsets.only(bottom: 20),
+                    child: Text(
+                      'Álbuns Criados',
+                      style: TextStyle(color: Colors.white, fontSize: 30),
+                    ),
                   ),
                   Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: TextField(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: TextField(
                       onChanged: (value) {
                         setState(() {
                           _searchQuery = value;
@@ -534,51 +564,66 @@ Future<void> _fetchPlansAsync() async {
                             child: Text(
                               'Nenhum álbum encontrado.\nCrie um novo álbum para começar!',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white54, fontSize: 16),
+                              style: TextStyle(
+                                  color: Colors.white54, fontSize: 16),
                             ),
                           )
                         : RefreshIndicator(
                             onRefresh: _fetchFoldersFromApiAndRefreshState,
                             child: ListView.builder(
-                            itemCount: _folders.length,
-                            itemBuilder: (context, index) {
-                              final folder = _folders[index];
-                              debugPrint('[_ListView] Renderizando pasta: id=${folder.id}, pageDisplayName=${folder.pageDisplayName}, nome=${folder.nome}');
-                              if (_searchQuery.isNotEmpty &&
-                                  !folder.pageDisplayName.toLowerCase().contains(_searchQuery.toLowerCase())) {
-                                return const SizedBox.shrink();
-                              }
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => AlbunsCriadosPage(
-                                        initialFolderName: folder.pageDisplayName,
-                                        initialFolderId: folder.id,
-                                        folderApiPath: folder.caminho,
+                              itemCount: _folders.length,
+                              itemBuilder: (context, index) {
+                                final folder = _folders[index];
+                                debugPrint(
+                                    '[_ListView] Renderizando pasta: id=${folder.id}, pageDisplayName=${folder.pageDisplayName}, nome=${folder.nome}');
+                                if (_searchQuery.isNotEmpty &&
+                                    !folder.pageDisplayName
+                                        .toLowerCase()
+                                        .contains(_searchQuery.toLowerCase())) {
+                                  return const SizedBox.shrink();
+                                }
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AlbunsCriadosPage(
+                                          initialFolderName:
+                                              folder.pageDisplayName,
+                                          initialFolderId: folder.id,
+                                          folderApiPath: folder.caminho,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Card(
+                                    color: Colors.grey[900],
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 8.0),
+                                    child: ListTile(
+                                      leading: const Icon(Icons.folder,
+                                          color: Colors.white, size: 40),
+                                      title: Text(
+                                        folder.pageDisplayName?.isNotEmpty ==
+                                                true
+                                            ? folder.pageDisplayName
+                                            : 'Pasta sem nome',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18.0,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () =>
+                                            _confirmAndDeleteFolder(folder),
                                       ),
                                     ),
-                                  );
-                                },
-                                child: Card(
-                                  color: Colors.grey[900],
-                                  margin: const EdgeInsets.symmetric(vertical: 8.0),
-                                  child: ListTile(
-                                    leading: const Icon(Icons.folder, color: Colors.white, size: 40),
-                                    title: Text(
-                                      folder.pageDisplayName?.isNotEmpty == true ? folder.pageDisplayName : 'Pasta sem nome',
-                                      style: const TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
-                                    ),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => _confirmAndDeleteFolder(folder),
-                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            ),
                           ),
                   ),
                 ],
@@ -595,10 +640,12 @@ Future<void> _fetchPlansAsync() async {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Menu', style: TextStyle(color: Colors.black, fontSize: 24)),
+                  const Text('Menu',
+                      style: TextStyle(color: Colors.black, fontSize: 24)),
                   const SizedBox(height: 40),
                   Text(UserHelper().user?.nome ?? 'Convidado',
-                      style: const TextStyle(color: Colors.black, fontSize: 16)),
+                      style:
+                          const TextStyle(color: Colors.black, fontSize: 16)),
                 ],
               ),
             ),
@@ -607,7 +654,11 @@ Future<void> _fetchPlansAsync() async {
               title: const Text('Início'),
               onTap: () {
                 Navigator.pop(context);
-                showDialog(context: context, builder: (context) => UserDashboardScreen(folders: [],));
+                showDialog(
+                    context: context,
+                    builder: (context) => UserDashboardScreen(
+                          folders: [],
+                        ));
               },
             ),
             ListTile(
@@ -615,7 +666,8 @@ Future<void> _fetchPlansAsync() async {
               title: const Text('Ranking'),
               onTap: () {
                 Navigator.pop(context);
-                showDialog(context: context, builder: (context) => DialogRanking());
+                showDialog(
+                    context: context, builder: (context) => DialogRanking());
               },
             ),
             ListTile(

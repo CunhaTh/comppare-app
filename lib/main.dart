@@ -11,52 +11,10 @@ import 'chat_button.dart';
 import 'controllers/controller.dart';
 import 'infra/api_endponts.dart';
 import 'infra/api_services.dart';
+import 'models/plan_model.dart';
 import 'views/awaiting_payment.dart';
 
 // Placeholder Plano class (replace with your actual Plano class)
-class Plano {
-  final int id;
-  final String nome;
-  final String descricao;
-  final double valor;
-  final int quantidadeTags;
-  final int quantidadeFotos;
-  final int quantidadeConvites;
-  final int quantidadePastas;
-  final int status;
-  final int frequenciaCobranca;
-  final int tempoGratuidade;
-
-  Plano({
-    required this.id,
-    required this.nome,
-    required this.descricao,
-    required this.valor,
-    required this.quantidadeTags,
-    required this.quantidadeFotos,
-    required this.quantidadeConvites,
-    required this.quantidadePastas,
-    required this.status,
-    required this.frequenciaCobranca,
-    required this.tempoGratuidade,
-  });
-
-  factory Plano.fromJson(Map<String, dynamic> json) {
-    return Plano(
-      id: json['id'] ?? 0,
-      nome: json['nome'] ?? '',
-      descricao: json['descricao'] ?? '',
-      valor: (json['valor'] ?? 0.0).toDouble(),
-      quantidadeTags: json['quantidadeTags'] ?? 0,
-      quantidadeFotos: json['quantidadeFotos'] ?? 0,
-      quantidadeConvites: json['quantidadeConvites'] ?? 0,
-      quantidadePastas: json['quantidadePastas'] ?? 0,
-      status: json['status'] ?? 1,
-      frequenciaCobranca: json['frequenciaCobranca'] ?? 1,
-      tempoGratuidade: json['tempoGratuidade'] ?? 1,
-    );
-  }
-}
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -129,10 +87,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late PaymentController paymentController;
   bool isLoading = false;
   int? selectedQuestionIndex;
-  List<Plano> plans = [];
+  List<PlanModel> plans = [];
   bool showMonthlyPlans = true; // Controla se exibe planos mensais ou anuais
   Map<int, bool> selectedPlans =
       {}; // Mapeia o id do plano para o estado de seleção
@@ -140,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    paymentController = PaymentController(apiService: ApiService());
+
     fetchPlans();
   }
 
@@ -155,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];
         setState(() {
-          plans = planosJson.map((json) => Plano.fromJson(json)).toList();
+          plans = planosJson.map((json) => PlanModel.fromJson(json)).toList();
           selectedPlans = {for (var plan in plans) plan.id: false};
         });
       } else {
@@ -348,16 +305,10 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           ElevatedButton(
             onPressed: () {
-              // Navigator.pushReplacement(
-              //   context,
-              //   MaterialPageRoute(builder: (_) => const PrincipalPage()),
-              // );
-              paymentController.generateCardToken(
-                  // number: '4192801899905047',
-                  // cvv: '622',
-                  // expirationMonth: '01',
-                  // expirationYear: '2026',
-                  );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const PrincipalPage()),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
@@ -461,14 +412,14 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  List<Widget> _buildMonthlyPlans(List<Plano> monthlyPlans) {
+  List<Widget> _buildMonthlyPlans(List<PlanModel> monthlyPlans) {
     // Initialize list to hold plan cards
     List<Widget> planCards = [];
 
     // Try to find the "Gratuito" plan
     final gratuito = monthlyPlans.firstWhere(
       (plan) => plan.nome.toLowerCase().contains('gratuito'),
-      orElse: () => Plano(
+      orElse: () => PlanModel(
         id: 0,
         nome: 'Gratuito',
         descricao: 'Plano gratuito com funcionalidades básicas',
@@ -488,7 +439,7 @@ class _MyHomePageState extends State<MyHomePage> {
       (plan) =>
           plan.nome.toLowerCase().contains('básico') &&
           !plan.nome.toLowerCase().contains('anual'),
-      orElse: () => Plano(
+      orElse: () => PlanModel(
         id: 1,
         nome: 'Avançado Mensal',
         descricao: 'Plano Avançado mensal com acesso a mais funcionalidades',
@@ -508,7 +459,7 @@ class _MyHomePageState extends State<MyHomePage> {
       (plan) =>
           plan.nome.toLowerCase().contains('avançado') &&
           !plan.nome.toLowerCase().contains('anual'),
-      orElse: () => Plano(
+      orElse: () => PlanModel(
         id: 2,
         nome: 'Avançado Anual',
         descricao: 'Plano avançado mensal com todos os recursos',
@@ -559,14 +510,14 @@ class _MyHomePageState extends State<MyHomePage> {
     return planCards;
   }
 
-  List<Widget> _buildAnnualPlans(List<Plano> annualPlans) {
+  List<Widget> _buildAnnualPlans(List<PlanModel> annualPlans) {
     // Initialize list to hold plan cards
     List<Widget> planCards = [];
 
     // Try to find the "Avançado Anual" plan
     final avancadoAnual = annualPlans.firstWhere(
       (plan) => plan.nome.toLowerCase().contains('avançado'),
-      orElse: () => Plano(
+      orElse: () => PlanModel(
         id: 4,
         nome: 'Avançado Anual',
         descricao: 'Plano avançado anual com todos os recursos',
@@ -602,7 +553,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildPlanCard(
-    Plano plan,
+    PlanModel plan,
     bool isSelected,
     VoidCallback onSelect,
     VoidCallback onCadastrar,
