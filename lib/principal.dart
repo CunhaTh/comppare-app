@@ -22,6 +22,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:application_progress/infra/api_exception.dart';
 
+import 'infra/api_endponts.dart';
 import 'models/plan_model.dart';
 
 class PrincipalPage extends StatefulWidget {
@@ -44,6 +45,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
   bool isPlansLoading = true; // Novo estado para carregamento de planos
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
+
+  late PlanModel currentPlan = PlanModel.empty();
 
   @override
   void initState() {
@@ -75,8 +78,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
       isLoading = true;
     });
     try {
-      final response = await http
-          .get(Uri.parse("https://api.comppare.com.br/api/planos/listar"));
+      final response =
+          await http.get(Uri.parse("${ApiEndpoints.baseUrl}/planos/listar"));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> planosJson = data['data'];
@@ -84,6 +87,11 @@ class _PrincipalPageState extends State<PrincipalPage> {
           plans = planosJson.map((json) => PlanModel.fromJson(json)).toList();
           selectedPlans = {for (var plan in plans) plan.id: false};
         });
+
+        currentPlan = UserHelper().user?.idPlano != null
+            ? plans.firstWhere((p) => p.id == UserHelper().user!.idPlano,
+                orElse: () => plans.first)
+            : plans.first;
       } else {
         print("Erro ao buscar planos: ${response.reasonPhrase}");
       }
@@ -101,15 +109,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
       print('Nenhum plano disponível. Tente novamente mais tarde.');
       return;
     }
-    final currentPlan = UserHelper().user?.idPlano != null
-        ? plans.firstWhere((p) => p.id == UserHelper().user!.idPlano,
-            orElse: () => plans.first)
-        : plans.first;
+
     Navigator.push(
       context,
       MaterialPageRoute(
           builder: (_) => SubscriptionPage(
-              initialPlan: plans.first, availablePlans: plans)),
+              initialPlan: currentPlan, availablePlans: plans)),
     );
   }
 
@@ -153,7 +158,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
           '[_addFolder] Resposta bruta da API: ${json.encode(response)}');
       debugPrint(
           '[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
-          debugPrint(
+      debugPrint(
           '[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
       if (mounted) {
@@ -630,15 +635,42 @@ class _PrincipalPageState extends State<PrincipalPage> {
               decoration: const BoxDecoration(
                 color: Color(0xFFaed513),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
                 children: [
-                  const Text('Menu',
-                      style: TextStyle(color: Colors.black, fontSize: 24)),
-                  const SizedBox(height: 40),
-                  Text(UserHelper().user?.nome ?? 'Convidado',
-                      style:
-                          const TextStyle(color: Colors.black, fontSize: 16)),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Menu',
+                            style:
+                                TextStyle(color: Colors.black, fontSize: 24)),
+                        const SizedBox(height: 16),
+                        Text(UserHelper().user?.nome ?? 'Convidado',
+                            style: const TextStyle(
+                                color: Colors.black, fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(32),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        child: Text(
+                          currentPlan.nome,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),
@@ -660,7 +692,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
               onTap: () {
                 Navigator.pop(context);
                 showDialog(
-                    context: context, builder: (context) => const DialogRanking());
+                    context: context,
+                    builder: (context) => const DialogRanking());
               },
             ),
             ListTile(
