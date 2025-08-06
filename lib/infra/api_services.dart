@@ -294,6 +294,7 @@ class ApiService {
   Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
     final url = Uri.parse(
         '${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
+    log("URL DA SUBPASTA em fetchSubfolders: $url");
     final response = await _sendRequest(
       () => _httpClient.get(url, headers: _getHeaders()),
       successMessage: 'Subpastas carregadas com sucesso.',
