@@ -548,7 +548,7 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> createPaymentWithPix({
+  Future<PaymentPixReturnModel> createPaymentWithPix({
     required int userId,
     required int planId,
   }) async {
@@ -558,7 +558,7 @@ class ApiService {
           'plano': planId,
         })}");
 
-    return _sendRequest(
+    final response = await _sendRequest(
       () => _httpClient.post(
         url,
         headers: _getHeaders(includeContentType: true),
@@ -570,5 +570,7 @@ class ApiService {
       successMessage: 'Pix enviado com sucesso.',
       errorMessage: 'Falha ao enviar pix.',
     );
+
+    return PaymentPixReturnModel.fromMap(response);
   }
 }

@@ -11,6 +11,7 @@ import '../../helpers/helpers.dart';
 import '../../infra/api_services.dart';
 import '../../infra/user_helper.dart';
 import '../../models/models.dart';
+import '../../principal.dart';
 import '../../services/efipay_service.dart';
 part 'payment_state.dart';
 
@@ -34,7 +35,7 @@ class PaymentController extends Cubit<PaymentState> {
     emit(state.copyWith(paymentType: paymentType));
   }
 
-  Future<void> switchPaymentType({
+  Future<PaymentReturnModel> switchPaymentType({
     required String number,
     required String cvv,
     required String expirationMonth,
@@ -43,7 +44,7 @@ class PaymentController extends Cubit<PaymentState> {
     required String holderDocument,
   }) async {
     if (state.paymentType == EnumPaymentType.creditCard) {
-      await _generateCardToken(
+      return await _generateCardToken(
         number: number,
         cvv: cvv,
         expirationMonth: expirationMonth,
@@ -52,11 +53,12 @@ class PaymentController extends Cubit<PaymentState> {
         holderDocument: holderDocument,
       );
     } else if (state.paymentType == EnumPaymentType.pix) {
-      await _createPaymentWithPix(state.token ?? '');
+      return await _createPaymentWithPix(state.token ?? '');
     }
+    return PaymentReturnModel.empty();
   }
 
-  Future<void> _generateCardToken({
+  Future<PaymentReturnModel> _generateCardToken({
     required String number,
     required String cvv,
     required String expirationMonth,
@@ -74,19 +76,19 @@ class PaymentController extends Cubit<PaymentState> {
         holderDocument: holderDocument,
       );
       log('Token gerado e recebido no DART(generateCardToken): $token');
-      await createPaymentWithCard(token);
+      return await createPaymentWithCard(token);
     } catch (e) {
       log('Erro ao gerar token: $e');
       // Em caso de erro, trate e propague a exceção
-      rethrow;
+      return PaymentReturnModel.empty();
     }
   }
 
-  Future<void> createPaymentWithCard(String token) async {
+  Future<PaymentReturnModel> createPaymentWithCard(String token) async {
     try {
       if (userId == 0) {
         _showErrorDialog('Usuário não autenticado.');
-        return;
+        return PaymentReturnModel.empty();
       }
 
       final payment = PaymentModel(
@@ -98,27 +100,34 @@ class PaymentController extends Cubit<PaymentState> {
 
       final response = await apiService.createPaymentWithCard(payment);
       log('Pagamento via cartão de crédito criado: $response');
+      return PaymentReturnModel(success: true, data: "");
     } catch (e) {
       log('Erro ao criar pagamento: $e');
+      _showErrorDialog('Erro ao criar pagamento via cartão de crédito: $e');
+      return PaymentReturnModel.empty();
     }
   }
 
-  Future<void> _createPaymentWithPix(String token) async {
+  Future<PaymentReturnModel> _createPaymentWithPix(String token) async {
     try {
       final userId = UserHelper().user?.id;
 
       if (userId == null) {
         _showErrorDialog('Usuário não autenticado.');
-        return;
+        return PaymentReturnModel.empty();
       }
 
       final response = await apiService.createPaymentWithPix(
         userId: userId,
         planId: state.plan.id,
       );
-      log('Pagamento via pix criado: $response');
+      log('QrCode via pix criado: $response');
+      //  emit(state.copyWith(qrCode: response['qrCode']));
+      return PaymentReturnModel(success: true, data: response.pix);
     } catch (e) {
       log('Erro ao criar pagamento: $e');
+      _showErrorDialog('Erro ao criar pagamento via pix: $e');
+      return PaymentReturnModel.empty();
     }
   }
 }

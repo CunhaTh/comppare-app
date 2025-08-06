@@ -7,6 +7,7 @@ class PaymentState extends Equatable {
     required this.status,
     this.token,
     required this.paymentType,
+    this.qrCode,
   });
 
   PaymentState.initial()
@@ -16,6 +17,7 @@ class PaymentState extends Equatable {
           error: '',
           token: '',
           paymentType: EnumPaymentType.empty,
+          qrCode: '',
         );
 
   final PlanModel plan;
@@ -23,6 +25,7 @@ class PaymentState extends Equatable {
   final String error;
   final String? token;
   final EnumPaymentType paymentType;
+  final String? qrCode;
 
   PaymentState copyWith({
     String? error,
@@ -30,6 +33,7 @@ class PaymentState extends Equatable {
     String? token,
     PlanModel? plan,
     EnumPaymentType? paymentType,
+    String? qrCode,
   }) {
     return PaymentState(
       error: error ?? this.error,
@@ -37,6 +41,7 @@ class PaymentState extends Equatable {
       token: token ?? this.token,
       plan: plan ?? this.plan,
       paymentType: paymentType ?? this.paymentType,
+      qrCode: qrCode ?? this.qrCode,
     );
   }
 
@@ -47,5 +52,6 @@ class PaymentState extends Equatable {
         token ?? '',
         plan,
         paymentType,
+        qrCode ?? '',
       ];
 }
