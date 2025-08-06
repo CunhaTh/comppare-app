@@ -45,7 +45,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   final ApiService _apiService = ApiService(httpClient: http.Client());
   
   // Função para deletar imagens selecionadas
-  Future<void> deleteImageList() async {
+ /* Future<void> deleteImageList() async {
     final selectedImages = _imageItems?.where((image) => image.isSelected).toList() ?? [];
     if (selectedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,7 +106,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         _isLoading = false; // Adicione _isLoading como variável de estado se não existir
       });
     }
-  }
+  }*/
 
   Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
     try {
@@ -323,7 +323,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                               ),
                             ),
                           ),
-                          GestureDetector(
+                         /* GestureDetector(
                             onTap: () => deleteImageList(),
                             child: Padding(
                               padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
@@ -344,7 +344,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                 ],
                               ),
                             ),
-                          ),
+                          ),*/
                         ],
                       );
                     },
