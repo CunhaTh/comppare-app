@@ -644,7 +644,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
             ),
             ListTile(
               leading: const Icon(Icons.home),
-              title: const Text('Início'),
+              title: const Text('Dados do Usuário'),
               onTap: () {
                 Navigator.pop(context);
                 showDialog(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
@@ -38,8 +39,74 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
   List<ImageModel> allSelectedImages = [];
-
   List<ImageModel>? _imageItems;
+  bool _isLoading = true;
+
+  final ApiService _apiService = ApiService(httpClient: http.Client());
+  
+  // Função para deletar imagens selecionadas
+  Future<void> deleteImageList() async {
+    final selectedImages = _imageItems?.where((image) => image.isSelected).toList() ?? [];
+    if (selectedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione pelo menos uma imagem para deletar.')),
+      );
+      return;
+    }
+
+    // Confirmação
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: const Text('Tem certeza que deseja excluir as imagens selecionadas? Esta ação não poderá ser desfeita.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      _isLoading = true; // Adicione _isLoading como variável de estado se não existir
+    });
+
+    try {
+      // Deletar cada imagem na API
+      for (final image in selectedImages) {
+        await _apiService.deleteImage(image.id, selectedImages.first as int); // Substitua pelo método real da API
+      }
+
+      // Atualizar a lista local removendo as imagens deletadas
+      if (_imageItems != null) {
+        _imageItems!.removeWhere((image) => selectedImages.contains(image));
+      }
+
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Imagens deletadas com sucesso!')),
+      );
+    } catch (e) {
+      debugPrint('Erro ao deletar imagens: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao deletar imagens. Tente novamente.')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false; // Adicione _isLoading como variável de estado se não existir
+      });
+    }
+  }
 
   Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
     try {
@@ -256,6 +323,28 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                               ),
                             ),
                           ),
+                          GestureDetector(
+                            onTap: () => deleteImageList(),
+                            child: Padding(
+                              padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'delete',
+                                    style: TextStyle(fontSize: 17 * MediaQuery.of(context).textScaleFactor),
+                                  ),
+                                  SizedBox(width: isLargeScreen ? screenWidth * 0.012 : screenWidth * 0.017),
+                                  Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                    size: isLargeScreen ? screenWidth * 0.035 : screenWidth * 0.047,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       );
                     },
@@ -319,11 +408,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         ),
     };
 
-    Future<void> saveChanges(ImageModel updatedItem) async {
-  final prefs = await SharedPreferences.getInstance();
-  final tagKey = 'image_tags_${updatedItem.id}';
-  final existingTags = jsonDecode(prefs.getString(tagKey) ?? '{}') as Map<String, dynamic>? ?? {};
-  final updatedTags = {
+Future<void> saveChanges(ImageModel updatedItem) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tagKey = 'image_tags_${updatedItem.id}';
+    final existingTags = jsonDecode(prefs.getString(tagKey) ?? '{}') as Map<String, dynamic>? ?? {};
+    final updatedTags = {
     'Data': controllers['Data']?.text ?? updatedItem.date ?? '',
     'Peso': controllers['Peso']?.text ?? updatedItem.weight ?? '',
     'Série': controllers['Série']?.text ?? updatedItem.waist ?? '',
