@@ -653,7 +653,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
             end: Alignment.bottomRight,
             colors: [
               const Color(0xFFaed513).withValues(alpha: 0.1),
-              Colors.transparent,
+              Colors.white,
             ],
           ),
           borderRadius: BorderRadius.circular(16),
@@ -661,6 +661,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
             color: const Color(0xFFaed513).withValues(alpha: 0.3),
             width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -703,7 +710,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   const Text(
                     'Criar Novo Álbum',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Colors.black,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -712,7 +719,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   Text(
                     'Organize suas fotos em álbuns personalizados',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       fontSize: 14,
                     ),
                   ),
@@ -732,12 +739,19 @@ class _PrincipalPageState extends State<PrincipalPage> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[900],
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.grey[800]!,
+              color: Colors.grey[300]!,
               width: 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: TextField(
             onChanged: (value) {
@@ -745,16 +759,16 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 _searchQuery = value;
               });
             },
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(color: Colors.black, fontSize: 16),
             decoration: InputDecoration(
               hintText: 'Buscar álbuns...',
               hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 fontSize: 16,
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 size: 20,
               ),
               border: InputBorder.none,
@@ -787,20 +801,20 @@ class _PrincipalPageState extends State<PrincipalPage> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.grey[900],
+              color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.photo_library_outlined,
               size: 64,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Colors.black.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 24),
           Text(
             'Nenhum álbum encontrado',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: Colors.black.withValues(alpha: 0.8),
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
@@ -810,7 +824,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
             'Crie seu primeiro álbum para começar\na organizar suas fotos',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: Colors.black.withValues(alpha: 0.6),
               fontSize: 16,
             ),
           ),
@@ -847,16 +861,16 @@ class _PrincipalPageState extends State<PrincipalPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.grey[800]!,
+          color: Colors.grey[300]!,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 4,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -906,7 +920,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                             ? folder.pageDisplayName
                             : 'Pasta sem nome',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Colors.black,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -915,7 +929,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       Text(
                         'Clique para visualizar',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           fontSize: 14,
                         ),
                       ),
@@ -957,13 +971,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
       child: ListTile(
         leading: Icon(
           icon,
-          color: isDestructive ? Colors.red : Colors.white,
+          color: isDestructive ? Colors.red : Colors.black,
           size: 24,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isDestructive ? Colors.red : Colors.white,
+            color: isDestructive ? Colors.red : Colors.black,
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -988,9 +1002,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
     return Scaffold(
       floatingActionButton: const ChatButton(),
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFaed513),
+        backgroundColor: Colors.white,
         elevation: 0,
         title: GestureDetector(
           onTap: () {
@@ -1045,7 +1059,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         child: Text(
                           'Álbuns Criados',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1061,7 +1075,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
             ),
       drawer: Drawer(
         child: Container(
-          color: Colors.black,
+          color: Colors.white,
           child: ListView(
             padding: EdgeInsets.zero,
             children: <Widget>[
@@ -1219,7 +1233,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         );
                       },
                     ),
-                    const Divider(color: Colors.grey),
+                    Divider(color: Colors.grey[400]),
                     _buildDrawerItem(
                       icon: Icons.exit_to_app,
                       title: 'Sair',
