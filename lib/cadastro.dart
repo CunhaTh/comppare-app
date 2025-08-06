@@ -1,11 +1,13 @@
 import 'dart:developer';
 
+import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'helpers/helpers.dart';
 import 'infra/api_endponts.dart';
 import 'infra/user_helper.dart'; // Importa o UserHelper (agora com a classe User)
 
@@ -110,38 +112,38 @@ class CadastroScreenState extends State<CadastroScreen> {
 
     try {
       log('URL BASE PARA CADASTRO: ${ApiEndpoints.baseUrl}/usuarios/cadastrar');
-      // final response = await http.post(
-      //   Uri.parse('$_baseUrl/usuarios/cadastrar'),
-      //   headers: {"Content-Type": "application/json"},
-      //   body: jsonEncode({
-      //     "primeiroNome": nome,
-      //     "sobrenome": sobrenome,
-      //     "apelido": apelido,
-      //     "cpf": cpf,
-      //     "nascimento": nascimento,
-      //     "email": email,
-      //     "senha": senha,
-      //     "telefone": telefone,
-      //     //"idPlano": widget.idPlano,
-      //     "idPlano": 1,
-      //   }),
-      // );
+      final response = await http.post(
+        Uri.parse('${ApiEndpoints.baseUrl}/usuarios/cadastrar'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "primeiroNome": nome,
+          "sobrenome": sobrenome,
+          "apelido": apelido,
+          "cpf": cpf,
+          "nascimento": nascimento,
+          "email": email,
+          "senha": senha,
+          "telefone": telefone,
+          //"idPlano": widget.idPlano,
+          "idPlano": 1,
+        }),
+      );
 
-      // if (response.statusCode > 200 && response.statusCode < 300) {
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const LoginScreen()),
-      //   );
-      //   appSnackBar(
-      //     context: context,
-      //     message: 'Cadastro realizado com sucesso',
-      //   );
-      // } else {
-      //   appSnackBar(
-      //     context: context,
-      //     message: 'Erro ao cadastrar usuário',
-      //   );
-      // }
+      if (response.statusCode > 200 && response.statusCode < 300) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+        appSnackBar(
+          context: context,
+          message: 'Cadastro realizado com sucesso',
+        );
+      } else {
+        appSnackBar(
+          context: context,
+          message: 'Erro ao cadastrar usuário, tente novamente mais tarde',
+        );
+      }
 
       ///TODO(Abimael): Verificar este fluxo com o Andrew - Sugestão para criar o usuário inicialmente setando com plano gratúito
       // if (response.statusCode == 200) {
@@ -349,7 +351,7 @@ class CadastroScreenState extends State<CadastroScreen> {
     //   //_showNoPlanSelectedDialog();
     //   return;
     // }
-
+    print("PASSOU PELO mounted");
     String nome = _nameController.text.trim();
     String sobrenome = _surnameController.text.trim();
     String apelido = _nicknameController.text.trim();
@@ -417,14 +419,17 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
 
     try {
-      final cpfExiste = await _checarExistenciaCpf(cpf);
-      if (cpfExiste) {
-        _showErrorDialog('Usuário já cadastrado com este CPF!');
-        setState(() => _isLoading = false);
-      } else {
-        await _cadastrarUsuario(
-            nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
-      }
+      ///TODO(Abimael): Conversando com o Luiz ele falou que o endpoint de validação de usuário não está mais em uso
+      // final cpfExiste = await _checarExistenciaCpf(cpf);
+      // if (cpfExiste) {
+      //   _showErrorDialog('Usuário já cadastrado com este CPF!');
+      //   setState(() => _isLoading = false);
+      // } else {
+
+      // }
+
+      await _cadastrarUsuario(
+          nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
       setState(() => _isLoading = false);

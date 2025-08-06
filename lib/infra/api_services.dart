@@ -294,6 +294,7 @@ class ApiService {
   Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
     final url = Uri.parse(
         '${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
+    log("URL DA SUBPASTA em fetchSubfolders: $url");
     final response = await _sendRequest(
       () => _httpClient.get(url, headers: _getHeaders()),
       successMessage: 'Subpastas carregadas com sucesso.',
@@ -548,7 +549,7 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> createPaymentWithPix({
+  Future<PaymentPixReturnModel> createPaymentWithPix({
     required int userId,
     required int planId,
   }) async {
@@ -558,7 +559,7 @@ class ApiService {
           'plano': planId,
         })}");
 
-    return _sendRequest(
+    final response = await _sendRequest(
       () => _httpClient.post(
         url,
         headers: _getHeaders(includeContentType: true),
@@ -570,5 +571,7 @@ class ApiService {
       successMessage: 'Pix enviado com sucesso.',
       errorMessage: 'Falha ao enviar pix.',
     );
+
+    return PaymentPixReturnModel.fromMap(response);
   }
 }
