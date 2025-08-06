@@ -381,83 +381,264 @@ class _PrincipalPageState extends State<PrincipalPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             bool isDialogLoading = false;
 
-            return AlertDialog(
-              title: const Text('Criar Novo Álbum'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: folderNameController,
-                    decoration:
-                        const InputDecoration(hintText: "Nome do Álbum"),
-                    enabled: !isDialogLoading,
-                  ),
-                  if (isDialogLoading)
-                    // ignore: dead_code
-                    const Padding(
-                      padding: EdgeInsets.only(top: 16.0),
-                      child: CircularProgressIndicator(),
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 400,
+                  minWidth: 320,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFaed513).withValues(alpha: 0.3),
+                      width: 1,
                     ),
-                ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFaed513)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.add_photo_alternate,
+                              color: Color(0xFFaed513),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Criar Novo Álbum',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Dê um nome para seu álbum',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Input Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey[700]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: TextField(
+                          controller: folderNameController,
+                          enabled: !isDialogLoading,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Ex: Minhas Férias 2024',
+                            hintStyle: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 16,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.folder,
+                              color: Colors.white.withValues(alpha: 0.7),
+                              size: 20,
+                            ),
+                          ),
+                          onSubmitted: (value) async {
+                            if (!isDialogLoading && value.trim().isNotEmpty) {
+                              await _handleCreateAlbum(setDialogState,
+                                  dialogContext, isDialogLoading);
+                            }
+                          },
+                        ),
+                      ),
+
+                      if (isDialogLoading) ...[
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFaed513)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Criando álbum...',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
+
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: isDialogLoading
+                                  ? null
+                                  : () {
+                                      folderNameController.clear();
+                                      Navigator.of(dialogContext).pop();
+                                    },
+                              style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Cancelar',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: isDialogLoading
+                                  ? null
+                                  : () async {
+                                      await _handleCreateAlbum(setDialogState,
+                                          dialogContext, isDialogLoading);
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFaed513),
+                                foregroundColor: Colors.black,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                isDialogLoading ? 'Criando...' : 'Criar Álbum',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              actions: [
-                TextButton(
-                  // ignore: dead_code
-                  onPressed: isDialogLoading
-                      ? null
-                      : () {
-                          folderNameController.clear();
-                          Navigator.of(dialogContext).pop();
-                        },
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  // ignore: dead_code
-                  onPressed: isDialogLoading
-                      ? null
-                      : () async {
-                          String folderName = folderNameController.text.trim();
-                          if (folderName.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Por favor, insira um nome para o álbum.')),
-                            );
-                            return;
-                          }
-
-                          setDialogState(() {
-                            isDialogLoading = true;
-                          });
-
-                          try {
-                            await _addFolder(folderName);
-                            if (context.mounted) {
-                              Navigator.of(dialogContext).pop();
-                            }
-                          } catch (e) {
-                            debugPrint('Erro no modal de criar álbum: $e');
-                          } finally {
-                            if (context.mounted) {
-                              setDialogState(() {
-                                isDialogLoading = false;
-                              });
-                            }
-                          }
-                        },
-                  child: const Text('Salvar'),
-                ),
-              ],
             );
           },
         );
       },
     );
+  }
+
+  // Helper method for creating album
+  Future<void> _handleCreateAlbum(Function setDialogState,
+      BuildContext dialogContext, bool isDialogLoading) async {
+    String folderName = folderNameController.text.trim();
+    if (folderName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, insira um nome para o álbum.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setDialogState(() {
+      isDialogLoading = true;
+    });
+
+    try {
+      await _addFolder(folderName);
+      if (context.mounted) {
+        Navigator.of(dialogContext).pop();
+        folderNameController.clear();
+      }
+    } catch (e) {
+      debugPrint('Erro no modal de criar álbum: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao criar álbum: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (context.mounted) {
+        setDialogState(() {
+          isDialogLoading = false;
+        });
+      }
+    }
   }
 
   // Header Section - Create Album Button
@@ -568,12 +749,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
             decoration: InputDecoration(
               hintText: 'Buscar álbuns...',
               hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 16,
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 size: 20,
               ),
               border: InputBorder.none,
@@ -612,14 +793,14 @@ class _PrincipalPageState extends State<PrincipalPage> {
             child: Icon(
               Icons.photo_library_outlined,
               size: 64,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 24),
           Text(
             'Nenhum álbum encontrado',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
@@ -629,7 +810,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
             'Crie seu primeiro álbum para começar\na organizar suas fotos',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               fontSize: 16,
             ),
           ),
@@ -674,7 +855,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -704,12 +885,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFaed513).withOpacity(0.1),
+                    color: const Color(0xFFaed513).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.folder,
-                    color: const Color(0xFFaed513),
+                    color: Color(0xFFaed513),
                     size: 24,
                   ),
                 ),
@@ -734,7 +915,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       Text(
                         'Clique para visualizar',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 14,
                         ),
                       ),
@@ -747,7 +928,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   onPressed: () => _confirmAndDeleteFolder(folder),
                   icon: Icon(
                     Icons.delete_outline,
-                    color: Colors.red.withOpacity(0.8),
+                    color: Colors.red.withValues(alpha: 0.8),
                     size: 20,
                   ),
                   tooltip: 'Excluir álbum',
@@ -906,7 +1087,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
@@ -932,7 +1113,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
                                     Text(
                                       'Bem-vindo de volta!',
                                       style: TextStyle(
-                                        color: Colors.black.withOpacity(0.7),
+                                        color:
+                                            Colors.black.withValues(alpha: 0.7),
                                         fontSize: 14,
                                       ),
                                     ),
@@ -959,7 +1141,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -968,9 +1150,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.star,
-                              color: const Color(0xFFaed513),
+                              color: Color(0xFFaed513),
                               size: 16,
                             ),
                             const SizedBox(width: 6),
