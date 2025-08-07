@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../controllers/controller.dart';
@@ -692,18 +693,87 @@ class _PagamentoPageState extends State<PagamentoPage>
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Código PIX: $_qrCodeData',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  fontFamily: 'monospace',
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  width: 1,
                 ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Código PIX:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _qrCodeData!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFaed513).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFaed513).withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: _qrCodeData!));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                    'Código PIX copiado para a área de transferência!'),
+                              ],
+                            ),
+                            backgroundColor: Color(0xFFaed513),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.copy,
+                        color: Color(0xFFaed513),
+                        size: 20,
+                      ),
+                      tooltip: 'Copiar código PIX',
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
