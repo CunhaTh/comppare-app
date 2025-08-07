@@ -11,6 +11,33 @@ import '../models/models.dart';
 import '../principal.dart';
 import '../services/efipay_service.dart';
 
+// Formatter para data de validade do cartão
+class ExpiryDateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Remove todos os caracteres não numéricos
+    String text = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Limita a 4 dígitos
+    if (text.length > 4) {
+      text = text.substring(0, 4);
+    }
+
+    // Aplica a máscara MM/AAAA
+    if (text.length >= 2) {
+      text = '${text.substring(0, 2)}/${text.substring(2)}';
+    }
+
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
+
 class PagamentoPage extends StatefulWidget {
   final PlanModel plano;
 
@@ -508,7 +535,8 @@ class _PagamentoPageState extends State<PagamentoPage>
                 label: 'Validade',
                 hint: 'MM/AAAA',
                 icon: Icons.calendar_today,
-                keyboardType: TextInputType.datetime,
+                keyboardType: TextInputType.number,
+                inputFormatters: [ExpiryDateFormatter()],
               ),
             ),
             const SizedBox(width: 12),
