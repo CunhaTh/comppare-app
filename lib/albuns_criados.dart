@@ -294,7 +294,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
   void _navigateToLogin() {
     if (!mounted) return;
-    TokenHelper().clearToken();
+    TokenHelper().clear();
     UserHelper().removeUser();
     Navigator.pushAndRemoveUntil(
       context,
@@ -302,6 +302,8 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       (Route<dynamic> route) => false,
     );
   }
+
+  
 
   void _showAddSubalbumDialog() {
     if (!mounted) return;
@@ -374,11 +376,9 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                     child: const Text('Cancelar'),
                   ),
                   ElevatedButton(
-                    onPressed: isDialogLoading
-                        ? null
-                        : () async {
-                            final subalbumName =
-                                _subalbumNameController.text.trim();
+                    child: const Text('Salvar'),
+                    onPressed: isDialogLoading ? null : () async {
+                            final subalbumName = _subalbumNameController.text.trim();
                             if (subalbumName.isEmpty) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -408,7 +408,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                             } catch (e) {
                               debugPrint('Erro no modal de criar subálbum: $e');
                               if (mounted) {
-                                _showErrorDialog('Falha ao criar subpasta: $e');
+                                _showErrorDialog('Você atingiu o limite de supálbuns criados: $e');
                               }
                             } finally {
                               if (context.mounted) {
@@ -416,7 +416,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                               }
                             }
                           },
-                    child: const Text('Salvar'),
+                    
                   ),
                 ],
               );
@@ -447,7 +447,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     devtools.debugPrint(
         'FilePickerHelper retornou ${pickedFiles.length} PickedFileItems');
 
-    final int userId = TokenHelper().userId;
+    final int? userId = TokenHelper().userId;
     if (!TokenHelper().hasToken() || userId == 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -613,12 +613,11 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.black, size: 24),
+            icon: const Icon(Icons.home, color: Colors.black, size: 24),
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(
-                    builder: (context) => const main_app.MyHomePage(title: '')),
+                MaterialPageRoute(builder: (context) => const PrincipalPage()),
                 (Route<dynamic> route) => false,
               );
             },
@@ -927,7 +926,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                 Row(
                   children: [
                     Text(
-                      '+ tags',
+                      '+ Categorias',
                       style: TextStyle(
                         color: Colors.black.withValues(alpha: 0.7),
                         fontSize: 14,
@@ -1047,7 +1046,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         title: const Text(
-          'Adicionar Tag',
+          'Categorias',
           style: TextStyle(color: Colors.black),
         ),
         content: Container(
@@ -1057,7 +1056,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
             border: Border.all(color: Colors.grey[300]!),
           ),
           child: DropdownButton<String>(
-            hint: const Text('Selecione uma tag'),
+            hint: const Text('Selecione uma categoria'),
             value: null,
             isExpanded: true,
             underline: const SizedBox(),

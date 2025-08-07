@@ -31,7 +31,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     final String? token = TokenHelper().token;
-    final int userId = TokenHelper().userId;
+    final int? userId = TokenHelper().userId;
     User? userFromHelper = UserHelper().user;
 
     // Condição de autenticação:
@@ -50,7 +50,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       // Se qualquer parte da autenticação estiver faltando ou inconsistente,
       // limpa todos os dados e redireciona para a tela de login.
       debugPrint('AuthWrapper: Autenticação falhou ou inconsistente. Limpando dados e redirecionando para login.');
-      await TokenHelper().clearToken();
+      await TokenHelper().clear();
       await UserHelper().removeUser();
       if (mounted) {
         Navigator.pushReplacement(

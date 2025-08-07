@@ -1,29 +1,24 @@
-// lib/principal.dart
-
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:application_progress/albuns_criados.dart'; // Importa a AlbunsCriadosPage
+import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/chat_button.dart';
 import 'package:application_progress/dialog_ranking.dart';
 import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
-
-// IMPORTAÇÕES CORRETAS DOS MODELOS
-import 'package:application_progress/models/folder_model.dart'; // Para o modelo Folder
+import 'package:application_progress/main.dart' as main_app;
+import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/views/plans_page.dart';
 import 'package:application_progress/views/tag_page.dart';
 import 'package:application_progress/views/user_dashboard.dart';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as foundation;
 import 'package:http/http.dart' as http;
-
 import 'package:application_progress/infra/api_exception.dart';
-
-import 'infra/api_endponts.dart';
-import 'models/plan_model.dart';
+import 'package:application_progress/infra/api_endponts.dart';
+import 'package:application_progress/models/plan_model.dart';
 
 class PrincipalPage extends StatefulWidget {
   const PrincipalPage({super.key});
@@ -38,11 +33,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
   final TextEditingController folderNameController = TextEditingController();
   bool _isLoading = true;
   int? selectedQuestionIndex;
-  bool isLoading = false; // Para outras operações, se aplicável
+  bool isLoading = false;
   List<PlanModel> plans = [];
   bool showMonthlyPlans = true;
   Map<int, bool> selectedPlans = {};
-  bool isPlansLoading = true; // Novo estado para carregamento de planos
+  bool isPlansLoading = true;
+  int? _selectedFolderId;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
@@ -51,13 +47,60 @@ class _PrincipalPageState extends State<PrincipalPage> {
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus(); // Verifica o status de login ao iniciar
     _fetchPlansAsync();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _fetchFoldersFromApiAndRefreshState();
+    if (!_isLoading) {
+      _fetchFoldersFromApiAndRefreshState();
+    }
+  }
+
+  Future<void> _checkLoginStatus() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await TokenHelper().init(); // Inicializa o TokenHelper
+      await UserHelper().init(); // Inicializa o UserHelper
+
+      final token = TokenHelper().token;
+      final user = UserHelper().user;
+
+      if (token != null && token.isNotEmpty && user != null) {
+        // Token e usuário válidos, restaura o estado
+        await _apiService.refreshTokenIfNeeded(); // Renova token se necessário
+        if (user.pastas?.isNotEmpty ?? false) {
+          setState(() {
+            _folders = user.pastas ?? [];
+            _selectedFolderId = user.pastas!.first.id;
+          });
+        }
+        await _fetchFoldersFromApiAndRefreshState(); // Sincroniza com a API
+      } else {
+        // Nenhum token ou usuário, redireciona para login
+        _navigateToLogin();
+      }
+    } catch (e) {
+      foundation.debugPrint('Erro ao verificar status de login: $e');
+      _navigateToLogin();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _selectFolder(int folderId) {
+    setState(() {
+      _selectedFolderId = folderId;
+    });
   }
 
   Future<void> _fetchPlansAsync() async {
@@ -65,7 +108,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       isPlansLoading = true;
     });
     try {
-      await fetchPlans(); // Aguarda a população de plans
+      await fetchPlans();
     } finally {
       setState(() {
         isPlansLoading = false;
@@ -93,10 +136,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 orElse: () => plans.first)
             : plans.first;
       } else {
-        print("Erro ao buscar planos: ${response.reasonPhrase}");
+        foundation.debugPrint("Erro ao buscar planos: ${response.reasonPhrase}");
       }
     } catch (e) {
-      print("Erro ao buscar planos: $e");
+      foundation.debugPrint("Erro ao buscar planos: $e");
     } finally {
       setState(() {
         isLoading = false;
@@ -106,7 +149,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   void _navigateToSubscription() {
     if (plans.isEmpty) {
-      print('Nenhum plano disponível. Tente novamente mais tarde.');
+      foundation.debugPrint('Nenhum plano disponível. Tente novamente mais tarde.');
       return;
     }
 
@@ -118,25 +161,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  /*void _addTagList() {
-    if (plans.isEmpty) {
-      print('Nenhum plano disponível. Tente novamente mais tarde.');
-      return;
-    }
-    final currentPlan = UserHelper().user?.idPlano != null
-        ? plans.firstWhere((p) => p.id == UserHelper().user!.idPlano,
-            orElse: () => plans.first)
-        : plans.first;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => SubscriptionPage(initialPlan: plans.first, availablePlans: plans)),
-    );
-  }*/
-
   Future<void> _addFolder(String folderName) async {
     final user = UserHelper().user;
     if (user == null || user.id == null || user.nome == null) {
-      debugPrint(
+      foundation.debugPrint(
           '[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
       _showErrorDialog(
           'Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
@@ -146,7 +174,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
     try {
       final String folderNameForApi = folderName.trim();
-      debugPrint(
+      foundation.debugPrint(
           '[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
 
       final response = await _apiService.createFolder(
@@ -154,63 +182,47 @@ class _PrincipalPageState extends State<PrincipalPage> {
         folderName: folderNameForApi,
         parentFolderId: null,
       );
-      debugPrint(
+      foundation.debugPrint(
           '[_addFolder] Resposta bruta da API: ${json.encode(response)}');
-      debugPrint(
-          '[_addFolder] Campos da resposta: ${response.keys.join(', ')}');
-      debugPrint(
-          '[_addFolder] Pasta criada com sucesso, resposta: ${json.encode(response)}');
 
       if (mounted) {
-        // Usar diretamente os valores da resposta da API
         final folderId = response['pasta_id'] as int? ?? 0;
         final folderNameFromApi =
             response['pasta_nome'] as String? ?? folderNameForApi;
         final folderPath = response['pasta_caminho'] as String?;
-        final folderType = response['tipo'] as String?;
         final folderStructure =
             response['estrutura_completa'] as String? ?? folderNameFromApi;
 
         final folderToAdd = Folder(
           id: folderId,
-          nome: folderNameFromApi, // Prioriza o nome da API
+          nome: folderNameFromApi,
           caminho: folderPath!,
-          principalPageDisplayName:
-              folderStructure, // Usa estrutura_completa para exibição
+          principalPageDisplayName: folderStructure,
           idPastaPai: null,
           imagens: [],
           tags: [],
           subpastas: [],
         );
 
-        // Atualiza a UI imediatamente com o novo folder
         setState(() {
           _folders.add(folderToAdd);
         });
-        debugPrint(
-            '[_addFolder] Folder adicionado: id=${folderToAdd.id}, nome=${folderToAdd.nome}');
 
-        // Atualiza a lista completa para sincronizar com os dados reais
-        if (mounted) {
-          try {
-            await _fetchFoldersFromApiAndRefreshState();
-            folderNameController.clear();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('Álbum "$folderName" criado com sucesso!')),
-            );
-            debugPrint(
-                '[_addFolder] Lista atualizada com sucesso via _fetchFoldersFromApiAndRefreshState');
-          } catch (e) {
-            debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
-            if (mounted) {
-              _showErrorDialog('Erro ao atualizar a lista de álbuns.');
-            }
+        try {
+          await _fetchFoldersFromApiAndRefreshState();
+          folderNameController.clear();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
+          );
+        } catch (e) {
+          foundation.debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
+          if (mounted) {
+            _showErrorDialog('Erro ao atualizar a lista de álbuns.');
           }
         }
       }
     } catch (e) {
-      debugPrint('[_addFolder] Erro ao criar álbum: $e');
+      foundation.debugPrint('[_addFolder] Erro ao criar álbum: $e');
       if (e is ApiException && mounted) {
         _showErrorDialog('Falha ao criar o álbum: ${e.message}');
         if (e.statusCode == 401) {
@@ -225,43 +237,40 @@ class _PrincipalPageState extends State<PrincipalPage> {
     setState(() {
       _isLoading = true;
     });
-    debugPrint('PRINT do setState e mounted no Inicio da _fetch: $mounted');
 
-    debugPrint(
+    foundation.debugPrint(
         'PrincipalPage: Token no início de _fetchFoldersFromApiAndRefreshState: ${TokenHelper().token}');
 
     try {
       final user = UserHelper().user;
       if (user == null || user.id == null) {
-        debugPrint('Usuário não autenticado. Redirecionando para login.');
+        foundation.debugPrint('Usuário não autenticado. Redirecionando para login.');
         _navigateToLogin();
         return;
       }
 
-      // Recarrega as pastas do UserHelper atualizado
       final List<Folder> updatedFolders =
           await _apiService.getAllFoldersForUser();
       if (mounted) {
         setState(() {
           _folders = updatedFolders;
-          debugPrint('Pastas atualizadas do UserHelper: ${_folders.length}');
-          debugPrint('PRINT do setState e mounted Na classe FOLDER : $mounted');
+          if (_folders.isNotEmpty && _selectedFolderId == null) {
+            _selectedFolderId = _folders.first.id;
+          }
         });
       }
     } on ApiException catch (e) {
-      debugPrint('Erro ao atualizar pastas da API: ${e.message}');
+      foundation.debugPrint('Erro ao atualizar pastas da API: ${e.message}');
       if (mounted) {
-        _showErrorDialog(
-            'Não foi possível atualizar seus álbuns. ${e.message}');
+        _showErrorDialog('Não foi possível atualizar seus álbuns. ${e.message}');
         if (e.statusCode == 401) {
           _navigateToLogin();
         }
       }
     } catch (e) {
-      debugPrint('Erro inesperado ao atualizar pastas da API: $e');
+      foundation.debugPrint('Erro inesperado ao atualizar pastas da API: $e');
       if (mounted) {
-        _showErrorDialog(
-            'Ocorreu um erro inesperado ao atualizar seus álbuns.');
+        _showErrorDialog('Ocorreu um erro inesperado ao atualizar seus álbuns.');
       }
     } finally {
       if (mounted) {
@@ -309,7 +318,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
         await _apiService.deleteFolder(user.id!, folder.id);
 
         if (mounted) {
-          // Remove o folder da lista local imediatamente
           setState(() {
             _folders.removeWhere((f) => f.id == folder.id);
           });
@@ -318,11 +326,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 content: Text(
                     'Pasta "${folder.principalPageDisplayName}" excluída com sucesso!')),
           );
-          // Sincroniza com a API para garantir consistência
           await _fetchFoldersFromApiAndRefreshState();
         }
       } on ApiException catch (e) {
-        debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
+        foundation.debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
         if (mounted) {
           _showErrorDialog('Não foi possível excluir a pasta: ${e.message}');
           if (e.statusCode == 401) {
@@ -330,7 +337,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
           }
         }
       } catch (e) {
-        debugPrint('Erro inesperado em _confirmAndDeleteFolder: $e');
+        foundation.debugPrint('Erro inesperado em _confirmAndDeleteFolder: $e');
         if (mounted) {
           _showErrorDialog('Ocorreu um erro inesperado ao excluir a pasta.');
         }
@@ -368,7 +375,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   void _navigateToLogin() {
     if (!mounted) return;
-    TokenHelper().clearToken();
+    TokenHelper().clear();
     UserHelper().removeUser();
     Navigator.pushAndRemoveUntil(
       context,
@@ -414,7 +421,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Header
                       Row(
                         children: [
                           Container(
@@ -457,8 +463,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         ],
                       ),
                       const SizedBox(height: 24),
-
-                      // Input Field
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.grey[800],
@@ -500,7 +504,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                           },
                         ),
                       ),
-
+                      // ignore: dead_code
                       if (isDialogLoading) ...[
                         const SizedBox(height: 20),
                         Row(
@@ -526,10 +530,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                           ],
                         ),
                       ],
-
                       const SizedBox(height: 24),
-
-                      // Actions
                       Row(
                         children: [
                           Expanded(
@@ -598,7 +599,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Helper method for creating album
   Future<void> _handleCreateAlbum(Function setDialogState,
       BuildContext dialogContext, bool isDialogLoading) async {
     String folderName = folderNameController.text.trim();
@@ -623,7 +623,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
         folderNameController.clear();
       }
     } catch (e) {
-      debugPrint('Erro no modal de criar álbum: $e');
+      foundation.debugPrint('Erro no modal de criar álbum: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -641,7 +641,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     }
   }
 
-  // Header Section - Create Album Button
   Widget _buildHeaderSection() {
     return GestureDetector(
       onTap: _showAModal,
@@ -671,7 +670,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
         ),
         child: Row(
           children: [
-            // Create Album Button
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFaed513),
@@ -701,8 +699,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
               ),
             ),
             const SizedBox(width: 20),
-
-            // Text Section
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -732,7 +728,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Search Section
   Widget _buildSearchSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,7 +778,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Albums Section
   Widget _buildAlbumsSection() {
     return Expanded(
       child: _folders.isEmpty && !_isLoading
@@ -792,7 +786,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Empty State
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -833,7 +826,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Albums List
   Widget _buildAlbumsList() {
     final filteredFolders = _folders.where((folder) {
       if (_searchQuery.isEmpty) return true;
@@ -856,7 +848,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Album Card
   Widget _buildAlbumCard(Folder folder) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -895,7 +886,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Album Icon
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -909,8 +899,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   ),
                 ),
                 const SizedBox(width: 16),
-
-                // Album Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -936,8 +924,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     ],
                   ),
                 ),
-
-                // Delete Button
                 IconButton(
                   onPressed: () => _confirmAndDeleteFolder(folder),
                   icon: Icon(
@@ -955,7 +941,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Drawer Item Helper
   Widget _buildDrawerItem({
     required IconData icon,
     required String title,
@@ -1025,9 +1010,16 @@ class _PrincipalPageState extends State<PrincipalPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black, size: 24),
-            onPressed: _fetchFoldersFromApiAndRefreshState,
-            tooltip: 'Atualizar álbuns',
+            icon: const Icon(Icons.exit_to_app, color: Colors.black, size: 24),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => main_app.MyHomePage(title: '')),
+                (Route<dynamic> route) => false,
+              );
+            },
+            tooltip: 'Sair',
           ),
         ],
       ),
@@ -1044,14 +1036,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     horizontal: 20.0, vertical: 16.0),
                 child: Column(
                   children: [
-                    // Header Section
                     _buildHeaderSection(),
                     const SizedBox(height: 32),
-
-                    // Search Section
                     _buildSearchSection(),
                     const SizedBox(height: 24),
-
                     const SizedBox(
                       width: double.infinity,
                       child: Align(
@@ -1067,7 +1055,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Albums Section
                     _buildAlbumsSection(),
                   ],
                 ),
@@ -1079,7 +1066,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: <Widget>[
-              // Header
               Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFaed513),
@@ -1141,7 +1127,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         ],
                       ),
                     ),
-                    // Plan Badge
                     Positioned(
                       right: 16,
                       bottom: 16,
@@ -1185,8 +1170,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
                   ],
                 ),
               ),
-
-              // Menu Items
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Column(
@@ -1224,12 +1207,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     ),
                     _buildDrawerItem(
                       icon: Icons.tag,
-                      title: 'Tags',
+                      title: 'Categorias',
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const CreateTagsPage()),
+                              builder: (_) => CreateTagsPage()),
                         );
                       },
                     ),
@@ -1238,7 +1221,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       icon: Icons.exit_to_app,
                       title: 'Sair',
                       onTap: () async {
-                        await TokenHelper().clearToken();
+                        await TokenHelper().clear();
                         await UserHelper().removeUser();
                         _navigateToLogin();
                       },

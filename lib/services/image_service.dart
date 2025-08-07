@@ -47,7 +47,7 @@ class ImageService {
     required String folderName,
     required List<String> tags, // Tags são passadas, mas a implementação do ApiService pode ignorá-las se o backend não suportar para pastas
   }) async {
-    final int currentUserId = TokenHelper().userId;
+    final int? currentUserId = TokenHelper().userId;
     if (!TokenHelper().hasToken() || currentUserId == 0) {
       throw ApiException('Usuário não autenticado ou ID de usuário inválido para criar pasta.', statusCode: 401);
     }
@@ -55,7 +55,7 @@ class ImageService {
     try {
       // ⭐ Delega para o ApiService, que deve lidar com o endpoint e a lógica de criação de pasta.
       // Assumindo que ApiService.createFolder recebe userId e folderName e retorna um Map.
-      final response = await _apiService.createFolder(parentFolderId: currentUserId, idUsuario: currentUserId, folderName: folderName, );
+      final response = await _apiService.createFolder(parentFolderId: currentUserId, idUsuario: currentUserId!, folderName: folderName, );
       
       // O ApiService já deve ter tratado a resposta HTTP e lançado ApiException para erros.
       // Aqui, esperamos que 'response' seja o corpo decodificado da resposta,
@@ -79,7 +79,7 @@ class ImageService {
   /// Recupera os detalhes de uma pasta específica (incluindo suas imagens).
   /// Este método é para a "Tela de Subpastas" para carregar o conteúdo da pasta selecionada.
   Future<List<Folder>> fetchFolderDetails() async {
-    final int currentUserId = TokenHelper().userId;
+    final int? currentUserId = TokenHelper().userId;
     if (!TokenHelper().hasToken() || currentUserId == 0) {
       throw ApiException('Usuário não autenticado para buscar detalhes da pasta.', statusCode: 401);
     }
@@ -99,7 +99,7 @@ class ImageService {
   /// e não deve receber `idFolder`, pois busca todas as pastas do usuário.
   /// ⭐ AJUSTE: Removido o parâmetro `idFolder` que era redundante para "todas as pastas".
   Future<List<Folder>> fetchAllFolders() async {
-    final int currentUserId = TokenHelper().userId;
+    final int? currentUserId = TokenHelper().userId;
     if (!TokenHelper().hasToken() || currentUserId == 0) {
       throw ApiException('Usuário não autenticado para listar pastas.', statusCode: 401);
     }
@@ -116,14 +116,14 @@ class ImageService {
 
   /// Exclui uma pasta e todo o seu conteúdo.
   Future<void> deleteFolder(int folderId) async {
-    final int currentUserId = TokenHelper().userId;
+    final int? currentUserId = TokenHelper().userId;
     if (!TokenHelper().hasToken() || currentUserId == 0) {
       throw ApiException('Usuário não autenticado para excluir pasta.', statusCode: 401);
     }
 
     try {
       // ⭐ Delega para o ApiService, que deve ter o método deleteFolder
-      await _apiService.deleteFolder(currentUserId, folderId);
+      await _apiService.deleteFolder(currentUserId!, folderId);
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -136,7 +136,7 @@ class ImageService {
     required List<PickedFileItem> images,
     required int folderId,
   }) async {
-    final int currentUserId = TokenHelper().userId;
+    final int? currentUserId = TokenHelper().userId;
     if (!TokenHelper().hasToken() || currentUserId == 0) {
       throw ApiException('Usuário não autenticado para fazer upload de imagens.', statusCode: 401);
     }

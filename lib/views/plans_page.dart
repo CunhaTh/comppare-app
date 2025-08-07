@@ -470,7 +470,7 @@ class PlanCard extends StatelessWidget {
                       _buildFeature('📸 ${plan.quantidadeFotos} fotos',
                           Icons.photo_library),
                       _buildFeature(
-                          '🏷️ ${plan.quantidadeTags} tags', Icons.label),
+                          '🏷️ ${plan.quantidadeTags} categorias', Icons.label),
                       _buildFeature(
                           '📁 ${plan.quantidadePastas} pastas', Icons.folder),
                       _buildFeature('👥 ${plan.quantidadeConvites} convites',

@@ -20,7 +20,7 @@ class AlbumState extends ChangeNotifier {
     _isLoading = true;
     notifyListeners(); // Notifica a UI que o estado de carregamento mudou
 
-    final int userId = TokenHelper().userId;
+    final int? userId = TokenHelper().userId;
 
     if (!TokenHelper().hasToken() || userId == 0) {
       _handleAuthError(context);
@@ -57,7 +57,7 @@ class AlbumState extends ChangeNotifier {
     required String parentPath,
     required BuildContext context,
   }) async {
-    final int userId = TokenHelper().userId;
+    final int? userId = TokenHelper().userId;
     if (!TokenHelper().hasToken() || userId == 0) {
       _handleAuthError(context);
       return;
@@ -72,7 +72,7 @@ class AlbumState extends ChangeNotifier {
         folderName: fullFolderNameForApi,
         tags: tags,
         parentFolderId: parentFolderId, 
-        idUsuario: userId, parentFolderPath: parentPath,
+        idUsuario: userId!, parentFolderPath: parentPath,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(

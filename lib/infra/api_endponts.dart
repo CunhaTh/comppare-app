@@ -63,6 +63,10 @@ class ApiEndpoints {
   /// Formato esperado: POST /api/imagens/salvar (com idUsuario e idPasta como campos no multipart)
   static String get uploadImages => '$baseUrl/imagens/salvar';
 
+
+  // Salva as tags
+  static String get saveTags => '$baseUrl/pasta/associar-tags';
+
   // --- Endpoints de Pastas e Conteúdo ---
 
   // O endpoint listAllUserFolders foi removido, pois as pastas agora vêm da autenticação.
@@ -74,3 +78,12 @@ class ApiEndpoints {
     return '$baseUrl/pasta/recuperar?idPasta=$idFolder';
   }
 }
+
+
+ /*POST /api/pasta/associar-tags
+     * Content-Type: application/json
+     * 
+     * Body:
+
+     * - tags[]: obrigatorio
+     * - pasta: 15 (obrigatório) - ID da pasta onde */

@@ -45,7 +45,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   final ApiService _apiService = ApiService(httpClient: http.Client());
   
   // Função para deletar imagens selecionadas
- /* Future<void> deleteImageList() async {
+  Future<void> deleteImageList() async {
     final selectedImages = _imageItems?.where((image) => image.isSelected).toList() ?? [];
     if (selectedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,7 +106,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         _isLoading = false; // Adicione _isLoading como variável de estado se não existir
       });
     }
-  }*/
+  }
 
   Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
     try {
@@ -221,11 +221,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
               onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const main_app.MyHomePage(title: '')),
+                  MaterialPageRoute(builder: (context) => const PrincipalPage()),
                   (Route<dynamic> route) => false,
                 );
               },
-              child: Icon(Icons.exit_to_app, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
+              child: Icon(Icons.home, size: isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
             ),
           ),
         ],
@@ -1111,7 +1111,7 @@ void _showComparisonDialog(BuildContext context, List<ImageModel> imagesToCompar
                           onPressed: saveCard,
                           icon: Icon(Icons.download, size: isLargeScreen ? screenWidth * 0.04 : screenWidth * 0.030),
                           label: Text(
-                            'Baixar',
+                            'Salvar',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 11 * MediaQuery.of(context).textScaleFactor,

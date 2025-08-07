@@ -2,6 +2,7 @@ import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/principal.dart' hide LoginScreen;
+import 'package:application_progress/views/SplashScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:convert';
@@ -60,10 +61,11 @@ class MyApp extends StatelessWidget {
                 );
               default:
                 return MaterialPageRoute(
-                  builder: (_) => //PrincipalPage()
+                  builder: (_) => SplashScreen()
+                        //PrincipalPage()
                       // const AuthWrapper(),
                       //Urlimg()
-                      const MyHomePage(title: ''),
+                     // const MyHomePage(title: ''),
                   //const Pagemconstrucao()
                 );
             }
@@ -633,7 +635,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Tags: ${plan.quantidadeTags}',
+              'Categorias: ${plan.quantidadeTags}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],

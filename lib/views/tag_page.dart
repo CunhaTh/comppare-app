@@ -113,7 +113,7 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Criar Tags'),
+        title: const Text('Criar Categoria'),
         backgroundColor: Colors.white,
       ),
       body: Padding(
@@ -122,7 +122,7 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'Insira as tags',
+              'Insira as Categorias',
               style: TextStyle(fontSize: 16 * MediaQuery.of(context).textScaleFactor),
             ),
             SizedBox(height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.028),
@@ -160,7 +160,7 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
                         ),
                       )
                     : const Text(
-                        'Criar Tags',
+                        'Criar Categoria',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
               ),

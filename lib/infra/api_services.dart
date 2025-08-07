@@ -1,5 +1,3 @@
-// lib/infra/api_services.dart
-
 import 'dart:convert';
 import 'dart:developer';
 import 'package:application_progress/infra/api_exception.dart';
@@ -11,7 +9,6 @@ import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/models/folder_model.dart';
-
 import '../models/models.dart'; // Para o modelo Folder
 
 /// Uma classe de serviço para interagir com a API do seu backend.
@@ -29,8 +26,6 @@ class ApiService {
       'Accept': 'application/json',
     };
 
-    // Para MultipartRequest, o Content-Type é definido automaticamente pelo http.MultipartRequest
-    // Não precisamos defini-lo explicitamente aqui para requisições multipart.
     if (includeContentType) {
       headers['Content-Type'] = 'application/json';
     }
@@ -44,7 +39,6 @@ class ApiService {
     return headers;
   }
 
-  // lib/infra/api_services.dart
   Future<Map<String, dynamic>> _sendRequest(
     Future<http.Response> Function() requestFunction, {
     String? successMessage,
@@ -124,24 +118,32 @@ class ApiService {
   /// Função para autenticar o usuário.
   /// Salva o token e o ID do usuário no TokenHelper e o objeto User completo no UserHelper.
   Future<Map<String, dynamic>> authenticateUser(
-      String cpf, String senha) async {
+    String cpf,
+    String senha, {
+    String? token, // Parâmetro opcional para usar token existente
+  }) async {
     final url = Uri.parse(ApiEndpoints.authenticateUser);
     foundation.debugPrint('Tentando autenticar usuário: $cpf');
-    foundation.debugPrint('Tentando autenticar usuário: $cpf');
-    foundation.debugPrint('URL da requisição: $url');
-    foundation.debugPrint(
-        'Corpo da requisição: ${jsonEncode({'cpf': cpf, 'senha': senha})}');
-    foundation
-        .debugPrint('Cabeçalhos: ${_getHeaders(includeContentType: true)}');
+
+    Map<String, String> headers = _getHeaders(includeContentType: true);
+    final body = <String, dynamic>{};
+
+    if (token != null && token.isNotEmpty) {
+      // Modo refresh: usa o token nos cabeçalhos
+      headers['Authorization'] = 'Bearer $token';
+      foundation.debugPrint('Usando token existente para refresh.');
+    } else {
+      // Modo login inicial: envia CPF e senha
+      body['cpf'] = cpf;
+      body['senha'] = senha;
+      foundation.debugPrint('Autenticando com CPF e senha.');
+    }
 
     final responseBody = await _sendRequest(
       () => _httpClient.post(
         url,
-        headers: _getHeaders(includeContentType: true),
-        body: jsonEncode({
-          'cpf': cpf,
-          'senha': senha,
-        }),
+        headers: headers,
+        body: jsonEncode(body.isNotEmpty ? body : null), // Envia corpo apenas se necessário
       ),
       successMessage: 'Autenticação bem-sucedida.',
       errorMessage: 'Falha na autenticação. Verifique suas credenciais.',
@@ -151,11 +153,10 @@ class ApiService {
         responseBody['token'] is String &&
         responseBody.containsKey('dados') &&
         responseBody['dados'] is Map<String, dynamic>) {
-      final String token = responseBody['token'] as String;
+      final String newToken = responseBody['token'] as String;
       final Map<String, dynamic> userData =
           responseBody['dados'] as Map<String, dynamic>;
 
-      // Cria o objeto User
       final User loggedInUser = User(
         id: userData['id'] as int?,
         nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
@@ -163,15 +164,13 @@ class ApiService {
         telefone: userData['telefone'] as String?,
         idPlano: userData['idPlano'] as int?,
         email: userData['email'] as String?,
-        token: token, // Atribui o token ao objeto User
+        token: newToken,
       );
 
-      // Extrai e anexa a lista de pastas ao objeto User
       if (responseBody.containsKey('pastas') &&
           responseBody['pastas'] is List) {
         final List<dynamic> pastasJson =
             responseBody['pastas'] as List<dynamic>;
-        // Aqui, convertemos para o modelo Folder, que é usado na PrincipalPage
         loggedInUser.pastas = pastasJson
             .map((item) => Folder.fromMap(item as Map<String, dynamic>))
             .toList();
@@ -183,11 +182,8 @@ class ApiService {
             'ApiService: Nenhuma pasta encontrada na resposta de autenticação.');
       }
 
-      // Salva o token e o ID do usuário no TokenHelper
-      await TokenHelper().saveToken(token);
+      await TokenHelper().saveToken(newToken);
       await TokenHelper().saveUserId(loggedInUser.id!);
-
-      // Salva o objeto User completo (com pastas) no UserHelper
       await UserHelper().setUser(loggedInUser);
 
       return responseBody;
@@ -235,7 +231,7 @@ class ApiService {
         body: jsonEncode(body),
       ),
       successMessage: 'Pasta/subpasta criada com sucesso.',
-      errorMessage: 'Falha ao criar pasta/subpasta.',
+      errorMessage: 'Você atingiu o limite de albuns criados.',
     );
   }
 
@@ -421,6 +417,39 @@ class ApiService {
     }
   }
 
+  /// Função para associar tags a uma pasta específica.
+  /*Future<Map<String, dynamic>> saveTags({
+    required int pastaId,
+    required List<String> tags,
+  }) async {
+    if (tags.isEmpty) {
+      throw ApiException(
+        'A lista de tags não pode estar vazia.',
+        statusCode: 400,
+        body: '',
+      );
+    }
+
+    final url = Uri.parse(ApiEndpoints.saveTags);
+    foundation.debugPrint(
+        '[_saveTags] Requisição para associar tags em: $url com pastaId: $pastaId, tags: ${tags.join(",")}');
+
+    final body = {
+      'pasta': pastaId,
+      'tags[]': tags.join(','),
+    };
+
+    return _sendRequest(
+      () => _httpClient.post(
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Tags associadas com sucesso.',
+      errorMessage: 'Falha ao associar tags à pasta.',
+    );
+  }*/
+
   Future<Map<String, dynamic>> createSubFolder({
     required int parentFolderId,
     required int idUsuario,
@@ -466,13 +495,14 @@ class ApiService {
         headers: _getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
-      successMessage: 'Subpasta criada com sucesso.',
-      errorMessage: 'Falha ao criar subpasta.',
+      successMessage: 'Subálbum criado com sucesso.',
+      errorMessage: 'Você atingiu o limite de subálbuns criadas.',
     );
   }
+  
 
 // Função de renovação de token (ajuste conforme necessário)
-  Future<void> _refreshTokenIfNeeded() async {
+  Future<void> refreshTokenIfNeeded() async {
     final token = TokenHelper().token;
     if (token != null) {
       try {

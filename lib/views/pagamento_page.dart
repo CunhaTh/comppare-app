@@ -196,7 +196,7 @@ class _PagamentoPageState extends State<PagamentoPage> {
                     _buildFeature('📸 ${plano.quantidadeFotos} fotos',
                         Icons.photo_library),
                     _buildFeature(
-                        '🏷️ ${plano.quantidadeTags} tags', Icons.label),
+                        '🏷️ ${plano.quantidadeTags} categorias', Icons.label),
                     _buildFeature(
                         '📁 ${plano.quantidadePastas} pastas', Icons.folder),
                     _buildFeature('👥 ${plano.quantidadeConvites} convites',
