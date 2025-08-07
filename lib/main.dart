@@ -54,8 +54,7 @@ class MyApp extends StatelessWidget {
               case CadastroScreen.route:
                 return MaterialPageRoute(
                   builder: (_) => CadastroScreen(
-                    idPlano:
-                        int.tryParse(Uri.base.queryParameters['pId'] ?? ''),
+                    plan: PlanModel.empty(),
                   ),
                 );
               default:
@@ -125,7 +124,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> navigateToCadastro(int idPlano) async {
+  Future<void> navigateToCadastro(PlanModel plan) async {
     setState(() {
       isLoading = true;
     });
@@ -133,7 +132,7 @@ class _MyHomePageState extends State<MyHomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CadastroScreen(idPlano: idPlano),
+          builder: (context) => CadastroScreen(plan: plan),
         ),
       );
     } catch (e) {
@@ -418,7 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final gratuito = monthlyPlans.firstWhere(
       (plan) => plan.nome.toLowerCase().contains('gratuito'),
       orElse: () => PlanModel(
-        id: 0,
+        id: 1,
         nome: 'Gratuito',
         descricao: 'Plano gratuito com funcionalidades básicas',
         valor: 0.0,
@@ -438,7 +437,7 @@ class _MyHomePageState extends State<MyHomePage> {
           plan.nome.toLowerCase().contains('básico') &&
           !plan.nome.toLowerCase().contains('anual'),
       orElse: () => PlanModel(
-        id: 1,
+        id: 2,
         nome: 'Avançado Mensal',
         descricao: 'Plano Avançado mensal com acesso a mais funcionalidades',
         valor: 24.90,
@@ -458,7 +457,7 @@ class _MyHomePageState extends State<MyHomePage> {
           plan.nome.toLowerCase().contains('avançado') &&
           !plan.nome.toLowerCase().contains('anual'),
       orElse: () => PlanModel(
-        id: 2,
+        id: 3,
         nome: 'Avançado Anual',
         descricao: 'Plano avançado mensal com todos os recursos',
         valor: 39.90,
@@ -489,7 +488,7 @@ class _MyHomePageState extends State<MyHomePage> {
         gratuito,
         selectedPlans[gratuito.id] ?? false,
         () => selectPlan(gratuito.id),
-        () => navigateToCadastro(gratuito.id),
+        () => navigateToCadastro(gratuito),
         context,
         isPopular: false,
       ),
@@ -499,7 +498,7 @@ class _MyHomePageState extends State<MyHomePage> {
         basico,
         selectedPlans[basico.id] ?? false,
         () => selectPlan(basico.id),
-        () => navigateToCadastro(basico.id),
+        () => navigateToCadastro(basico),
         context,
         isPopular: false,
       ),
@@ -541,7 +540,7 @@ class _MyHomePageState extends State<MyHomePage> {
         avancadoAnual,
         selectedPlans[avancadoAnual.id] ?? false,
         () => selectPlan(avancadoAnual.id),
-        () => navigateToCadastro(avancadoAnual.id),
+        () => navigateToCadastro(avancadoAnual),
         context,
         isPopular: true,
       ),

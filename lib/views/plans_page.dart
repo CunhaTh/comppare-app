@@ -157,7 +157,6 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => PagamentoPage(
-                                      idPlano: plan.id,
                                       plano: plan,
                                     ),
                                   ),

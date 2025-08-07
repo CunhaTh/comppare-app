@@ -3,18 +3,20 @@ import 'dart:developer';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
+import 'package:application_progress/views/pagamento_page.dart';
 import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'helpers/helpers.dart';
 import 'infra/api_endponts.dart';
-import 'infra/user_helper.dart'; // Importa o UserHelper (agora com a classe User)
+import 'infra/user_helper.dart';
+import 'models/plan_model.dart'; // Importa o UserHelper (agora com a classe User)
 
 class CadastroScreen extends StatefulWidget {
-  final int? idPlano;
+  final PlanModel plan;
 
-  const CadastroScreen({super.key, required this.idPlano});
+  const CadastroScreen({super.key, required this.plan});
 
   static const route = '/cadastro';
 
@@ -112,6 +114,7 @@ class CadastroScreenState extends State<CadastroScreen> {
 
     try {
       log('URL BASE PARA CADASTRO: ${ApiEndpoints.baseUrl}/usuarios/cadastrar');
+      log('PLANO A ASSINADO APÓS CADASTRO DE USUÁRIO: ${widget.plan.toMap()}');
       final response = await http.post(
         Uri.parse('${ApiEndpoints.baseUrl}/usuarios/cadastrar'),
         headers: {"Content-Type": "application/json"},
@@ -125,19 +128,27 @@ class CadastroScreenState extends State<CadastroScreen> {
           "senha": senha,
           "telefone": telefone,
           //"idPlano": widget.idPlano,
-          "idPlano": 1,
+          "idPlano": widget.plan.id,
         }),
       );
 
       if (response.statusCode > 200 && response.statusCode < 300) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-        appSnackBar(
-          context: context,
-          message: 'Cadastro realizado com sucesso',
-        );
+        if (widget.plan.id == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+          appSnackBar(
+            context: context,
+            message: 'Cadastro realizado com sucesso',
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => PagamentoPage(plano: widget.plan)),
+          );
+        }
       } else {
         appSnackBar(
           context: context,

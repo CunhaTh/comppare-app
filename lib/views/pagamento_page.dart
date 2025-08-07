@@ -11,10 +11,9 @@ import '../principal.dart';
 import '../services/efipay_service.dart';
 
 class PagamentoPage extends StatefulWidget {
-  final int? idPlano;
-  final PlanModel? plano;
+  final PlanModel plano;
 
-  const PagamentoPage({super.key, required this.idPlano, this.plano});
+  const PagamentoPage({super.key, required this.plano});
 
   @override
   _PagamentoPageState createState() => _PagamentoPageState();
