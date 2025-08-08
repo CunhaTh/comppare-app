@@ -26,14 +26,14 @@ class ImagemDetalhesPage extends StatefulWidget {
     required this.images,
     required this.tags,
     required this.subAlbumName,
-    // required this.idSubfolder,
   });
 
   @override
   State<ImagemDetalhesPage> createState() => _ImagemDetalhesPageState();
 }
 
-class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
+class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
+    with TickerProviderStateMixin {
   late Future<List<ImageModel>> _imageItemsFuture;
   late List<String> tags;
   final ScrollController _scrollController = ScrollController();
@@ -41,6 +41,10 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   List<ImageModel> allSelectedImages = [];
   List<ImageModel>? _imageItems;
   bool _isLoading = true;
+  late AnimationController _fadeController;
+  late AnimationController _scaleController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
@@ -145,7 +149,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
       devtools.debugPrint(
           'Processando MyImage ID: ${myImage.id}, Path: ${myImage.url}');
 
-      // Sempre tenta carregar da URL
       imageData = await _loadImageBytesFromUrl(myImage.url);
       if (imageData != null && imageData.isNotEmpty) {
         devtools.debugPrint(
@@ -153,15 +156,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
       } else {
         devtools.debugPrint(
             'ATENÇÃO: Não foi possível obter dados válidos para a imagem ID: ${myImage.id}, Path: ${myImage.url}. Usando placeholder.');
-        imageData = Uint8List(0); // Placeholder
+        imageData = Uint8List(0);
       }
 
-      // Cria o ImageItem com o ID explícito de MyImage
       items.add(ImageModel.fromMyImage(myImage, imageData: imageData));
       debugPrint(
           'Preparando imagem com URL: ${myImage.url}, imageData: ${myImage.imageData != null}');
     }
-    _imageItems = items.cast<ImageModel>(); // Atualiza a lista no estado
+    _imageItems = items.cast<ImageModel>();
     return items;
   }
 
@@ -171,13 +173,33 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
   void initState() {
     super.initState();
     tags = widget.tags;
-    _imageItemsFuture =
-        _prepareImageItems(); // Inicia o carregamento assíncrono
+    _imageItemsFuture = _prepareImageItems();
+
+    // Inicializar animações
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+    );
+
+    _fadeController.forward();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _fadeController.dispose();
+    _scaleController.dispose();
     super.dispose();
   }
 
@@ -197,6 +219,258 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     );
   }
 
+  Widget _buildImageCard(ImageModel imageItem, int index, bool isLargeScreen,
+      double screenWidth, double screenHeight) {
+    return AnimatedBuilder(
+      animation: _fadeAnimation,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _fadeAnimation,
+          child: Container(
+            margin: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8.0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        imageItem.isSelected = !imageItem.isSelected;
+                      });
+                      _scaleController.forward().then((_) {
+                        _scaleController.reverse();
+                      });
+                    },
+                    child: AnimatedBuilder(
+                      animation: _scaleAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: imageItem.isSelected
+                              ? _scaleAnimation.value
+                              : 1.0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16.0),
+                              border: Border.all(
+                                color: imageItem.isSelected
+                                    ? const Color(0xFFaed513)
+                                    : Colors.grey.withOpacity(0.3),
+                                width: imageItem.isSelected ? 3.0 : 1.0,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(15.0),
+                              child: Stack(
+                                children: [
+                                  Image.memory(
+                                    imageItem.imageData!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      debugPrint(
+                                          'Erro ao renderizar imagem do GridView: $error');
+                                      return Container(
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.error,
+                                                  color: Colors.red, size: 40),
+                                              SizedBox(height: 8),
+                                              Text('Erro de imagem',
+                                                  style: TextStyle(
+                                                      color: Colors.red)),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  if (imageItem.isSelected)
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFaed513),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.check,
+                                          color: Colors.black,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isLargeScreen ? 12.0 : 8.0,
+                    vertical: isLargeScreen ? 8.0 : 6.0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              _showEditDialog(context, imageItem, index),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? 12.0 : 8.0,
+                              vertical: isLargeScreen ? 8.0 : 6.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  color: Colors.black,
+                                  size: isLargeScreen ? 16.0 : 14.0,
+                                ),
+                                SizedBox(width: isLargeScreen ? 6.0 : 4.0),
+                                Text(
+                                  'Editar',
+                                  style: TextStyle(
+                                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
+      double screenHeight, List<ImageModel> loadedImageItems) {
+    final selectedCount =
+        loadedImageItems.where((item) => item.isSelected).length;
+
+    return AnimatedBuilder(
+      animation: _fadeAnimation,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _fadeAnimation,
+          child: Container(
+            margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFaed513).withOpacity(0.3),
+                    blurRadius: 12.0,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _showComparisonDialog(
+                      context, loadedImageItems, tags, widget.subAlbumName),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isLargeScreen ? 24.0 : 20.0,
+                      vertical: isLargeScreen ? 16.0 : 14.0,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.compare,
+                          color: Colors.black,
+                          size: isLargeScreen ? 24.0 : 20.0,
+                        ),
+                        SizedBox(width: isLargeScreen ? 12.0 : 8.0),
+                        Text(
+                          'Comppare',
+                          style: TextStyle(
+                            fontSize: isLargeScreen ? 18.0 : 16.0,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (selectedCount > 0) ...[
+                          SizedBox(width: isLargeScreen ? 12.0 : 8.0),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? 8.0 : 6.0,
+                              vertical: isLargeScreen ? 4.0 : 3.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: Text(
+                              '$selectedCount',
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 14.0 : 12.0,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -204,42 +478,56 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: () {
+        elevation: 0,
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.arrow_back, color: Colors.black),
+          ),
+          onPressed: () {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const PrincipalPage()),
               (Route<dynamic> route) => false,
             );
           },
-          child: Center(
-            child: Image.asset(
-              "assets/logo_cortada.png",
-              width: isLargeScreen ? screenWidth * 0.3 : screenWidth * 0.4,
-              height: isLargeScreen ? screenHeight * 0.05 : screenHeight * 0.07,
-              fit: BoxFit.contain,
-            ),
+        ),
+        title: Center(
+          child: Image.asset(
+            "assets/logo_cortada.png",
+            width: isLargeScreen ? screenWidth * 0.25 : screenWidth * 0.35,
+            height: isLargeScreen ? screenHeight * 0.04 : screenHeight * 0.06,
+            fit: BoxFit.contain,
           ),
         ),
-        backgroundColor: Colors.white,
         actions: [
-          Padding(
-            padding: EdgeInsets.only(
-                right: isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.05),
-            child: GestureDetector(
-              onTap: () {
+          Container(
+            margin: EdgeInsets.only(right: isLargeScreen ? 16.0 : 12.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.exit_to_app, color: Colors.black),
+              ),
+              onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
-                      builder: (context) =>
-                          const main_app.MyHomePage(title: '')),
+                    builder: (context) => const main_app.MyHomePage(title: ''),
+                  ),
                   (Route<dynamic> route) => false,
                 );
               },
-              child: Icon(Icons.exit_to_app,
-                  size:
-                      isLargeScreen ? screenWidth * 0.05 : screenWidth * 0.067),
             ),
           ),
         ],
@@ -248,201 +536,145 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
         future: _imageItemsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFaed513).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const CircularProgressIndicator(
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xFFaed513)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Carregando imagens...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            );
           } else if (snapshot.hasError) {
             return Center(
-                child: Text('Erro ao carregar imagens: ${snapshot.error}'));
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Erro ao carregar imagens',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${snapshot.error}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black.withOpacity(0.6),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nenhuma imagem encontrada.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.photo_library_outlined,
+                      color: Colors.grey,
+                      size: 48,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nenhuma imagem encontrada',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Adicione imagens para começar a comparar',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            );
           } else {
             final List<ImageModel> loadedImageItems =
                 snapshot.data!.cast<ImageModel>();
             return Stack(
               children: [
-                Padding(
-                  padding: EdgeInsets.all(isLargeScreen
-                      ? screenWidth * 0.015
-                      : screenWidth * 0.022),
+                Container(
+                  padding: EdgeInsets.only(
+                    left: isLargeScreen ? 16.0 : 12.0,
+                    right: isLargeScreen ? 16.0 : 12.0,
+                    top: isLargeScreen ? 16.0 : 12.0,
+                    bottom: isLargeScreen ? 100.0 : 80.0, // Espaço para o botão
+                  ),
                   child: GridView.builder(
-                    padding: EdgeInsets.all(isLargeScreen
-                        ? screenWidth * 0.02
-                        : screenWidth * 0.028),
+                    controller: _scrollController,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount:
-                          (screenWidth / (isLargeScreen ? 200 : 150))
+                          (screenWidth / (isLargeScreen ? 220 : 180))
                               .floor()
                               .clamp(1, 3),
-                      childAspectRatio: 1,
-                      crossAxisSpacing: isLargeScreen
-                          ? screenWidth * 0.06
-                          : screenWidth * 0.083,
-                      mainAxisSpacing: isLargeScreen
-                          ? screenWidth * 0.06
-                          : screenWidth * 0.083,
+                      childAspectRatio: 0.85,
+                      crossAxisSpacing: isLargeScreen ? 16.0 : 12.0,
+                      mainAxisSpacing: isLargeScreen ? 16.0 : 12.0,
                     ),
                     itemCount: loadedImageItems.length,
                     itemBuilder: (context, index) {
                       final imageItem = loadedImageItems[index];
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  imageItem.isSelected = !imageItem.isSelected;
-                                });
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: imageItem.isSelected
-                                        ? Colors.green
-                                        : Colors.grey,
-                                    width: 2.0,
-                                  ),
-                                ),
-                                child: Image.memory(
-                                  imageItem.imageData!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    debugPrint(
-                                        'Erro ao renderizar imagem do GridView: $error');
-                                    return const Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.error,
-                                              color: Colors.red, size: 40),
-                                          Text('Erro de imagem',
-                                              style:
-                                                  TextStyle(color: Colors.red)),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (imageItem.isSelected)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                  top: isLargeScreen
-                                      ? screenWidth * 0.01
-                                      : screenWidth * 0.014),
-                              child: Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: isLargeScreen
-                                    ? screenWidth * 0.05
-                                    : screenWidth * 0.067,
-                              ),
-                            ),
-                          GestureDetector(
-                            onTap: () =>
-                                _showEditDialog(context, imageItem, index),
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                  top: isLargeScreen
-                                      ? screenWidth * 0.01
-                                      : screenWidth * 0.014),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Editar',
-                                    style: TextStyle(
-                                        fontSize: 17 *
-                                            MediaQuery.of(context)
-                                                .textScaleFactor),
-                                  ),
-                                  SizedBox(
-                                      width: isLargeScreen
-                                          ? screenWidth * 0.012
-                                          : screenWidth * 0.017),
-                                  Icon(
-                                    Icons.edit,
-                                    color: Colors.black,
-                                    size: isLargeScreen
-                                        ? screenWidth * 0.035
-                                        : screenWidth * 0.047,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          /* GestureDetector(
-                            onTap: () => deleteImageList(),
-                            child: Padding(
-                              padding: EdgeInsets.only(top: isLargeScreen ? screenWidth * 0.01 : screenWidth * 0.014),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'delete',
-                                    style: TextStyle(fontSize: 17 * MediaQuery.of(context).textScaleFactor),
-                                  ),
-                                  SizedBox(width: isLargeScreen ? screenWidth * 0.012 : screenWidth * 0.017),
-                                  Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                    size: isLargeScreen ? screenWidth * 0.035 : screenWidth * 0.047,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),*/
-                        ],
-                      );
+                      return _buildImageCard(imageItem, index, isLargeScreen,
+                          screenWidth, screenHeight);
                     },
                   ),
                 ),
+                // Botão Comppare no rodapé
                 Positioned(
-                  left:
-                      isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
-                  right:
-                      isLargeScreen ? screenWidth * 0.03 : screenWidth * 0.042,
-                  bottom:
-                      isLargeScreen ? screenHeight * 0.08 : screenHeight * 0.1,
-                  child: GestureDetector(
-                    onTap: () => _showComparisonDialog(
-                        context, loadedImageItems, tags, widget.subAlbumName),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen
-                            ? screenWidth * 0.02
-                            : screenWidth * 0.028,
-                        vertical: isLargeScreen
-                            ? screenHeight * 0.015
-                            : screenHeight * 0.022,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFaed513),
-                        borderRadius: BorderRadius.circular(isLargeScreen
-                            ? screenWidth * 0.06
-                            : screenWidth * 0.083),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Comppare',
-                            style: TextStyle(
-                              fontSize:
-                                  18 * MediaQuery.of(context).textScaleFactor,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _buildComppareButton(isLargeScreen, screenWidth,
+                      screenHeight, loadedImageItems),
                 ),
               ],
             );
@@ -452,10 +684,111 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     );
   }
 
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFaed513).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFFaed513),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Sucesso',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: Color(0xFFaed513),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Erro',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: Color(0xFFaed513),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showEditDialog(BuildContext context, ImageModel imageItem, int index) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen =
-        screenWidth > 520 && MediaQuery.of(context).size.height > 889;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+
     final Map<String, TextEditingController> controllers = {
       for (var tag in tags)
         tag: TextEditingController(
@@ -516,191 +849,310 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
 
     showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (context) {
-          return AlertDialog(
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Edit Image',
-                    style: TextStyle(
-                      fontSize: 18 * MediaQuery.of(context).textScaleFactor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black,
-                    radius: isLargeScreen
-                        ? screenWidth * 0.025
-                        : screenWidth * 0.033,
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: isLargeScreen
-                          ? screenWidth * 0.033
-                          : screenWidth * 0.044,
-                    ),
-                  ),
-                ),
-              ],
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
             ),
-            content: SingleChildScrollView(
+            child: Container(
+              width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
+              constraints: BoxConstraints(
+                maxHeight: screenHeight * 0.8,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20.0),
+                color: Colors.white,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    height:
-                        isLargeScreen ? screenWidth * 0.6 : screenWidth * 0.8,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey, width: 1),
-                      borderRadius: BorderRadius.circular(isLargeScreen
-                          ? screenWidth * 0.015
-                          : screenWidth * 0.022),
-                    ),
-                    // Verifica se imageData não está vazia para evitar erro com Image.memory
-                    child: imageItem.imageData!.isEmpty
-                        ? Image.memory(
-                            imageItem.imageData!,
-                            fit: BoxFit.cover,
-                          )
-                        : const Center(
-                            child: Text(
-                                'Imagem não disponível')), // Placeholder para imagem vazia
-                  ),
-                  SizedBox(
-                      height: isLargeScreen
-                          ? screenWidth * 0.03
-                          : screenWidth * 0.044),
-                  if (tags.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: tags.map((tag) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(
-                              vertical: isLargeScreen
-                                  ? screenWidth * 0.015
-                                  : screenWidth * 0.022),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: isLargeScreen
-                                    ? screenWidth * 0.2
-                                    : screenWidth * 0.28,
-                                child: Text(
-                                  tag,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16 *
-                                        MediaQuery.of(context).textScaleFactor,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: controllers[tag],
-                                  decoration: InputDecoration(
-                                    hintText: 'Insira o valor $tag',
-                                    border: const OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: isLargeScreen
-                                          ? screenWidth * 0.02
-                                          : screenWidth * 0.028,
-                                      vertical: isLargeScreen
-                                          ? screenWidth * 0.015
-                                          : screenWidth * 0.022,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    )
-                  else
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                          vertical: isLargeScreen
-                              ? screenWidth * 0.015
-                              : screenWidth * 0.022),
-                      child: Text(
-                        'Sem Tags no momento.',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14 * MediaQuery.of(context).textScaleFactor,
-                        ),
+                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFaed513),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),
+                        topRight: Radius.circular(20.0),
                       ),
                     ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Editar Imagem',
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 20.0 : 18.0,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: isLargeScreen
+                                ? screenHeight * 0.3
+                                : screenHeight * 0.25,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8.0,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16.0),
+                              child: imageItem.imageData!.isNotEmpty
+                                  ? Image.memory(
+                                      imageItem.imageData!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.image_not_supported,
+                                                color: Colors.grey, size: 48),
+                                            SizedBox(height: 8),
+                                            Text('Imagem não disponível',
+                                                style: TextStyle(
+                                                    color: Colors.grey)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          SizedBox(height: isLargeScreen ? 24.0 : 20.0),
+                          if (tags.isNotEmpty)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: tags.map((tag) {
+                                return Container(
+                                  margin: EdgeInsets.only(
+                                      bottom: isLargeScreen ? 16.0 : 12.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        tag,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isLargeScreen ? 16.0 : 14.0,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8.0),
+                                      TextField(
+                                        controller: controllers[tag],
+                                        decoration: InputDecoration(
+                                          hintText: 'Insira o valor para $tag',
+                                          filled: true,
+                                          fillColor: Colors.grey[50],
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12.0),
+                                            borderSide: BorderSide(
+                                                color: Colors.grey[300]!),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12.0),
+                                            borderSide: BorderSide(
+                                                color: Colors.grey[300]!),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12.0),
+                                            borderSide: const BorderSide(
+                                                color: Color(0xFFaed513),
+                                                width: 2),
+                                          ),
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16.0,
+                                            vertical: 12.0,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            )
+                          else
+                            Container(
+                              padding:
+                                  EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12.0),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      color: Colors.grey, size: 20),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Sem tags disponíveis no momento.',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: isLargeScreen ? 14.0 : 12.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20.0),
+                        bottomRight: Radius.circular(20.0),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[200],
+                                foregroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.0,
+                                  vertical: isLargeScreen ? 16.0 : 14.0,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                elevation: 0,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.cancel,
+                                      size: isLargeScreen ? 18.0 : 16.0),
+                                  SizedBox(width: 8.0),
+                                  Text(
+                                    'Cancelar',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 8.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFaed513),
+                                foregroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.0,
+                                  vertical: isLargeScreen ? 16.0 : 14.0,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                elevation: 2,
+                              ),
+                              onPressed: () {
+                                final updatedItem = ImageModel(
+                                  id: imageItem.id,
+                                  url: imageItem.url,
+                                  imageData: imageItem.imageData,
+                                  date: controllers['Data']?.text ??
+                                      imageItem.date,
+                                  weight: controllers['Peso']?.text ??
+                                      imageItem.weight,
+                                  waist: controllers['Série']?.text ??
+                                      imageItem.waist,
+                                  observation: controllers['Obs']?.text ??
+                                      imageItem.observation,
+                                  customTags: {
+                                    ...imageItem.customTags,
+                                    for (var tag in tags)
+                                      if (tag != 'Data' &&
+                                          tag != 'Peso' &&
+                                          tag != 'Série' &&
+                                          tag != 'Obs')
+                                        tag: controllers[tag]!.text,
+                                  },
+                                  takenAt: '',
+                                );
+                                saveChanges(updatedItem);
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.save,
+                                      size: isLargeScreen ? 18.0 : 16.0),
+                                  SizedBox(width: 8.0),
+                                  Text(
+                                    'Salvar',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFaed513),
-                      foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen
-                            ? screenWidth * 0.03
-                            : screenWidth * 0.044,
-                        vertical: isLargeScreen
-                            ? screenWidth * 0.025
-                            : screenWidth * 0.033,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(isLargeScreen
-                            ? screenWidth * 0.015
-                            : screenWidth * 0.022),
-                      ),
-                    ),
-                    onPressed: () {
-                      final updatedItem = ImageModel(
-                        id: imageItem.id,
-                        url: imageItem.url,
-                        imageData: imageItem.imageData,
-                        date: controllers['Data']?.text ?? imageItem.date,
-                        weight: controllers['Peso']?.text ?? imageItem.weight,
-                        waist: controllers['Série']?.text ?? imageItem.waist,
-                        observation:
-                            controllers['Obs']?.text ?? imageItem.observation,
-                        customTags: {
-                          ...imageItem.customTags,
-                          for (var tag in tags)
-                            if (tag != 'Data' &&
-                                tag != 'Peso' &&
-                                tag != 'Série' &&
-                                tag != 'Obs')
-                              tag: controllers[tag]!.text,
-                        },
-                        takenAt: '',
-                      );
-                      saveChanges(updatedItem);
-                    },
-                    icon: Icon(Icons.save,
-                        size: isLargeScreen
-                            ? screenWidth * 0.04
-                            : screenWidth * 0.056),
-                    label: Text(
-                      'Salvar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14 * MediaQuery.of(context).textScaleFactor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           );
         }).then((updatedItem) {
       // Feedback opcional
@@ -722,11 +1174,55 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     final List<ImageModel> selectedImages =
         imagesToCompare.where((item) => item.isSelected).toList();
     if (selectedImages.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione pelo menos 2 imagens para comparar.'),
-          backgroundColor: Colors.orange,
-        ),
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Atenção',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Selecione pelo menos 2 imagens para comparar.',
+              style: TextStyle(fontSize: 16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    color: Color(0xFFaed513),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       );
       return;
     }
@@ -774,128 +1270,355 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
     Future<void> shareImages() async {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Confirmar Compartilhamento'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RepaintBoundary(
-                  key: shareRepaintKey,
-                  child: Container(
-                    color: Colors.white,
-                    padding: EdgeInsets.all(isLargeScreen
-                        ? screenWidth * 0.02
-                        : screenWidth * 0.028),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            child: Container(
+              width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
+              constraints: BoxConstraints(
+                maxHeight: screenHeight * 0.85,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20.0),
+                color: Colors.white,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFaed513),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),
+                        topRight: Radius.circular(20.0),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: displayedImages.map((imageItem) {
-                            return Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.zero,
-                                child: Column(
-                                  children: [
-                                    SizedBox(
-                                      height: isLargeScreen
-                                          ? screenWidth * 0.5
-                                          : screenWidth * 0.6,
-                                      child: Image.memory(
-                                        imageItem.imageData!,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                        height: isLargeScreen
-                                            ? screenWidth * 0.01
-                                            : screenWidth * 0.014),
-                                    Text(
-                                      imageItem.date ?? '',
-                                      style: TextStyle(
-                                        fontSize: 12 *
-                                            MediaQuery.of(context)
-                                                .textScaleFactor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            );
-                          }).toList(),
+                              child: const Icon(
+                                Icons.share,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Compartilhar Comparação',
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 18.0 : 16.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(
-                            height: isLargeScreen
-                                ? screenWidth * 0.02
-                                : screenWidth * 0.028),
-                        Image.asset(
-                          "assets/logo_cortada.png",
-                          width: isLargeScreen
-                              ? screenWidth * 0.2
-                              : screenWidth * 0.3,
-                          height: isLargeScreen
-                              ? screenWidth * 0.1
-                              : screenWidth * 0.15,
-                          fit: BoxFit.contain,
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const Text('Quer compartilhar essa imagem?'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  final Uint8List? imageBytes =
-                      await captureCard(shareRepaintKey);
-                  if (imageBytes == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'Erro ao capturar a imagem para compartilhamento.')),
-                    );
-                    return;
-                  }
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Preview da imagem
+                          Container(
+                            margin: EdgeInsets.only(
+                                bottom: isLargeScreen ? 8.0 : 6.0),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8.0,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16.0),
+                              child: RepaintBoundary(
+                                key: shareRepaintKey,
+                                child: Container(
+                                  color: Colors.white,
+                                  padding:
+                                      EdgeInsets.all(isLargeScreen ? 8.0 : 6.0)
+                                          .copyWith(right: 0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      // Container principal das imagens
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        height: isLargeScreen ? 300.0 : 250.0,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children:
+                                              displayedImages.map((imageItem) {
+                                            return Container(
+                                              color: Colors.red,
+                                              child: Image.memory(
+                                                imageItem.imageData!,
+                                                fit: BoxFit.contain,
+                                                //  width: double.infinity,
+                                                height: double.infinity,
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                          height: isLargeScreen ? 16.0 : 12.0),
+                                      // Logo do Comppare
+                                      Image.asset(
+                                        "assets/logo_cortada.png",
+                                        width: isLargeScreen ? 80.0 : 60.0,
+                                        height: isLargeScreen ? 40.0 : 30.0,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Informações do compartilhamento
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: const Color(0xFFaed513),
+                                  size: isLargeScreen ? 20.0 : 18.0,
+                                ),
+                                SizedBox(width: 12.0),
+                                Expanded(
+                                  child: Text(
+                                    'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
+                                    style: TextStyle(
+                                      fontSize: isLargeScreen ? 14.0 : 12.0,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Actions
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20.0),
+                        bottomRight: Radius.circular(20.0),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[200],
+                                foregroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.0,
+                                  vertical: isLargeScreen ? 16.0 : 14.0,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                elevation: 0,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.cancel,
+                                      size: isLargeScreen ? 18.0 : 16.0),
+                                  SizedBox(width: 8.0),
+                                  Text(
+                                    'Cancelar',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 8.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFaed513),
+                                foregroundColor: Colors.black,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.0,
+                                  vertical: isLargeScreen ? 16.0 : 14.0,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                elevation: 2,
+                              ),
+                              onPressed: () async {
+                                Navigator.of(context).pop();
 
-                  if (kIsWeb) {
-                    final blob = html.Blob([imageBytes], 'image/png');
-                    final url = html.Url.createObjectUrlFromBlob(blob);
-                    final anchor = html.AnchorElement(href: url)
-                      ..setAttribute('download', 'comparison_share.png')
-                      ..click();
-                    html.Url.revokeObjectUrl(url);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Imagem baixada. Compartilhe manualmente.')),
-                    );
-                  } else {
-                    final tempDir = await getTemporaryDirectory();
-                    final file =
-                        await File('${tempDir.path}/comparison_share.png')
-                            .writeAsBytes(imageBytes);
-                    final xFile = XFile(file.path);
-                    await Share.shareXFiles(
-                      [xFile],
-                      text: 'Confira minha comparação de progresso!',
-                      subject: 'Comparação de Imagens',
-                    );
-                  }
-                },
-                child: const Text('OK'),
+                                // Mostrar loading
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (BuildContext context) {
+                                    return Dialog(
+                                      backgroundColor: Colors.transparent,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const CircularProgressIndicator(
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Color(0xFFaed513)),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'Preparando compartilhamento...',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+
+                                final Uint8List? imageBytes =
+                                    await captureCard(shareRepaintKey);
+
+                                // Fechar loading
+                                Navigator.of(context).pop();
+
+                                if (imageBytes == null) {
+                                  _showErrorDialog(
+                                      'Erro ao capturar a imagem para compartilhamento.');
+                                  return;
+                                }
+
+                                try {
+                                  if (kIsWeb) {
+                                    final blob =
+                                        html.Blob([imageBytes], 'image/png');
+                                    final url =
+                                        html.Url.createObjectUrlFromBlob(blob);
+                                    final anchor = html.AnchorElement(href: url)
+                                      ..setAttribute('download',
+                                          'comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png')
+                                      ..click();
+                                    html.Url.revokeObjectUrl(url);
+                                    _showSuccessDialog(
+                                        'Imagem baixada com sucesso! Compartilhe manualmente.');
+                                  } else {
+                                    final tempDir =
+                                        await getTemporaryDirectory();
+                                    final file = await File(
+                                            '${tempDir.path}/comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png')
+                                        .writeAsBytes(imageBytes);
+                                    final xFile = XFile(file.path);
+                                    await Share.shareXFiles(
+                                      [xFile],
+                                      text:
+                                          'Confira minha comparação de progresso no Comppare! 💪',
+                                      subject:
+                                          'Comparação de Progresso - Comppare',
+                                    );
+                                    _showSuccessDialog(
+                                        'Compartilhamento iniciado com sucesso!');
+                                  }
+                                } catch (e) {
+                                  _showErrorDialog('Erro ao compartilhar: $e');
+                                }
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.share,
+                                      size: isLargeScreen ? 18.0 : 16.0),
+                                  SizedBox(width: 8.0),
+                                  Text(
+                                    'Compartilhar',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       );
@@ -966,18 +1689,16 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          contentPadding: EdgeInsets.zero,
-          insetPadding: const EdgeInsets.all(8.0),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
-          content: Container(
+        return Dialog(
+          insetPadding: EdgeInsets.all(isLargeScreen ? 16.0 : 8.0),
+          child: Container(
             width: screenWidth * 0.98,
-            height: screenHeight * 0.90,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.zero,
+            height: screenHeight * 0.95,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20.0),
+              color: Colors.white,
             ),
             child: StatefulBuilder(
               builder: (BuildContext context, StateSetter setState) {
@@ -1079,10 +1800,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: EdgeInsets.all(isLargeScreen
-                          ? screenWidth * 0.02
-                          : screenWidth * 0.028),
-                      color: Colors.white,
+                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFaed513),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20.0),
+                          topRight: Radius.circular(20.0),
+                        ),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -1090,26 +1815,25 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                             child: Text(
                               subAlbumName,
                               style: TextStyle(
-                                fontSize:
-                                    18 * MediaQuery.of(context).textScaleFactor,
+                                fontSize: isLargeScreen ? 20.0 : 18.0,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.black,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
                           GestureDetector(
                             onTap: () => Navigator.of(context).pop(),
-                            child: CircleAvatar(
-                              backgroundColor: Colors.black,
-                              radius: isLargeScreen
-                                  ? screenWidth * 0.025
-                                  : screenWidth * 0.033,
-                              child: Icon(
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
                                 Icons.close,
-                                color: Colors.white,
-                                size: isLargeScreen
-                                    ? screenWidth * 0.033
-                                    : screenWidth * 0.044,
+                                color: Colors.black,
+                                size: 20,
                               ),
                             ),
                           ),
@@ -1123,44 +1847,61 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                           children: [
                             // Imagens exibidas em um Row centralizado
                             Expanded(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: displayedImages.map((imageItem) {
-                                  return Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.zero,
-                                      child: Container(
-                                        height: double.infinity,
-                                        decoration: const BoxDecoration(
-                                          borderRadius: BorderRadius.zero,
-                                        ),
-                                        child: Image.memory(
-                                          imageItem.imageData!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                            devtools.debugPrint(
-                                                'Erro ao carregar imagem em displayedImages: $error');
-                                            return const Center(
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(Icons.error,
-                                                      color: Colors.red,
-                                                      size: 40),
-                                                  Text('Erro de imagem',
-                                                      style: TextStyle(
-                                                          color: Colors.red)),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
+                              child: Container(
+                                margin:
+                                    EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8.0,
+                                      offset: const Offset(0, 4),
                                     ),
-                                  );
-                                }).toList(),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: displayedImages.map((imageItem) {
+                                      return Expanded(
+                                        child: Container(
+                                          height: double.infinity,
+                                          child: Image.memory(
+                                            imageItem.imageData!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              devtools.debugPrint(
+                                                  'Erro ao carregar imagem em displayedImages: $error');
+                                              return Container(
+                                                color: Colors.grey[200],
+                                                child: const Center(
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(Icons.error,
+                                                          color: Colors.red,
+                                                          size: 40),
+                                                      SizedBox(height: 8),
+                                                      Text('Erro de imagem',
+                                                          style: TextStyle(
+                                                              color:
+                                                                  Colors.red)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
                               ),
                             ),
                             SizedBox(
@@ -1170,191 +1911,231 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                             // Tags e TextFields
                             if (tags.isNotEmpty)
                               Container(
-                                padding: EdgeInsets.all(isLargeScreen
-                                    ? screenWidth * 0.02
-                                    : screenWidth * 0.02),
+                                padding:
+                                    EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: tags.map((tag) {
-                                    return Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      children: [
-                                        // Tag à esquerda
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: isLargeScreen
-                                                ? screenWidth * 0.01
-                                                : screenWidth * 0.014,
-                                            vertical: isLargeScreen
-                                                ? screenWidth * 0.005
-                                                : screenWidth * 0.007,
-                                          ),
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFFaed513),
-                                            borderRadius: BorderRadius.zero,
-                                          ),
-                                          child: Text(
-                                            tag,
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15 *
-                                                  MediaQuery.of(context)
-                                                      .textScaleFactor,
+                                    return Container(
+                                      margin: EdgeInsets.only(
+                                          bottom: isLargeScreen ? 12.0 : 8.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 12.0,
+                                              vertical: 6.0,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFaed513),
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
+                                            ),
+                                            child: Text(
+                                              tag,
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:
+                                                    isLargeScreen ? 14.0 : 12.0,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        // TextFields centralizados em relação às imagens
-                                        ...displayedImages
-                                            .asMap()
-                                            .entries
-                                            .map((imageEntry) {
-                                          final int imageIndex = imageEntry.key;
-                                          return Expanded(
-                                            child: Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: isLargeScreen
-                                                    ? screenWidth * 0.04
-                                                    : screenWidth * 0.04,
-                                              ),
-                                              child: SizedBox(
-                                                width: isLargeScreen
-                                                    ? screenWidth * 0.2
-                                                    : screenWidth * 0.2,
-                                                child: TextField(
-                                                  controller: controllers[tag]![
-                                                      imageIndex],
-                                                  style: TextStyle(
-                                                    fontSize: 12 *
-                                                        MediaQuery.of(context)
-                                                            .textScaleFactor,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    contentPadding:
-                                                        EdgeInsets.zero,
-                                                    isDense: true,
-                                                    border: OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.zero,
+                                          SizedBox(height: 8.0),
+                                          Row(
+                                            children: displayedImages
+                                                .asMap()
+                                                .entries
+                                                .map((imageEntry) {
+                                              final int imageIndex =
+                                                  imageEntry.key;
+                                              return Expanded(
+                                                child: Container(
+                                                  margin: EdgeInsets.only(
+                                                      right: imageIndex <
+                                                              displayedImages
+                                                                      .length -
+                                                                  1
+                                                          ? 8.0
+                                                          : 0),
+                                                  child: TextField(
+                                                    controller: controllers[
+                                                        tag]![imageIndex],
+                                                    style: TextStyle(
+                                                      fontSize: isLargeScreen
+                                                          ? 14.0
+                                                          : 12.0,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                    decoration: InputDecoration(
+                                                      hintText: 'Valor',
+                                                      filled: true,
+                                                      fillColor:
+                                                          Colors.grey[50],
+                                                      border:
+                                                          OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8.0),
+                                                        borderSide: BorderSide(
+                                                            color: Colors
+                                                                .grey[300]!),
+                                                      ),
+                                                      enabledBorder:
+                                                          OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8.0),
+                                                        borderSide: BorderSide(
+                                                            color: Colors
+                                                                .grey[300]!),
+                                                      ),
+                                                      focusedBorder:
+                                                          OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8.0),
+                                                        borderSide:
+                                                            const BorderSide(
+                                                                color: Color(
+                                                                    0xFFaed513),
+                                                                width: 2),
+                                                      ),
+                                                      contentPadding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal: 12.0,
+                                                        vertical: 8.0,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
-                                            ),
-                                          );
-                                        }),
-                                      ],
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ),
                                     );
                                   }).toList(),
                                 ),
                               )
                             else
-                              Padding(
-                                padding: EdgeInsets.all(isLargeScreen
-                                    ? screenWidth * 0.015
-                                    : screenWidth * 0.022),
-                                child: Text(
-                                  'Nenhuma tag disponível.',
-                                  style: TextStyle(
-                                    fontSize: 14 *
-                                        MediaQuery.of(context).textScaleFactor,
-                                  ),
+                              Container(
+                                margin:
+                                    EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                                padding:
+                                    EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.info_outline,
+                                        color: Colors.grey, size: 20),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Nenhuma tag disponível.',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: isLargeScreen ? 14.0 : 12.0,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                           ],
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsets.all(isLargeScreen
-                          ? screenWidth * 0.02
-                          : screenWidth * 0.028),
+                    Container(
+                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(20.0),
+                          bottomRight: Radius.circular(20.0),
+                        ),
+                      ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFaed513),
-                              foregroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isLargeScreen
-                                    ? screenWidth * 0.03
-                                    : screenWidth * 0.022,
-                                vertical: isLargeScreen
-                                    ? screenWidth * 0.015
-                                    : screenWidth * 0.015,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    isLargeScreen
-                                        ? screenWidth * 0.015
-                                        : screenWidth * 0.022),
-                              ),
-                            ),
-                            onPressed: shareImages,
-                            icon: Icon(Icons.share,
-                                size: isLargeScreen
-                                    ? screenWidth * 0.04
-                                    : screenWidth * 0.030),
-                            label: Text(
-                              'Compartilhar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize:
-                                    11 * MediaQuery.of(context).textScaleFactor,
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 8.0),
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFaed513),
+                                  foregroundColor: Colors.black,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20.0,
+                                    vertical: isLargeScreen ? 16.0 : 14.0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                onPressed: shareImages,
+                                icon: Icon(
+                                  Icons.share,
+                                  size: isLargeScreen ? 18.0 : 16.0,
+                                ),
+                                label: Text(
+                                  'Compartilhar',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                          SizedBox(
-                              width: isLargeScreen
-                                  ? screenWidth * 0.04
-                                  : screenWidth * 0.056),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFaed513),
-                              foregroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isLargeScreen
-                                    ? screenWidth * 0.03
-                                    : screenWidth * 0.022,
-                                vertical: isLargeScreen
-                                    ? screenWidth * 0.015
-                                    : screenWidth * 0.015,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    isLargeScreen
-                                        ? screenWidth * 0.015
-                                        : screenWidth * 0.022),
-                              ),
-                            ),
-                            onPressed: saveCard,
-                            icon: Icon(Icons.download,
-                                size: isLargeScreen
-                                    ? screenWidth * 0.04
-                                    : screenWidth * 0.030),
-                            label: Text(
-                              'Baixar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize:
-                                    11 * MediaQuery.of(context).textScaleFactor,
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(left: 8.0),
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFaed513),
+                                  foregroundColor: Colors.black,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20.0,
+                                    vertical: isLargeScreen ? 16.0 : 14.0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                onPressed: saveCard,
+                                icon: Icon(
+                                  Icons.download,
+                                  size: isLargeScreen ? 18.0 : 16.0,
+                                ),
+                                label: Text(
+                                  'Baixar',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Stack(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 11),
-                          child: SingleChildScrollView(
+                    Container(
+                      height: isLargeScreen ? 120.0 : 100.0,
+                      margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                      child: Stack(
+                        children: [
+                          SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             controller: localScrollController,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: isLargeScreen ? 40.0 : 32.0),
                             child: Row(
                               children: allSelectedImages
                                   .asMap()
@@ -1367,89 +2148,132 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage> {
                                     onThumbnailTap(imageItem, index);
                                   },
                                   child: Container(
-                                    width: isLargeScreen
-                                        ? screenWidth * 0.2
-                                        : screenWidth * 0.20,
-                                    height: isLargeScreen
-                                        ? screenWidth * 0.2
-                                        : screenWidth * 0.20,
-                                    margin: EdgeInsets.symmetric(
-                                        horizontal: isLargeScreen
-                                            ? screenWidth * 0.015
-                                            : screenWidth * 0.022),
+                                    width: isLargeScreen ? 80.0 : 70.0,
+                                    height: isLargeScreen ? 80.0 : 70.0,
+                                    margin:
+                                        EdgeInsets.symmetric(horizontal: 8.0),
                                     decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12.0),
                                       border: Border.all(
                                         color: selectedIndex == index
-                                            ? Colors.blue
-                                            : Colors.grey,
+                                            ? const Color(0xFFaed513)
+                                            : Colors.grey.withOpacity(0.3),
                                         width: selectedIndex == index ? 3 : 1,
                                       ),
-                                      borderRadius: BorderRadius.zero,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: selectedIndex == index
+                                              ? const Color(0xFFaed513)
+                                                  .withOpacity(0.3)
+                                              : Colors.black.withOpacity(0.1),
+                                          blurRadius: 4.0,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-                                    child: Image.memory(
-                                      imageItem.imageData!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        devtools.debugPrint(
-                                            'Erro ao carregar imagem da miniatura: $error');
-                                        return const Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.error,
-                                                  color: Colors.red, size: 20),
-                                              Text('Erro',
-                                                  style: TextStyle(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(11.0),
+                                      child: Image.memory(
+                                        imageItem.imageData!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          devtools.debugPrint(
+                                              'Erro ao carregar imagem da miniatura: $error');
+                                          return Container(
+                                            color: Colors.grey[200],
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(Icons.error,
                                                       color: Colors.red,
-                                                      fontSize: 10)),
-                                            ],
-                                          ),
-                                        );
-                                      },
+                                                      size: 16),
+                                                  Text('Erro',
+                                                      style: TextStyle(
+                                                          color: Colors.red,
+                                                          fontSize: 8)),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
                                 );
                               }).toList(),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          left: 1,
-                          top: isLargeScreen
-                              ? screenWidth * 0.08
-                              : screenWidth * 0.11,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.arrow_back_ios,
-                              color: const Color(0xFFaed513),
-                              size: isLargeScreen
-                                  ? screenWidth * 0.04
-                                  : screenWidth * 0.056,
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.white,
+                                    Colors.white.withOpacity(0.0)
+                                  ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                              ),
+                              child: IconButton(
+                                icon: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFaed513),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Icon(
+                                    Icons.arrow_back_ios,
+                                    color: Colors.black,
+                                    size: 16,
+                                  ),
+                                ),
+                                onPressed: scrollLeft,
+                                tooltip: 'Rolar para a esquerda',
+                              ),
                             ),
-                            onPressed: scrollLeft,
-                            tooltip: 'Rolar para a esquerda',
                           ),
-                        ),
-                        Positioned(
-                          right: 1,
-                          top: isLargeScreen
-                              ? screenWidth * 0.08
-                              : screenWidth * 0.11,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.arrow_forward_ios,
-                              color: const Color(0xFFaed513),
-                              size: isLargeScreen
-                                  ? screenWidth * 0.04
-                                  : screenWidth * 0.056,
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.white.withOpacity(0.0),
+                                    Colors.white
+                                  ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                              ),
+                              child: IconButton(
+                                icon: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFaed513),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Colors.black,
+                                    size: 16,
+                                  ),
+                                ),
+                                onPressed: scrollRight,
+                                tooltip: 'Rolar para a direita',
+                              ),
                             ),
-                            onPressed: scrollRight,
-                            tooltip: 'Rolar para a direita',
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 );

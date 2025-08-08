@@ -461,32 +461,6 @@ class PlanCard extends StatelessWidget {
             ),
             child: Column(
               children: [
-                // Badge do tipo de plano
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getPlanColor().withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _getPlanColor().withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    plan.nome.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _getPlanColor(),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
                 // Título do plano
                 Text(
                   plan.nome,
@@ -551,7 +525,7 @@ class PlanCard extends StatelessWidget {
           // Conteúdo do plano
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24).copyWith(top: 0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
