@@ -573,7 +573,8 @@ class PlanCard extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       _buildFeatureChip('📸 ${plan.quantidadeFotos} fotos'),
-                      _buildFeatureChip('🏷️ ${plan.quantidadeTags} tags'),
+                      _buildFeatureChip(
+                          '🏷️ ${plan.quantidadeTags} categorias'),
                       _buildFeatureChip('📁 ${plan.quantidadePastas} pastas'),
                       _buildFeatureChip(
                           '👥 ${plan.quantidadeConvites} convites'),

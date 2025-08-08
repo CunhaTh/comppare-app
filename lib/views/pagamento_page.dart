@@ -260,7 +260,8 @@ class _PagamentoPageState extends State<PagamentoPage>
                 runSpacing: 8,
                 children: [
                   _buildFeatureChip('📸 ${widget.plano.quantidadeFotos} fotos'),
-                  _buildFeatureChip('🏷️ ${widget.plano.quantidadeTags} tags'),
+                  _buildFeatureChip(
+                      '🏷️ ${widget.plano.quantidadeTags} categorias'),
                   _buildFeatureChip(
                       '📁 ${widget.plano.quantidadePastas} pastas'),
                   _buildFeatureChip(
