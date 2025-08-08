@@ -927,7 +927,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                 Row(
                   children: [
                     Text(
-                      '+ tags',
+                      '+ categorias',
                       style: TextStyle(
                         color: Colors.black.withValues(alpha: 0.7),
                         fontSize: 14,
