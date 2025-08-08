@@ -8,7 +8,9 @@ import 'package:application_progress/infra/api_services.dart'; // Importa o ApiS
 // Importa o UserHelper
 import 'package:application_progress/cadastro.dart'; // Ajuste o nome do arquivo se for diferente
 import 'package:application_progress/views/recupera_senha.dart';
-import 'package:application_progress/principal.dart'; // Importa a PrincipalPage
+import 'package:application_progress/principal.dart';
+
+import 'models/models.dart'; // Importa a PrincipalPage
 
 // Removendo MyApp e AuthWrapper daqui, eles devem estar em main.dart
 // class MyApp extends StatelessWidget { ... }
@@ -210,8 +212,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: _buildActionButton(
                                 context,
                                 'Cadastrar',
-                                const CadastroScreen(
-                                  idPlano: null,
+                                CadastroScreen(
+                                  plan: PlanModel.empty()..id = 1,
                                 )),
                           ),
                         ],

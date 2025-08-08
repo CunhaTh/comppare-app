@@ -1,5 +1,5 @@
 class PlanModel {
-  final int id;
+  int id;
   final String nome;
   final String descricao;
   final double valor;
@@ -24,6 +24,22 @@ class PlanModel {
     required this.frequenciaCobranca,
     required this.tempoGratuidade,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'nome': nome,
+      'descricao': descricao,
+      'valor': valor,
+      'quantidadeTags': quantidadeTags,
+      'quantidadeFotos': quantidadeFotos,
+      'quantidadeConvites': quantidadeConvites,
+      'quantidadePastas': quantidadePastas,
+      'status': status,
+      'frequenciaCobranca': frequenciaCobranca,
+      'tempoGratuidade': tempoGratuidade,
+    };
+  }
 
   factory PlanModel.fromJson(Map<String, dynamic> json) {
     return PlanModel(

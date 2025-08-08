@@ -22,13 +22,18 @@ class SubscriptionPage extends StatefulWidget {
   State<SubscriptionPage> createState() => _SubscriptionPageState();
 }
 
-class _SubscriptionPageState extends State<SubscriptionPage> {
+class _SubscriptionPageState extends State<SubscriptionPage>
+    with TickerProviderStateMixin {
   bool loading = false;
   late PlanModel selectedPlan; // Plano selecionado pelo usuário
   late PageController _pageController;
   int _currentPageIndex = 0;
 
   late PlansController controller;
+  late AnimationController _animationController;
+  late AnimationController _fadeController;
+  late Animation<double> _slideAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
@@ -41,10 +46,42 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         : widget.initialPlan;
 
     _pageController = PageController(viewportFraction: 0.9);
+
+    // Configuração das animações
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _slideAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+
+    _animationController.forward();
+    _fadeController.forward();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
+    _fadeController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -97,36 +134,68 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     final plans = widget.availablePlans ?? [widget.initialPlan];
 
     return Scaffold(
-      backgroundColor: Colors.black, // Fundo preto como PrincipalPage
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         title: const Text(
           'Escolha seu Plano',
           style: TextStyle(
-            fontSize: 25,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Color(0xFFaed513), // Cor verde da PrincipalPage
+            color: Colors.black,
           ),
         ),
-        backgroundColor: Colors.black, // Fundo preto como PrincipalPage
-        elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFaed513)),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.pop(context),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: Colors.grey[300],
+          ),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Header com título e subtítulo
+              // Header com título
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: const Text(
+                  'Planos Disponíveis',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Text(
+                  'Escolha o plano ideal para suas necessidades',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 32),
 
-              // Carrossel de planos com botões de navegação
+              // Carrossel de planos com navegação
               Stack(
                 children: [
                   SizedBox(
-                    height:
-                        400, // Altura reduzida para card com altura dinâmica
+                    height: 500,
                     child: PageView.builder(
                       controller: _pageController,
                       itemCount: plans.length,
@@ -150,61 +219,15 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             child: PlanCard(
                               plan: plan,
                               isSelected: isSelected,
-                              // onSubscribe: _subscribe,
-                              // onSubscribe: () =>  controller.subscribePlanByPix(plan),
                               onSubscribe: () {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => PagamentoPage(
-                                      idPlano: plan.id,
                                       plano: plan,
                                     ),
                                   ),
                                 );
-                                // showDialog(
-                                //   context: context,
-                                //   builder: (BuildContext context) {
-                                //     return AlertDialog(
-                                //       title:
-                                //           Text('Escolha a forma de pagamento.'),
-                                //       content: Column(
-                                //         mainAxisSize: MainAxisSize.min,
-                                //         children: [
-                                //           ListTile(
-                                //             leading: Icon(Icons.pix),
-                                //             title: Text('PIX'),
-                                //             onTap: () {
-                                //               Navigator.of(context).pop();
-                                //               SnackBar(
-                                //                 content:
-                                //                     Text('Pix selecionado'),
-                                //               );
-                                //             },
-                                //           ),
-                                //           ListTile(
-                                //             leading: Icon(Icons.credit_card),
-                                //             title: Text('CARTÃO DE CRÉDITO'),
-                                //             onTap: () {
-                                //               Navigator.of(context).pop();
-                                //               SnackBar(
-                                //                 content:
-                                //                     Text('Boleto selecionado'),
-                                //               );
-                                //             },
-                                //           ),
-                                //         ],
-                                //       ),
-                                //       actions: [
-                                //         TextButton(
-                                //           child: const Text('Cancelar'),
-                                //           onPressed: () =>
-                                //               Navigator.of(context).pop(),
-                                //         ),
-                                //       ],
-                                //     );
-                                //   },
-                                // );
                               },
                               loading: loading,
                             ),
@@ -225,16 +248,19 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: Colors.grey[
-                                900], // Cor similar aos cards da PrincipalPage
+                            color: Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
                             ],
+                            border: Border.all(
+                              color: Colors.grey[300]!,
+                              width: 1,
+                            ),
                           ),
                           child: IconButton(
                             onPressed: () {
@@ -245,8 +271,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             },
                             icon: const Icon(
                               Icons.arrow_back_ios,
-                              color: Color(
-                                  0xFFaed513), // Cor verde da PrincipalPage
+                              color: Color(0xFFaed513),
                               size: 20,
                             ),
                           ),
@@ -265,16 +290,19 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: Colors.grey[
-                                900], // Cor similar aos cards da PrincipalPage
+                            color: Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
                             ],
+                            border: Border.all(
+                              color: Colors.grey[300]!,
+                              width: 1,
+                            ),
                           ),
                           child: IconButton(
                             onPressed: () {
@@ -285,8 +313,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                             },
                             icon: const Icon(
                               Icons.arrow_forward_ios,
-                              color: Color(
-                                  0xFFaed513), // Cor verde da PrincipalPage
+                              color: Color(0xFFaed513),
                               size: 20,
                             ),
                           ),
@@ -304,16 +331,14 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                   children: List.generate(
                     plans.length,
                     (index) => Container(
-                      width: 6.w,
-                      height: 6.h,
-                      margin: EdgeInsets.symmetric(horizontal: 3.w),
+                      width: 8.w,
+                      height: 8.h,
+                      margin: EdgeInsets.symmetric(horizontal: 4.w),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: plans[index].id == selectedPlan.id
-                            ? const Color(
-                                0xFFaed513) // Cor verde da PrincipalPage
-                            : Colors
-                                .grey[600], // Cor mais escura para fundo preto
+                            ? const Color(0xFFaed513)
+                            : Colors.grey[300],
                       ),
                     ),
                   ),
@@ -341,54 +366,97 @@ class PlanCard extends StatelessWidget {
     required this.loading,
   });
 
+  // Cores baseadas no tipo de plano
+  Color _getPlanColor() {
+    switch (plan.nome.toLowerCase()) {
+      case 'básico':
+      case 'individual':
+        return const Color(0xFFFF9500); // Laranja
+      case 'premium':
+      case 'familiar':
+        return const Color(0xFFFF3B30); // Vermelho
+      case 'pro':
+      case 'enterprise':
+        return const Color(0xFFAF52DE); // Roxo
+      default:
+        return const Color(0xFFaed513); // Verde padrão
+    }
+  }
+
+  Widget _buildFeatureChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _getPlanColor().withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _getPlanColor().withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: _getPlanColor(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Cores baseadas no tipo de plano (inspirado na Apple One)
-    Color getPlanColor() {
-      switch (plan.nome.toLowerCase()) {
-        case 'básico':
-        case 'individual':
-          return const Color(0xFFFF9500); // Laranja
-        case 'premium':
-        case 'familiar':
-          return const Color(0xFFFF3B30); // Vermelho
-        case 'pro':
-        case 'enterprise':
-          return const Color(0xFFAF52DE); // Roxo
-        default:
-          return const Color(0xFFaed513); // Verde da PrincipalPage
-      }
-    }
-
     return Container(
       width: 400,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.grey[900], // Cor similar aos cards da PrincipalPage
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Colors.grey[50]!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: isSelected
-                ? getPlanColor().withValues(alpha: 0.3)
-                : Colors.black.withValues(alpha: 0.3),
+                ? _getPlanColor().withValues(alpha: 0.2)
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 8),
+            spreadRadius: 2,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: isSelected ? getPlanColor() : Colors.grey[800]!,
-          width: 2,
+          color: isSelected ? _getPlanColor() : Colors.grey[200]!,
+          width: isSelected ? 2 : 1,
         ),
       ),
       child: Column(
         children: [
-          // Header do plano
+          // Header do plano com gradiente
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: getPlanColor().withValues(alpha: 0.1),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _getPlanColor().withValues(alpha: 0.1),
+                  _getPlanColor().withValues(alpha: 0.05),
+                ],
+              ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
               ),
             ),
             child: Column(
@@ -397,15 +465,16 @@ class PlanCard extends StatelessWidget {
                 Text(
                   plan.nome,
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white, // Texto branco como PrincipalPage
+                    color: Colors.black,
+                    height: 1.2,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
 
-                // Preço
+                // Preço com destaque
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -413,26 +482,38 @@ class PlanCard extends StatelessWidget {
                     Text(
                       'R\$',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: getPlanColor(),
+                        color: _getPlanColor(),
                       ),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       plan.valor.toStringAsFixed(2).replaceAll('.', ','),
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 36,
                         fontWeight: FontWeight.bold,
-                        color: getPlanColor(),
+                        color: _getPlanColor(),
+                        height: 1.0,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      '/mês',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        '/mês',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black54,
+                        ),
                       ),
                     ),
                   ],
@@ -444,40 +525,36 @@ class PlanCard extends StatelessWidget {
           // Conteúdo do plano
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24).copyWith(top: 0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Spacer(),
                   // Descrição
                   Text(
                     plan.descricao,
                     style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.white54, // Cor similar ao PrincipalPage
-                      height: 1.2,
+                      fontSize: 16,
+                      color: Colors.black87,
+                      height: 1.4,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
 
                   // Recursos do plano
                   Wrap(
-                    spacing: 20,
-                    runSpacing: 10,
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
-                      _buildFeature('📸 ${plan.quantidadeFotos} fotos',
-                          Icons.photo_library),
-                      _buildFeature(
-                          '🏷️ ${plan.quantidadeTags} categorias', Icons.label),
-                      _buildFeature(
-                          '📁 ${plan.quantidadePastas} pastas', Icons.folder),
-                      _buildFeature('👥 ${plan.quantidadeConvites} convites',
-                          Icons.people),
+                      _buildFeatureChip('📸 ${plan.quantidadeFotos} fotos'),
+                      _buildFeatureChip(
+                          '🏷️ ${plan.quantidadeTags} categorias'),
+                      _buildFeatureChip('📁 ${plan.quantidadePastas} pastas'),
+                      _buildFeatureChip(
+                          '👥 ${plan.quantidadeConvites} convites'),
                     ],
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 32),
 
                   // Botão de assinatura
                   SizedBox(
@@ -485,29 +562,56 @@ class PlanCard extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: loading ? null : onSubscribe,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: getPlanColor(),
+                        backgroundColor: _getPlanColor(),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        elevation: 0,
+                        elevation: 4,
+                        shadowColor: _getPlanColor().withValues(alpha: 0.3),
                       ),
                       child: loading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
+                          ? const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Processando...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             )
-                          : const Text(
-                              'Assinar Agora',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Assinar Agora',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                     ),
                   ),
@@ -516,16 +620,6 @@ class PlanCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFeature(String text, IconData icon) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 18,
-        color: Colors.white54, // Cor similar ao PrincipalPage
       ),
     );
   }
