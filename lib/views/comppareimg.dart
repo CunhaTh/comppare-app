@@ -1862,8 +1862,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         key: repaintKey,
                         child: Column(
                           children: [
-                            // Imagens exibidas em um Row centralizado
-                            Expanded(
+                            // Imagens exibidas em um Row centralizado (altura fixa)
+                            SizedBox(
+                              height: isLargeScreen ? 360.0 : 280.0,
                               child: Container(
                                 margin:
                                     EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
@@ -1927,165 +1928,467 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 height: isLargeScreen
                                     ? screenWidth * 0.02
                                     : screenWidth * 0.01),
-                            // Tags e TextFields (rolável)
-                            Flexible(
+                            // Conteúdo rolável: categorias + ações + miniaturas
+                            Expanded(
                               child: SingleChildScrollView(
                                 padding: EdgeInsets.zero,
-                                child: categorias.isNotEmpty
-                                    ? Container(
-                                        padding: EdgeInsets.all(
-                                            isLargeScreen ? 16.0 : 12.0),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: categorias.map((categoria) {
-                                            return Container(
-                                              margin: EdgeInsets.only(
-                                                  bottom: isLargeScreen
-                                                      ? 12.0
-                                                      : 8.0),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                      horizontal: 12.0,
-                                                      vertical: 6.0,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(
-                                                          0xFFaed513),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8.0),
-                                                    ),
-                                                    child: Text(
-                                                      categoria,
-                                                      style: TextStyle(
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: isLargeScreen
-                                                            ? 14.0
-                                                            : 12.0,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 8.0),
-                                                  Row(
-                                                    children: displayedImages
-                                                        .asMap()
-                                                        .entries
-                                                        .map((imageEntry) {
-                                                      final int imageIndex =
-                                                          imageEntry.key;
-                                                      return Expanded(
-                                                        child: Container(
-                                                          margin: EdgeInsets.only(
-                                                              right: imageIndex <
-                                                                      displayedImages
-                                                                              .length -
-                                                                          1
-                                                                  ? 8.0
-                                                                  : 0),
-                                                          child: TextField(
-                                                            controller: controllers[
-                                                                    categoria]![
-                                                                imageIndex],
-                                                            style: TextStyle(
-                                                              fontSize:
-                                                                  isLargeScreen
-                                                                      ? 14.0
-                                                                      : 12.0,
-                                                            ),
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                            decoration:
-                                                                InputDecoration(
-                                                              hintText: 'Valor',
-                                                              filled: true,
-                                                              fillColor: Colors
-                                                                  .grey[50],
-                                                              border:
-                                                                  OutlineInputBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8.0),
-                                                                borderSide: BorderSide(
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        300]!),
-                                                              ),
-                                                              enabledBorder:
-                                                                  OutlineInputBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8.0),
-                                                                borderSide: BorderSide(
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        300]!),
-                                                              ),
-                                                              focusedBorder:
-                                                                  OutlineInputBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8.0),
-                                                                borderSide: const BorderSide(
-                                                                    color: Color(
-                                                                        0xFFaed513),
-                                                                    width: 2),
-                                                              ),
-                                                              contentPadding:
-                                                                  EdgeInsets
-                                                                      .symmetric(
-                                                                horizontal:
-                                                                    12.0,
-                                                                vertical: 8.0,
-                                                              ),
-                                                            ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Medidas/Categorias
+                                    categorias.isNotEmpty
+                                        ? Container(
+                                            padding: EdgeInsets.all(
+                                                isLargeScreen ? 16.0 : 12.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children:
+                                                  categorias.map((categoria) {
+                                                return Container(
+                                                  margin: EdgeInsets.only(
+                                                      bottom: isLargeScreen
+                                                          ? 12.0
+                                                          : 8.0),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Container(
+                                                        padding: EdgeInsets
+                                                            .symmetric(
+                                                          horizontal: 12.0,
+                                                          vertical: 6.0,
+                                                        ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: const Color(
+                                                              0xFFaed513),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      8.0),
+                                                        ),
+                                                        child: Text(
+                                                          categoria,
+                                                          style: TextStyle(
+                                                            color: Colors.black,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize:
+                                                                isLargeScreen
+                                                                    ? 14.0
+                                                                    : 12.0,
                                                           ),
                                                         ),
-                                                      );
-                                                    }).toList(),
+                                                      ),
+                                                      SizedBox(height: 8.0),
+                                                      Row(
+                                                        children: displayedImages
+                                                            .asMap()
+                                                            .entries
+                                                            .map((imageEntry) {
+                                                          final int imageIndex =
+                                                              imageEntry.key;
+                                                          return Expanded(
+                                                            child: Container(
+                                                              margin: EdgeInsets.only(
+                                                                  right: imageIndex <
+                                                                          displayedImages.length -
+                                                                              1
+                                                                      ? 8.0
+                                                                      : 0),
+                                                              child: TextField(
+                                                                controller: controllers[
+                                                                        categoria]![
+                                                                    imageIndex],
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize:
+                                                                      isLargeScreen
+                                                                          ? 14.0
+                                                                          : 12.0,
+                                                                ),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                decoration:
+                                                                    InputDecoration(
+                                                                  hintText:
+                                                                      'Valor',
+                                                                  filled: true,
+                                                                  fillColor:
+                                                                      Colors.grey[
+                                                                          50],
+                                                                  border:
+                                                                      OutlineInputBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            8.0),
+                                                                    borderSide:
+                                                                        BorderSide(
+                                                                            color:
+                                                                                Colors.grey[300]!),
+                                                                  ),
+                                                                  enabledBorder:
+                                                                      OutlineInputBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            8.0),
+                                                                    borderSide:
+                                                                        BorderSide(
+                                                                            color:
+                                                                                Colors.grey[300]!),
+                                                                  ),
+                                                                  focusedBorder:
+                                                                      OutlineInputBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            8.0),
+                                                                    borderSide: const BorderSide(
+                                                                        color: Color(
+                                                                            0xFFaed513),
+                                                                        width:
+                                                                            2),
+                                                                  ),
+                                                                  contentPadding:
+                                                                      EdgeInsets
+                                                                          .symmetric(
+                                                                    horizontal:
+                                                                        12.0,
+                                                                    vertical:
+                                                                        8.0,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          );
+                                                        }).toList(),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      )
-                                    : Container(
-                                        margin: EdgeInsets.all(
-                                            isLargeScreen ? 16.0 : 12.0),
-                                        padding: EdgeInsets.all(
-                                            isLargeScreen ? 20.0 : 16.0),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[50],
-                                          borderRadius:
-                                              BorderRadius.circular(12.0),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.info_outline,
-                                                color: Colors.grey, size: 20),
-                                            SizedBox(width: 12),
-                                            Text(
-                                              'Nenhuma categoria disponível.',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize:
-                                                    isLargeScreen ? 14.0 : 12.0,
+                                                );
+                                              }).toList(),
+                                            ),
+                                          )
+                                        : Container(
+                                            margin: EdgeInsets.all(
+                                                isLargeScreen ? 16.0 : 12.0),
+                                            padding: EdgeInsets.all(
+                                                isLargeScreen ? 20.0 : 16.0),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[50],
+                                              borderRadius:
+                                                  BorderRadius.circular(12.0),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.info_outline,
+                                                    color: Colors.grey,
+                                                    size: 20),
+                                                SizedBox(width: 12),
+                                                Text(
+                                                  'Nenhuma categoria disponível.',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: isLargeScreen
+                                                        ? 14.0
+                                                        : 12.0,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                    // Botões de compartilhar e baixar (dentro da área rolável)
+                                    Container(
+                                      padding: EdgeInsets.all(
+                                          isLargeScreen ? 20.0 : 16.0),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Expanded(
+                                            child: Container(
+                                              margin: const EdgeInsets.only(
+                                                  right: 8.0),
+                                              child: ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFFaed513),
+                                                  foregroundColor: Colors.black,
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 20.0,
+                                                    vertical: isLargeScreen
+                                                        ? 16.0
+                                                        : 14.0,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12.0),
+                                                  ),
+                                                  elevation: 2,
+                                                ),
+                                                onPressed: shareImages,
+                                                icon: Icon(
+                                                  Icons.share,
+                                                  size: isLargeScreen
+                                                      ? 18.0
+                                                      : 16.0,
+                                                ),
+                                                label: Text(
+                                                  'Compartilhar',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: isLargeScreen
+                                                        ? 14.0
+                                                        : 12.0,
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                          Expanded(
+                                            child: Container(
+                                              margin: const EdgeInsets.only(
+                                                  left: 8.0),
+                                              child: ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFFaed513),
+                                                  foregroundColor: Colors.black,
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 20.0,
+                                                    vertical: isLargeScreen
+                                                        ? 16.0
+                                                        : 14.0,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12.0),
+                                                  ),
+                                                  elevation: 2,
+                                                ),
+                                                onPressed: saveCard,
+                                                icon: Icon(
+                                                  Icons.download,
+                                                  size: isLargeScreen
+                                                      ? 18.0
+                                                      : 16.0,
+                                                ),
+                                                label: Text(
+                                                  'Baixar',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: isLargeScreen
+                                                        ? 14.0
+                                                        : 12.0,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                    ),
+
+                                    // Miniaturas (dentro da área rolável)
+                                    Container(
+                                      height: isLargeScreen ? 120.0 : 100.0,
+                                      margin: EdgeInsets.all(
+                                          isLargeScreen ? 16.0 : 12.0),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  Colors.white,
+                                                  Colors.white.withOpacity(0.0)
+                                                ],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                              ),
+                                            ),
+                                            child: IconButton(
+                                              icon: Container(
+                                                padding:
+                                                    const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFaed513),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.arrow_back_ios,
+                                                  color: Colors.black,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                              onPressed: scrollLeft,
+                                              tooltip: 'Rolar para a esquerda',
+                                            ),
+                                          ),
+                                          SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            controller: localScrollController,
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: isLargeScreen
+                                                    ? 40.0
+                                                    : 32.0),
+                                            child: Container(
+                                              width: double.infinity,
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: allSelectedImages
+                                                    .asMap()
+                                                    .entries
+                                                    .map((entry) {
+                                                  final int index = entry.key;
+                                                  final ImageModel imageItem =
+                                                      entry.value;
+                                                  return GestureDetector(
+                                                    onTap: () {
+                                                      onThumbnailTap(
+                                                          imageItem, index);
+                                                    },
+                                                    child: Container(
+                                                      width: isLargeScreen
+                                                          ? 80.0
+                                                          : 70.0,
+                                                      height: isLargeScreen
+                                                          ? 80.0
+                                                          : 70.0,
+                                                      margin:
+                                                          EdgeInsets.symmetric(
+                                                              horizontal: 8.0),
+                                                      decoration: BoxDecoration(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12.0),
+                                                        border: Border.all(
+                                                          color: selectedIndex ==
+                                                                  index
+                                                              ? const Color(
+                                                                  0xFFaed513)
+                                                              : Colors.grey
+                                                                  .withOpacity(
+                                                                      0.3),
+                                                          width:
+                                                              selectedIndex ==
+                                                                      index
+                                                                  ? 3
+                                                                  : 1,
+                                                        ),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: selectedIndex ==
+                                                                    index
+                                                                ? const Color(
+                                                                        0xFFaed513)
+                                                                    .withOpacity(
+                                                                        0.3)
+                                                                : Colors.black
+                                                                    .withOpacity(
+                                                                        0.1),
+                                                            blurRadius: 4.0,
+                                                            offset:
+                                                                const Offset(
+                                                                    0, 2),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(11.0),
+                                                        child: Image.memory(
+                                                          imageItem.imageData!,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            devtools.debugPrint(
+                                                                'Erro ao carregar imagem da miniatura: $error');
+                                                            return Container(
+                                                              color: Colors
+                                                                  .grey[200],
+                                                              child:
+                                                                  const Center(
+                                                                child: Column(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Icon(
+                                                                        Icons
+                                                                            .error,
+                                                                        color: Colors
+                                                                            .red,
+                                                                        size:
+                                                                            16),
+                                                                    Text('Erro',
+                                                                        style: TextStyle(
+                                                                            color:
+                                                                                Colors.red,
+                                                                            fontSize: 8)),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  Colors.white.withOpacity(0.0),
+                                                  Colors.white
+                                                ],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                              ),
+                                            ),
+                                            child: IconButton(
+                                              icon: Container(
+                                                padding:
+                                                    const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFaed513),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  color: Colors.black,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                              onPressed: scrollRight,
+                                              tooltip: 'Rolar para a direita',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -2093,233 +2396,234 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       ),
                     ),
                     // Botões de compartilhar e baixar
-                    Container(
-                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(20.0),
-                          bottomRight: Radius.circular(20.0),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 8.0),
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFaed513),
-                                  foregroundColor: Colors.black,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 20.0,
-                                    vertical: isLargeScreen ? 16.0 : 14.0,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  elevation: 2,
-                                ),
-                                onPressed: shareImages,
-                                icon: Icon(
-                                  Icons.share,
-                                  size: isLargeScreen ? 18.0 : 16.0,
-                                ),
-                                label: Text(
-                                  'Compartilhar',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isLargeScreen ? 14.0 : 12.0,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.only(left: 8.0),
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFaed513),
-                                  foregroundColor: Colors.black,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 20.0,
-                                    vertical: isLargeScreen ? 16.0 : 14.0,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  elevation: 2,
-                                ),
-                                onPressed: saveCard,
-                                icon: Icon(
-                                  Icons.download,
-                                  size: isLargeScreen ? 18.0 : 16.0,
-                                ),
-                                label: Text(
-                                  'Baixar',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isLargeScreen ? 14.0 : 12.0,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                    //   decoration: const BoxDecoration(
+                    //     color: Colors.white,
+                    //     borderRadius: BorderRadius.only(
+                    //       bottomLeft: Radius.circular(20.0),
+                    //       bottomRight: Radius.circular(20.0),
+                    //     ),
+                    //   ),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    //     children: [
+                    //       Expanded(
+                    //         child: Container(
+                    //           margin: const EdgeInsets.only(right: 8.0),
+                    //           child: ElevatedButton.icon(
+                    //             style: ElevatedButton.styleFrom(
+                    //               backgroundColor: const Color(0xFFaed513),
+                    //               foregroundColor: Colors.black,
+                    //               padding: EdgeInsets.symmetric(
+                    //                 horizontal: 20.0,
+                    //                 vertical: isLargeScreen ? 16.0 : 14.0,
+                    //               ),
+                    //               shape: RoundedRectangleBorder(
+                    //                 borderRadius: BorderRadius.circular(12.0),
+                    //               ),
+                    //               elevation: 2,
+                    //             ),
+                    //             onPressed: shareImages,
+                    //             icon: Icon(
+                    //               Icons.share,
+                    //               size: isLargeScreen ? 18.0 : 16.0,
+                    //             ),
+                    //             label: Text(
+                    //               'Compartilhar',
+                    //               style: TextStyle(
+                    //                 fontWeight: FontWeight.bold,
+                    //                 fontSize: isLargeScreen ? 14.0 : 12.0,
+                    //               ),
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //       Expanded(
+                    //         child: Container(
+                    //           margin: const EdgeInsets.only(left: 8.0),
+                    //           child: ElevatedButton.icon(
+                    //             style: ElevatedButton.styleFrom(
+                    //               backgroundColor: const Color(0xFFaed513),
+                    //               foregroundColor: Colors.black,
+                    //               padding: EdgeInsets.symmetric(
+                    //                 horizontal: 20.0,
+                    //                 vertical: isLargeScreen ? 16.0 : 14.0,
+                    //               ),
+                    //               shape: RoundedRectangleBorder(
+                    //                 borderRadius: BorderRadius.circular(12.0),
+                    //               ),
+                    //               elevation: 2,
+                    //             ),
+                    //             onPressed: saveCard,
+                    //             icon: Icon(
+                    //               Icons.download,
+                    //               size: isLargeScreen ? 18.0 : 16.0,
+                    //             ),
+                    //             label: Text(
+                    //               'Baixar',
+                    //               style: TextStyle(
+                    //                 fontWeight: FontWeight.bold,
+                    //                 fontSize: isLargeScreen ? 14.0 : 12.0,
+                    //               ),
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+
                     // Miniaturas das imagens selecionadas
-                    Container(
-                      height: isLargeScreen ? 120.0 : 100.0,
-                      margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                      child: Stack(
-                        children: [
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            controller: localScrollController,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: isLargeScreen ? 40.0 : 32.0),
-                            child: Row(
-                              children: allSelectedImages
-                                  .asMap()
-                                  .entries
-                                  .map((entry) {
-                                final int index = entry.key;
-                                final ImageModel imageItem = entry.value;
-                                return GestureDetector(
-                                  onTap: () {
-                                    onThumbnailTap(imageItem, index);
-                                  },
-                                  child: Container(
-                                    width: isLargeScreen ? 80.0 : 70.0,
-                                    height: isLargeScreen ? 80.0 : 70.0,
-                                    margin:
-                                        EdgeInsets.symmetric(horizontal: 8.0),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(12.0),
-                                      border: Border.all(
-                                        color: selectedIndex == index
-                                            ? const Color(0xFFaed513)
-                                            : Colors.grey.withOpacity(0.3),
-                                        width: selectedIndex == index ? 3 : 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: selectedIndex == index
-                                              ? const Color(0xFFaed513)
-                                                  .withOpacity(0.3)
-                                              : Colors.black.withOpacity(0.1),
-                                          blurRadius: 4.0,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(11.0),
-                                      child: Image.memory(
-                                        imageItem.imageData!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          devtools.debugPrint(
-                                              'Erro ao carregar imagem da miniatura: $error');
-                                          return Container(
-                                            color: Colors.grey[200],
-                                            child: const Center(
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(Icons.error,
-                                                      color: Colors.red,
-                                                      size: 16),
-                                                  Text('Erro',
-                                                      style: TextStyle(
-                                                          color: Colors.red,
-                                                          fontSize: 8)),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white,
-                                    Colors.white.withOpacity(0.0)
-                                  ],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                ),
-                              ),
-                              child: IconButton(
-                                icon: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFaed513),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Icon(
-                                    Icons.arrow_back_ios,
-                                    color: Colors.black,
-                                    size: 16,
-                                  ),
-                                ),
-                                onPressed: scrollLeft,
-                                tooltip: 'Rolar para a esquerda',
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white.withOpacity(0.0),
-                                    Colors.white
-                                  ],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                ),
-                              ),
-                              child: IconButton(
-                                icon: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFaed513),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: Colors.black,
-                                    size: 16,
-                                  ),
-                                ),
-                                onPressed: scrollRight,
-                                tooltip: 'Rolar para a direita',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   height: isLargeScreen ? 120.0 : 100.0,
+                    //   margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                    //   child: Stack(
+                    //     children: [
+                    //       SingleChildScrollView(
+                    //         scrollDirection: Axis.horizontal,
+                    //         controller: localScrollController,
+                    //         padding: EdgeInsets.symmetric(
+                    //             horizontal: isLargeScreen ? 40.0 : 32.0),
+                    //         child: Row(
+                    //           children: allSelectedImages
+                    //               .asMap()
+                    //               .entries
+                    //               .map((entry) {
+                    //             final int index = entry.key;
+                    //             final ImageModel imageItem = entry.value;
+                    //             return GestureDetector(
+                    //               onTap: () {
+                    //                 onThumbnailTap(imageItem, index);
+                    //               },
+                    //               child: Container(
+                    //                 width: isLargeScreen ? 80.0 : 70.0,
+                    //                 height: isLargeScreen ? 80.0 : 70.0,
+                    //                 margin:
+                    //                     EdgeInsets.symmetric(horizontal: 8.0),
+                    //                 decoration: BoxDecoration(
+                    //                   borderRadius: BorderRadius.circular(12.0),
+                    //                   border: Border.all(
+                    //                     color: selectedIndex == index
+                    //                         ? const Color(0xFFaed513)
+                    //                         : Colors.grey.withOpacity(0.3),
+                    //                     width: selectedIndex == index ? 3 : 1,
+                    //                   ),
+                    //                   boxShadow: [
+                    //                     BoxShadow(
+                    //                       color: selectedIndex == index
+                    //                           ? const Color(0xFFaed513)
+                    //                               .withOpacity(0.3)
+                    //                           : Colors.black.withOpacity(0.1),
+                    //                       blurRadius: 4.0,
+                    //                       offset: const Offset(0, 2),
+                    //                     ),
+                    //                   ],
+                    //                 ),
+                    //                 child: ClipRRect(
+                    //                   borderRadius: BorderRadius.circular(11.0),
+                    //                   child: Image.memory(
+                    //                     imageItem.imageData!,
+                    //                     fit: BoxFit.cover,
+                    //                     errorBuilder:
+                    //                         (context, error, stackTrace) {
+                    //                       devtools.debugPrint(
+                    //                           'Erro ao carregar imagem da miniatura: $error');
+                    //                       return Container(
+                    //                         color: Colors.grey[200],
+                    //                         child: const Center(
+                    //                           child: Column(
+                    //                             mainAxisAlignment:
+                    //                                 MainAxisAlignment.center,
+                    //                             children: [
+                    //                               Icon(Icons.error,
+                    //                                   color: Colors.red,
+                    //                                   size: 16),
+                    //                               Text('Erro',
+                    //                                   style: TextStyle(
+                    //                                       color: Colors.red,
+                    //                                       fontSize: 8)),
+                    //                             ],
+                    //                           ),
+                    //                         ),
+                    //                       );
+                    //                     },
+                    //                   ),
+                    //                 ),
+                    //               ),
+                    //             );
+                    //           }).toList(),
+                    //         ),
+                    //       ),
+                    //       Positioned(
+                    //         left: 0,
+                    //         top: 0,
+                    //         bottom: 0,
+                    //         child: Container(
+                    //           decoration: BoxDecoration(
+                    //             gradient: LinearGradient(
+                    //               colors: [
+                    //                 Colors.white,
+                    //                 Colors.white.withOpacity(0.0)
+                    //               ],
+                    //               begin: Alignment.centerLeft,
+                    //               end: Alignment.centerRight,
+                    //             ),
+                    //           ),
+                    //           child: IconButton(
+                    //             icon: Container(
+                    //               padding: const EdgeInsets.all(8),
+                    //               decoration: BoxDecoration(
+                    //                 color: const Color(0xFFaed513),
+                    //                 borderRadius: BorderRadius.circular(20),
+                    //               ),
+                    //               child: const Icon(
+                    //                 Icons.arrow_back_ios,
+                    //                 color: Colors.black,
+                    //                 size: 16,
+                    //               ),
+                    //             ),
+                    //             onPressed: scrollLeft,
+                    //             tooltip: 'Rolar para a esquerda',
+                    //           ),
+                    //         ),
+                    //       ),
+                    //       Positioned(
+                    //         right: 0,
+                    //         top: 0,
+                    //         bottom: 0,
+                    //         child: Container(
+                    //           decoration: BoxDecoration(
+                    //             gradient: LinearGradient(
+                    //               colors: [
+                    //                 Colors.white.withOpacity(0.0),
+                    //                 Colors.white
+                    //               ],
+                    //               begin: Alignment.centerLeft,
+                    //               end: Alignment.centerRight,
+                    //             ),
+                    //           ),
+                    //           child: IconButton(
+                    //             icon: Container(
+                    //               padding: const EdgeInsets.all(8),
+                    //               decoration: BoxDecoration(
+                    //                 color: const Color(0xFFaed513),
+                    //                 borderRadius: BorderRadius.circular(20),
+                    //               ),
+                    //               child: const Icon(
+                    //                 Icons.arrow_forward_ios,
+                    //                 color: Colors.black,
+                    //                 size: 16,
+                    //               ),
+                    //             ),
+                    //             onPressed: scrollRight,
+                    //             tooltip: 'Rolar para a direita',
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                   ],
                 );
               },
