@@ -2243,114 +2243,107 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                 horizontal: isLargeScreen
                                                     ? 40.0
                                                     : 32.0),
-                                            child: Container(
-                                              width: double.infinity,
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: allSelectedImages
-                                                    .asMap()
-                                                    .entries
-                                                    .map((entry) {
-                                                  final int index = entry.key;
-                                                  final ImageModel imageItem =
-                                                      entry.value;
-                                                  return GestureDetector(
-                                                    onTap: () {
-                                                      onThumbnailTap(
-                                                          imageItem, index);
-                                                    },
-                                                    child: Container(
-                                                      width: isLargeScreen
-                                                          ? 80.0
-                                                          : 70.0,
-                                                      height: isLargeScreen
-                                                          ? 80.0
-                                                          : 70.0,
-                                                      margin:
-                                                          EdgeInsets.symmetric(
-                                                              horizontal: 8.0),
-                                                      decoration: BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(12.0),
-                                                        border: Border.all(
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: allSelectedImages
+                                                  .asMap()
+                                                  .entries
+                                                  .map((entry) {
+                                                final int index = entry.key;
+                                                final ImageModel imageItem =
+                                                    entry.value;
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    onThumbnailTap(
+                                                        imageItem, index);
+                                                  },
+                                                  child: Container(
+                                                    width: isLargeScreen
+                                                        ? 80.0
+                                                        : 70.0,
+                                                    height: isLargeScreen
+                                                        ? 80.0
+                                                        : 70.0,
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                            horizontal: 8.0),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12.0),
+                                                      border: Border.all(
+                                                        color: selectedIndex ==
+                                                                index
+                                                            ? const Color(
+                                                                0xFFaed513)
+                                                            : Colors.grey
+                                                                .withOpacity(
+                                                                    0.3),
+                                                        width: selectedIndex ==
+                                                                index
+                                                            ? 3
+                                                            : 1,
+                                                      ),
+                                                      boxShadow: [
+                                                        BoxShadow(
                                                           color: selectedIndex ==
                                                                   index
                                                               ? const Color(
-                                                                  0xFFaed513)
-                                                              : Colors.grey
+                                                                      0xFFaed513)
                                                                   .withOpacity(
-                                                                      0.3),
-                                                          width:
-                                                              selectedIndex ==
-                                                                      index
-                                                                  ? 3
-                                                                  : 1,
+                                                                      0.3)
+                                                              : Colors.black
+                                                                  .withOpacity(
+                                                                      0.1),
+                                                          blurRadius: 4.0,
+                                                          offset: const Offset(
+                                                              0, 2),
                                                         ),
-                                                        boxShadow: [
-                                                          BoxShadow(
-                                                            color: selectedIndex ==
-                                                                    index
-                                                                ? const Color(
-                                                                        0xFFaed513)
-                                                                    .withOpacity(
-                                                                        0.3)
-                                                                : Colors.black
-                                                                    .withOpacity(
-                                                                        0.1),
-                                                            blurRadius: 4.0,
-                                                            offset:
-                                                                const Offset(
-                                                                    0, 2),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      child: ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(11.0),
-                                                        child: Image.memory(
-                                                          imageItem.imageData!,
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder:
-                                                              (context, error,
-                                                                  stackTrace) {
-                                                            devtools.debugPrint(
-                                                                'Erro ao carregar imagem da miniatura: $error');
-                                                            return Container(
-                                                              color: Colors
-                                                                  .grey[200],
-                                                              child:
-                                                                  const Center(
-                                                                child: Column(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
-                                                                  children: [
-                                                                    Icon(
-                                                                        Icons
-                                                                            .error,
-                                                                        color: Colors
-                                                                            .red,
-                                                                        size:
-                                                                            16),
-                                                                    Text('Erro',
-                                                                        style: TextStyle(
-                                                                            color:
-                                                                                Colors.red,
-                                                                            fontSize: 8)),
-                                                                  ],
-                                                                ),
+                                                      ],
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              11.0),
+                                                      child: Image.memory(
+                                                        imageItem.imageData!,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context,
+                                                            error, stackTrace) {
+                                                          devtools.debugPrint(
+                                                              'Erro ao carregar imagem da miniatura: $error');
+                                                          return Container(
+                                                            color: Colors
+                                                                .grey[200],
+                                                            child: const Center(
+                                                              child: Column(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  Icon(
+                                                                      Icons
+                                                                          .error,
+                                                                      color: Colors
+                                                                          .red,
+                                                                      size: 16),
+                                                                  Text('Erro',
+                                                                      style: TextStyle(
+                                                                          color: Colors
+                                                                              .red,
+                                                                          fontSize:
+                                                                              8)),
+                                                                ],
                                                               ),
-                                                            );
-                                                          },
-                                                        ),
+                                                            ),
+                                                          );
+                                                        },
                                                       ),
                                                     ),
-                                                  );
-                                                }).toList(),
-                                              ),
+                                                  ),
+                                                );
+                                              }).toList(),
                                             ),
                                           ),
                                           Container(
