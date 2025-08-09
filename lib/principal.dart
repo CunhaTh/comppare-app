@@ -136,7 +136,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 orElse: () => plans.first)
             : plans.first;
       } else {
-        foundation.debugPrint("Erro ao buscar planos: ${response.reasonPhrase}");
+        foundation
+            .debugPrint("Erro ao buscar planos: ${response.reasonPhrase}");
       }
     } catch (e) {
       foundation.debugPrint("Erro ao buscar planos: $e");
@@ -149,7 +150,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   void _navigateToSubscription() {
     if (plans.isEmpty) {
-      foundation.debugPrint('Nenhum plano disponível. Tente novamente mais tarde.');
+      foundation
+          .debugPrint('Nenhum plano disponível. Tente novamente mais tarde.');
       return;
     }
 
@@ -215,7 +217,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
             SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
           );
         } catch (e) {
-          foundation.debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
+          foundation
+              .debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
           if (mounted) {
             _showErrorDialog('Erro ao atualizar a lista de álbuns.');
           }
@@ -244,7 +247,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     try {
       final user = UserHelper().user;
       if (user == null || user.id == null) {
-        foundation.debugPrint('Usuário não autenticado. Redirecionando para login.');
+        foundation
+            .debugPrint('Usuário não autenticado. Redirecionando para login.');
         _navigateToLogin();
         return;
       }
@@ -262,7 +266,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     } on ApiException catch (e) {
       foundation.debugPrint('Erro ao atualizar pastas da API: ${e.message}');
       if (mounted) {
-        _showErrorDialog('Não foi possível atualizar seus álbuns. ${e.message}');
+        _showErrorDialog(
+            'Não foi possível atualizar seus álbuns. ${e.message}');
         if (e.statusCode == 401) {
           _navigateToLogin();
         }
@@ -270,7 +275,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     } catch (e) {
       foundation.debugPrint('Erro inesperado ao atualizar pastas da API: $e');
       if (mounted) {
-        _showErrorDialog('Ocorreu um erro inesperado ao atualizar seus álbuns.');
+        _showErrorDialog(
+            'Ocorreu um erro inesperado ao atualizar seus álbuns.');
       }
     } finally {
       if (mounted) {
@@ -1074,10 +1080,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     bottomRight: Radius.circular(20),
                   ),
                 ),
-                child: Stack(
+                child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(20).copyWith(bottom: 0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1127,17 +1133,20 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         ],
                       ),
                     ),
-                    Positioned(
-                      right: 16,
-                      bottom: 16,
+                    Align(
+                      alignment: Alignment.centerRight,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 6,
                         ),
+                        //   margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
                           color: Colors.black87,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.2),
@@ -1211,8 +1220,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (_) => CreateTagsPage()),
+                          MaterialPageRoute(builder: (_) => CreateTagsPage()),
                         );
                       },
                     ),

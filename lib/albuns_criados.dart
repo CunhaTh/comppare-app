@@ -303,8 +303,6 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     );
   }
 
-  
-
   void _showAddSubalbumDialog() {
     if (!mounted) return;
     _subalbumNameController.clear();
@@ -377,8 +375,11 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                   ),
                   ElevatedButton(
                     child: const Text('Salvar'),
-                    onPressed: isDialogLoading ? null : () async {
-                            final subalbumName = _subalbumNameController.text.trim();
+                    onPressed: isDialogLoading
+                        ? null
+                        : () async {
+                            final subalbumName =
+                                _subalbumNameController.text.trim();
                             if (subalbumName.isEmpty) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -408,7 +409,8 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                             } catch (e) {
                               debugPrint('Erro no modal de criar subálbum: $e');
                               if (mounted) {
-                                _showErrorDialog('Você atingiu o limite de supálbuns criados: $e');
+                                _showErrorDialog(
+                                    'Você atingiu o limite de supálbuns criados: $e');
                               }
                             } finally {
                               if (context.mounted) {
@@ -416,7 +418,6 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                               }
                             }
                           },
-                    
                   ),
                 ],
               );
@@ -926,7 +927,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                 Row(
                   children: [
                     Text(
-                      '+ tags',
+                      '+ categorias',
                       style: TextStyle(
                         color: Colors.black.withValues(alpha: 0.7),
                         fontSize: 14,
