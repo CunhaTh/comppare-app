@@ -933,20 +933,17 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                             width: double.infinity,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 8.0,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1.0,
+                              ),
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16.0),
                               child: imageItem.imageData!.isNotEmpty
                                   ? Image.memory(
                                       imageItem.imageData!,
-                                      fit: BoxFit.cover,
+                                      fit: BoxFit.contain,
                                     )
                                   : Container(
                                       color: Colors.grey[200],
@@ -1863,63 +1860,67 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         child: Column(
                           children: [
                             // Imagens exibidas em um Row centralizado (altura fixa)
-                            SizedBox(
-                              height: isLargeScreen ? 360.0 : 280.0,
-                              child: Container(
-                                margin:
-                                    EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  border: Border.all(
-                                    color: Colors.grey[300]!,
-                                    width: 1.0,
+                            Expanded(
+                              child: SizedBox(
+                                height: isLargeScreen ? 360.0 : 280.0,
+                                child: Container(
+                                  margin: EdgeInsets.all(
+                                      isLargeScreen ? 16.0 : 12.0),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16.0),
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
+                                      width: 1.0,
+                                    ),
                                   ),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: displayedImages.map((imageItem) {
-                                      int index =
-                                          displayedImages.indexOf(imageItem);
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children:
+                                          displayedImages.map((imageItem) {
+                                        int index =
+                                            displayedImages.indexOf(imageItem);
 
-                                      return Expanded(
-                                        child: Align(
-                                          alignment: index == 0
-                                              ? Alignment.centerRight
-                                              : Alignment.centerLeft,
-                                          child: Image.memory(
-                                            imageItem.imageData!,
-                                            fit: BoxFit.contain,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                              devtools.debugPrint(
-                                                  'Erro ao carregar imagem em displayedImages: $error');
-                                              return Container(
-                                                color: Colors.grey[200],
-                                                child: const Center(
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Icon(Icons.error,
-                                                          color: Colors.red,
-                                                          size: 40),
-                                                      SizedBox(height: 8),
-                                                      Text('Erro de imagem',
-                                                          style: TextStyle(
-                                                              color:
-                                                                  Colors.red)),
-                                                    ],
+                                        return Expanded(
+                                          child: Align(
+                                            alignment: index == 0
+                                                ? Alignment.centerRight
+                                                : Alignment.centerLeft,
+                                            child: Image.memory(
+                                              imageItem.imageData!,
+                                              fit: BoxFit.contain,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                devtools.debugPrint(
+                                                    'Erro ao carregar imagem em displayedImages: $error');
+                                                return Container(
+                                                  color: Colors.grey[200],
+                                                  child: const Center(
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(Icons.error,
+                                                            color: Colors.red,
+                                                            size: 40),
+                                                        SizedBox(height: 8),
+                                                        Text('Erro de imagem',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .red)),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ),
-                                              );
-                                            },
+                                                );
+                                              },
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    }).toList(),
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -2142,114 +2143,120 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                               tooltip: 'Rolar para a esquerda',
                                             ),
                                           ),
-                                          SingleChildScrollView(
-                                            scrollDirection: Axis.horizontal,
-                                            controller: localScrollController,
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: isLargeScreen
-                                                    ? 40.0
-                                                    : 32.0),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: allSelectedImages
-                                                  .asMap()
-                                                  .entries
-                                                  .map((entry) {
-                                                final int index = entry.key;
-                                                final ImageModel imageItem =
-                                                    entry.value;
-                                                return GestureDetector(
-                                                  onTap: () {
-                                                    onThumbnailTap(
-                                                        imageItem, index);
-                                                  },
-                                                  child: Container(
-                                                    width: isLargeScreen
-                                                        ? 80.0
-                                                        : 70.0,
-                                                    height: isLargeScreen
-                                                        ? 80.0
-                                                        : 70.0,
-                                                    margin:
-                                                        EdgeInsets.symmetric(
-                                                            horizontal: 8.0),
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12.0),
-                                                      border: Border.all(
-                                                        color: selectedIndex ==
-                                                                index
-                                                            ? const Color(
-                                                                0xFFaed513)
-                                                            : Colors.grey
-                                                                .withOpacity(
-                                                                    0.3),
-                                                        width: selectedIndex ==
-                                                                index
-                                                            ? 3
-                                                            : 1,
-                                                      ),
-                                                      boxShadow: [
-                                                        BoxShadow(
+                                          Expanded(
+                                            child: SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
+                                              controller: localScrollController,
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: isLargeScreen
+                                                      ? 40.0
+                                                      : 32.0),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: allSelectedImages
+                                                    .asMap()
+                                                    .entries
+                                                    .map((entry) {
+                                                  final int index = entry.key;
+                                                  final ImageModel imageItem =
+                                                      entry.value;
+                                                  return GestureDetector(
+                                                    onTap: () {
+                                                      onThumbnailTap(
+                                                          imageItem, index);
+                                                    },
+                                                    child: Container(
+                                                      width: isLargeScreen
+                                                          ? 80.0
+                                                          : 70.0,
+                                                      height: isLargeScreen
+                                                          ? 80.0
+                                                          : 70.0,
+                                                      margin:
+                                                          EdgeInsets.symmetric(
+                                                              horizontal: 8.0),
+                                                      decoration: BoxDecoration(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12.0),
+                                                        border: Border.all(
                                                           color: selectedIndex ==
                                                                   index
                                                               ? const Color(
-                                                                      0xFFaed513)
+                                                                  0xFFaed513)
+                                                              : Colors.grey
                                                                   .withOpacity(
-                                                                      0.3)
-                                                              : Colors.black
-                                                                  .withOpacity(
-                                                                      0.1),
-                                                          blurRadius: 4.0,
-                                                          offset: const Offset(
-                                                              0, 2),
+                                                                      0.3),
+                                                          width:
+                                                              selectedIndex ==
+                                                                      index
+                                                                  ? 3
+                                                                  : 1,
                                                         ),
-                                                      ],
-                                                    ),
-                                                    child: ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              11.0),
-                                                      child: Image.memory(
-                                                        imageItem.imageData!,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder: (context,
-                                                            error, stackTrace) {
-                                                          devtools.debugPrint(
-                                                              'Erro ao carregar imagem da miniatura: $error');
-                                                          return Container(
-                                                            color: Colors
-                                                                .grey[200],
-                                                            child: const Center(
-                                                              child: Column(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Icon(
-                                                                      Icons
-                                                                          .error,
-                                                                      color: Colors
-                                                                          .red,
-                                                                      size: 16),
-                                                                  Text('Erro',
-                                                                      style: TextStyle(
-                                                                          color: Colors
-                                                                              .red,
-                                                                          fontSize:
-                                                                              8)),
-                                                                ],
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: selectedIndex ==
+                                                                    index
+                                                                ? const Color(
+                                                                        0xFFaed513)
+                                                                    .withOpacity(
+                                                                        0.3)
+                                                                : Colors.black
+                                                                    .withOpacity(
+                                                                        0.1),
+                                                            blurRadius: 4.0,
+                                                            offset:
+                                                                const Offset(
+                                                                    0, 2),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(11.0),
+                                                        child: Image.memory(
+                                                          imageItem.imageData!,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            devtools.debugPrint(
+                                                                'Erro ao carregar imagem da miniatura: $error');
+                                                            return Container(
+                                                              color: Colors
+                                                                  .grey[200],
+                                                              child:
+                                                                  const Center(
+                                                                child: Column(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Icon(
+                                                                        Icons
+                                                                            .error,
+                                                                        color: Colors
+                                                                            .red,
+                                                                        size:
+                                                                            16),
+                                                                    Text('Erro',
+                                                                        style: TextStyle(
+                                                                            color:
+                                                                                Colors.red,
+                                                                            fontSize: 8)),
+                                                                  ],
+                                                                ),
                                                               ),
-                                                            ),
-                                                          );
-                                                        },
+                                                            );
+                                                          },
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                );
-                                              }).toList(),
+                                                  );
+                                                }).toList(),
+                                              ),
                                             ),
                                           ),
                                           Container(
