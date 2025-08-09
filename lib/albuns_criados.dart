@@ -812,7 +812,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
               MaterialPageRoute(
                 builder: (context) => ImagemDetalhesPage(
                   images: group.imagens ?? [],
-                  tags: tags,
+                  categorias: tags,
                   subAlbumName:
                       group.albunsCriadosPageDisplayName ?? 'Sem nome',
                 ),

@@ -18,13 +18,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ImagemDetalhesPage extends StatefulWidget {
   final List<ImageModel> images;
-  final List<String> tags;
+  final List<String> categorias;
   final String subAlbumName;
 
   const ImagemDetalhesPage({
     super.key,
     required this.images,
-    required this.tags,
+    required this.categorias,
     required this.subAlbumName,
   });
 
@@ -35,7 +35,7 @@ class ImagemDetalhesPage extends StatefulWidget {
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     with TickerProviderStateMixin {
   late Future<List<ImageModel>> _imageItemsFuture;
-  late List<String> tags;
+  late List<String> categorias;
   final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
   List<ImageModel> allSelectedImages = [];
@@ -49,11 +49,13 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
   // Função para deletar imagens selecionadas
-   Future<void> deleteImageList() async {
-    final selectedImages = _imageItems?.where((image) => image.isSelected).toList() ?? [];
+  Future<void> deleteImageList() async {
+    final selectedImages =
+        _imageItems?.where((image) => image.isSelected).toList() ?? [];
     if (selectedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione pelo menos uma imagem para deletar.')),
+        const SnackBar(
+            content: Text('Selecione pelo menos uma imagem para deletar.')),
       );
       return;
     }
@@ -64,7 +66,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
-          content: const Text('Tem certeza que deseja excluir as imagens selecionadas? Esta ação não poderá ser desfeita.'),
+          content: const Text(
+              'Tem certeza que deseja excluir as imagens selecionadas? Esta ação não poderá ser desfeita.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -82,13 +85,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     if (confirm != true) return;
 
     setState(() {
-      _isLoading = true; // Adicione _isLoading como variável de estado se não existir
+      _isLoading =
+          true; // Adicione _isLoading como variável de estado se não existir
     });
 
     try {
       // Deletar cada imagem na API
       for (final image in selectedImages) {
-        await _apiService.deleteImage(image.id, selectedImages.first as int); // Substitua pelo método real da API
+        await _apiService.deleteImage(image.id,
+            selectedImages.first as int); // Substitua pelo método real da API
       }
 
       // Atualizar a lista local removendo as imagens deletadas
@@ -103,11 +108,13 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     } catch (e) {
       debugPrint('Erro ao deletar imagens: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao deletar imagens. Tente novamente.')),
+        const SnackBar(
+            content: Text('Erro ao deletar imagens. Tente novamente.')),
       );
     } finally {
       setState(() {
-        _isLoading = false; // Adicione _isLoading como variável de estado se não existir
+        _isLoading =
+            false; // Adicione _isLoading como variável de estado se não existir
       });
     }
   }
@@ -172,7 +179,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   @override
   void initState() {
     super.initState();
-    tags = widget.tags;
+    categorias = widget.categorias;
     _imageItemsFuture = _prepareImageItems();
 
     // Inicializar animações
@@ -406,8 +413,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () => _showComparisonDialog(
-                      context, loadedImageItems, tags, widget.subAlbumName),
+                  onTap: () => _showComparisonDialog(context, loadedImageItems,
+                      categorias, widget.subAlbumName),
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: isLargeScreen ? 24.0 : 20.0,
@@ -790,36 +797,40 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
     final Map<String, TextEditingController> controllers = {
-      for (var tag in tags)
-        tag: TextEditingController(
-          text: tag == 'Data'
+      for (var categoria in categorias)
+        categoria: TextEditingController(
+          text: categoria == 'Data'
               ? imageItem.date ?? ''
-              : tag == 'Peso'
+              : categoria == 'Peso'
                   ? imageItem.weight ?? ''
-                  : tag == 'Série'
+                  : categoria == 'Série'
                       ? imageItem.waist ?? ''
-                      : tag == 'Obs'
+                      : categoria == 'Obs'
                           ? imageItem.observation ?? ''
-                          : imageItem.customTags[tag] ?? '',
+                          : imageItem.customCategorias[categoria] ?? '',
         ),
     };
 
     Future<void> saveChanges(ImageModel updatedItem) async {
       final prefs = await SharedPreferences.getInstance();
-      final tagKey = 'image_tags_${updatedItem.id}';
-      final existingTags = jsonDecode(prefs.getString(tagKey) ?? '{}')
-              as Map<String, dynamic>? ??
-          {};
-      final updatedTags = {
+      final categoriaKey = 'image_tags_${updatedItem.id}';
+      final existingCategorias =
+          jsonDecode(prefs.getString(categoriaKey) ?? '{}')
+                  as Map<String, dynamic>? ??
+              {};
+      final updatedCategorias = {
         'Data': controllers['Data']?.text ?? updatedItem.date ?? '',
         'Peso': controllers['Peso']?.text ?? updatedItem.weight ?? '',
         'Série': controllers['Série']?.text ?? updatedItem.waist ?? '',
         'Obs': controllers['Obs']?.text ?? updatedItem.observation ?? '',
-        for (var tag in tags)
-          if (tag != 'Data' && tag != 'Peso' && tag != 'Série' && tag != 'Obs')
-            tag: controllers[tag]!.text,
+        for (var categoria in categorias)
+          if (categoria != 'Data' &&
+              categoria != 'Peso' &&
+              categoria != 'Série' &&
+              categoria != 'Obs')
+            categoria: controllers[categoria]!.text,
       };
-      await prefs.setString(tagKey, jsonEncode(updatedTags));
+      await prefs.setString(categoriaKey, jsonEncode(updatedCategorias));
 
       setState(() {
         if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
@@ -827,17 +838,17 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
             id: updatedItem.id,
             url: updatedItem.url,
             imageData: updatedItem.imageData,
-            date: updatedTags['Data'],
-            weight: updatedTags['Peso'],
-            waist: updatedTags['Série'],
-            observation: updatedTags['Obs'],
-            customTags: {
-              for (var tag in tags)
-                if (tag != 'Data' &&
-                    tag != 'Peso' &&
-                    tag != 'Série' &&
-                    tag != 'Obs')
-                  tag: updatedTags[tag]!,
+            date: updatedCategorias['Data'],
+            weight: updatedCategorias['Peso'],
+            waist: updatedCategorias['Série'],
+            observation: updatedCategorias['Obs'],
+            customCategorias: {
+              for (var categoria in categorias)
+                if (categoria != 'Data' &&
+                    categoria != 'Peso' &&
+                    categoria != 'Série' &&
+                    categoria != 'Obs')
+                  categoria: updatedCategorias[categoria]!,
             },
             takenAt: updatedItem.toString(),
             isSelected: updatedItem.isSelected,
@@ -957,10 +968,10 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                             ),
                           ),
                           SizedBox(height: isLargeScreen ? 24.0 : 20.0),
-                          if (tags.isNotEmpty)
+                          if (categorias.isNotEmpty)
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: tags.map((tag) {
+                              children: categorias.map((categoria) {
                                 return Container(
                                   margin: EdgeInsets.only(
                                       bottom: isLargeScreen ? 16.0 : 12.0),
@@ -969,7 +980,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        tag,
+                                        categoria,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: isLargeScreen ? 16.0 : 14.0,
@@ -978,9 +989,10 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                       ),
                                       SizedBox(height: 8.0),
                                       TextField(
-                                        controller: controllers[tag],
+                                        controller: controllers[categoria],
                                         decoration: InputDecoration(
-                                          hintText: 'Insira o valor para $tag',
+                                          hintText:
+                                              'Insira o valor para $categoria',
                                           filled: true,
                                           fillColor: Colors.grey[50],
                                           border: OutlineInputBorder(
@@ -1027,7 +1039,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                       color: Colors.grey, size: 20),
                                   SizedBox(width: 12),
                                   Text(
-                                    'Sem tags disponíveis no momento.',
+                                    'Sem categorias disponíveis no momento.',
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: isLargeScreen ? 14.0 : 12.0,
@@ -1116,14 +1128,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                       imageItem.waist,
                                   observation: controllers['Obs']?.text ??
                                       imageItem.observation,
-                                  customTags: {
-                                    ...imageItem.customTags,
-                                    for (var tag in tags)
-                                      if (tag != 'Data' &&
-                                          tag != 'Peso' &&
-                                          tag != 'Série' &&
-                                          tag != 'Obs')
-                                        tag: controllers[tag]!.text,
+                                  customCategorias: {
+                                    ...imageItem.customCategorias,
+                                    for (var categoria in categorias)
+                                      if (categoria != 'Data' &&
+                                          categoria != 'Peso' &&
+                                          categoria != 'Série' &&
+                                          categoria != 'Obs')
+                                        categoria: controllers[categoria]!.text,
                                   },
                                   takenAt: '',
                                 );
@@ -1163,7 +1175,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   void _showComparisonDialog(
       BuildContext context,
       List<ImageModel> imagesToCompare,
-      List<String> tags,
+      List<String> categorias,
       String subAlbumName) async {
     final GlobalKey repaintKey = GlobalKey();
     final GlobalKey shareRepaintKey = GlobalKey();
@@ -1235,10 +1247,10 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
         selectedImages); // Todas as imagens selecionadas para miniaturas
 
     final Map<String, List<TextEditingController>> controllers = {
-      for (var tag in tags)
-        tag: displayedImages.asMap().entries.map((entry) {
+      for (var categoria in categorias)
+        categoria: displayedImages.asMap().entries.map((entry) {
           final ImageModel item = entry.value;
-          switch (tag) {
+          switch (categoria) {
             case 'Data':
               return TextEditingController(text: item.date ?? '');
             case 'Peso':
@@ -1248,7 +1260,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
             case 'Obs':
               return TextEditingController(text: item.observation ?? '');
             default:
-              return TextEditingController(text: item.customTags[tag] ?? '');
+              return TextEditingController(
+                  text: item.customCategorias[categoria] ?? '');
           }
         }).toList(),
     };
@@ -1742,9 +1755,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         allSelectedImages.indexOf(displayedImages[0]);
 
                     // Atualiza os controladores de texto com os dados das novas imagens exibidas
-                    controllers.forEach((tag, controllerList) {
+                    controllers.forEach((categoria, controllerList) {
                       // Atualiza a primeira posição (esquerda)
-                      switch (tag) {
+                      switch (categoria) {
                         case 'Data':
                           controllerList[0].text =
                               displayedImages[0].date ?? '';
@@ -1763,13 +1776,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                           break;
                         default:
                           controllerList[0].text =
-                              displayedImages[0].customTags[tag] ?? '';
+                              displayedImages[0].customCategorias[categoria] ??
+                                  '';
                           break;
                       }
                       // Atualiza a segunda posição (direita)
                       if (controllerList.length > 1) {
                         // Garante que há controlador para a segunda imagem
-                        switch (tag) {
+                        switch (categoria) {
                           case 'Data':
                             controllerList[1].text =
                                 displayedImages[1].date ?? '';
@@ -1787,8 +1801,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 displayedImages[1].observation ?? '';
                             break;
                           default:
-                            controllerList[1].text =
-                                displayedImages[1].customTags[tag] ?? '';
+                            controllerList[1].text = displayedImages[1]
+                                    .customCategorias[categoria] ??
+                                '';
                             break;
                         }
                       }
@@ -1909,13 +1924,13 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     ? screenWidth * 0.02
                                     : screenWidth * 0.01),
                             // Tags e TextFields
-                            if (tags.isNotEmpty)
+                            if (categorias.isNotEmpty)
                               Container(
                                 padding:
                                     EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: tags.map((tag) {
+                                  children: categorias.map((categoria) {
                                     return Container(
                                       margin: EdgeInsets.only(
                                           bottom: isLargeScreen ? 12.0 : 8.0),
@@ -1934,7 +1949,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                   BorderRadius.circular(8.0),
                                             ),
                                             child: Text(
-                                              tag,
+                                              categoria,
                                               style: TextStyle(
                                                 color: Colors.black,
                                                 fontWeight: FontWeight.bold,
@@ -1962,7 +1977,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                           : 0),
                                                   child: TextField(
                                                     controller: controllers[
-                                                        tag]![imageIndex],
+                                                        categoria]![imageIndex],
                                                     style: TextStyle(
                                                       fontSize: isLargeScreen
                                                           ? 14.0
@@ -2036,7 +2051,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                         color: Colors.grey, size: 20),
                                     SizedBox(width: 12),
                                     Text(
-                                      'Nenhuma tag disponível.',
+                                      'Nenhuma categoria disponível.',
                                       style: TextStyle(
                                         color: Colors.grey[600],
                                         fontSize: isLargeScreen ? 14.0 : 12.0,
