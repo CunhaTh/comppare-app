@@ -35,7 +35,24 @@ class ImagemDetalhesPage extends StatefulWidget {
 
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     with TickerProviderStateMixin {
+  final GlobalKey shareRepaintKey = GlobalKey();
   late Future<List<ImageModel>> _imageItemsFuture;
+
+  // Method to capture card image
+  Future<Uint8List?> captureCard(GlobalKey key) async {
+    try {
+      RenderRepaintBoundary boundary =
+          key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      devtools.debugPrint("Erro ao capturar o card: $e");
+      return null;
+    }
+  }
+
   late List<String> categorias;
   final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
@@ -1265,41 +1282,41 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                         CrossAxisAlignment.center,
                                     children: [
                                       // Container principal das imagens
-                                      Container(
-                                        padding: const EdgeInsets.all(20),
-                                        height: isLargeScreen ? 320.0 : 270.0,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children:
-                                              displayedImages.map((imageItem) {
-                                            return Expanded(
-                                              child: Container(
-                                                margin:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  border: Border.all(
-                                                    color: Colors.grey[200]!,
-                                                    width: 1.5,
-                                                  ),
-                                                ),
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  child: Image.memory(
-                                                    imageItem.imageData!,
-                                                    fit: BoxFit.contain,
-                                                    height: double.infinity,
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
+                                      // Container(
+                                      //   padding: const EdgeInsets.all(20),
+                                      //   height: isLargeScreen ? 320.0 : 270.0,
+                                      //   child: Row(
+                                      //     mainAxisAlignment:
+                                      //         MainAxisAlignment.center,
+                                      //     children:
+                                      //         displayedImages.map((imageItem) {
+                                      //       return Expanded(
+                                      //         child: Container(
+                                      //           margin:
+                                      //               const EdgeInsets.symmetric(
+                                      //                   horizontal: 8),
+                                      //           decoration: BoxDecoration(
+                                      //             borderRadius:
+                                      //                 BorderRadius.circular(16),
+                                      //             border: Border.all(
+                                      //               color: Colors.grey[200]!,
+                                      //               width: 1.5,
+                                      //             ),
+                                      //           ),
+                                      //           child: ClipRRect(
+                                      //             borderRadius:
+                                      //                 BorderRadius.circular(16),
+                                      //             child: Image.memory(
+                                      //               imageItem.imageData!,
+                                      //               fit: BoxFit.contain,
+                                      //               height: double.infinity,
+                                      //             ),
+                                      //           ),
+                                      //         ),
+                                      //       );
+                                      //     }).toList(),
+                                      //   ),
+                                      // ),
                                       SizedBox(
                                           height: isLargeScreen ? 20.0 : 16.0),
                                       // Logo do Comppare com design aprimorado
