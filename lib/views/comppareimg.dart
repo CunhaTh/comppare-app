@@ -2102,100 +2102,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                             ),
                                           ),
 
-                                    // Botões de compartilhar e baixar (dentro da área rolável)
-                                    Container(
-                                      padding: EdgeInsets.all(
-                                          isLargeScreen ? 20.0 : 16.0),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceEvenly,
-                                        children: [
-                                          Expanded(
-                                            child: Container(
-                                              margin: const EdgeInsets.only(
-                                                  right: 8.0),
-                                              child: ElevatedButton.icon(
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor:
-                                                      const Color(0xFFaed513),
-                                                  foregroundColor: Colors.black,
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 20.0,
-                                                    vertical: isLargeScreen
-                                                        ? 16.0
-                                                        : 14.0,
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12.0),
-                                                  ),
-                                                  elevation: 2,
-                                                ),
-                                                onPressed: shareImages,
-                                                icon: Icon(
-                                                  Icons.share,
-                                                  size: isLargeScreen
-                                                      ? 18.0
-                                                      : 16.0,
-                                                ),
-                                                label: Text(
-                                                  'Compartilhar',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: isLargeScreen
-                                                        ? 14.0
-                                                        : 12.0,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Container(
-                                              margin: const EdgeInsets.only(
-                                                  left: 8.0),
-                                              child: ElevatedButton.icon(
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor:
-                                                      const Color(0xFFaed513),
-                                                  foregroundColor: Colors.black,
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 20.0,
-                                                    vertical: isLargeScreen
-                                                        ? 16.0
-                                                        : 14.0,
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12.0),
-                                                  ),
-                                                  elevation: 2,
-                                                ),
-                                                onPressed: saveCard,
-                                                icon: Icon(
-                                                  Icons.download,
-                                                  size: isLargeScreen
-                                                      ? 18.0
-                                                      : 16.0,
-                                                ),
-                                                label: Text(
-                                                  'Baixar',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: isLargeScreen
-                                                        ? 14.0
-                                                        : 12.0,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
                                     // Miniaturas (dentro da área rolável)
                                     Container(
                                       height: isLargeScreen ? 120.0 : 100.0,
@@ -2617,6 +2523,85 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     //     ],
                     //   ),
                     // ),
+
+                    // Botões de compartilhar e baixar no rodapé do diálogo
+                    Container(
+                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(20.0),
+                          bottomRight: Radius.circular(20.0),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 8.0),
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFaed513),
+                                  foregroundColor: Colors.black,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20.0,
+                                    vertical: isLargeScreen ? 16.0 : 14.0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                onPressed: shareImages,
+                                icon: Icon(
+                                  Icons.share,
+                                  size: isLargeScreen ? 18.0 : 16.0,
+                                ),
+                                label: Text(
+                                  'Compartilhar',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(left: 8.0),
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFaed513),
+                                  foregroundColor: Colors.black,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20.0,
+                                    vertical: isLargeScreen ? 16.0 : 14.0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                onPressed: saveCard,
+                                icon: Icon(
+                                  Icons.download,
+                                  size: isLargeScreen ? 18.0 : 16.0,
+                                ),
+                                label: Text(
+                                  'Baixar',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 );
               },
