@@ -1869,22 +1869,24 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16.0),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 8.0,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
+                                  border: Border.all(
+                                    color: Colors.grey[300]!,
+                                    width: 1.0,
+                                  ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(16.0),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: displayedImages.map((imageItem) {
+                                      int index =
+                                          displayedImages.indexOf(imageItem);
+
                                       return Expanded(
-                                        child: Container(
-                                          height: double.infinity,
+                                        child: Align(
+                                          alignment: index == 0
+                                              ? Alignment.centerRight
+                                              : Alignment.centerLeft,
                                           child: Image.memory(
                                             imageItem.imageData!,
                                             fit: BoxFit.contain,
