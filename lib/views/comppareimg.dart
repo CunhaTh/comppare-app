@@ -1887,7 +1887,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                           height: double.infinity,
                                           child: Image.memory(
                                             imageItem.imageData!,
-                                            fit: BoxFit.cover,
+                                            fit: BoxFit.contain,
                                             errorBuilder:
                                                 (context, error, stackTrace) {
                                               devtools.debugPrint(
@@ -1925,143 +1925,167 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 height: isLargeScreen
                                     ? screenWidth * 0.02
                                     : screenWidth * 0.01),
-                            // Tags e TextFields
-                            if (categorias.isNotEmpty)
-                              Container(
-                                padding:
-                                    EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: categorias.map((categoria) {
-                                    return Container(
-                                      margin: EdgeInsets.only(
-                                          bottom: isLargeScreen ? 12.0 : 8.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 12.0,
-                                              vertical: 6.0,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFaed513),
-                                              borderRadius:
-                                                  BorderRadius.circular(8.0),
-                                            ),
-                                            child: Text(
-                                              categoria,
+                            // Tags e TextFields (rolável)
+                            Flexible(
+                              child: SingleChildScrollView(
+                                padding: EdgeInsets.zero,
+                                child: categorias.isNotEmpty
+                                    ? Container(
+                                        padding: EdgeInsets.all(
+                                            isLargeScreen ? 16.0 : 12.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: categorias.map((categoria) {
+                                            return Container(
+                                              margin: EdgeInsets.only(
+                                                  bottom: isLargeScreen
+                                                      ? 12.0
+                                                      : 8.0),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal: 12.0,
+                                                      vertical: 6.0,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFaed513),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8.0),
+                                                    ),
+                                                    child: Text(
+                                                      categoria,
+                                                      style: TextStyle(
+                                                        color: Colors.black,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: isLargeScreen
+                                                            ? 14.0
+                                                            : 12.0,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 8.0),
+                                                  Row(
+                                                    children: displayedImages
+                                                        .asMap()
+                                                        .entries
+                                                        .map((imageEntry) {
+                                                      final int imageIndex =
+                                                          imageEntry.key;
+                                                      return Expanded(
+                                                        child: Container(
+                                                          margin: EdgeInsets.only(
+                                                              right: imageIndex <
+                                                                      displayedImages
+                                                                              .length -
+                                                                          1
+                                                                  ? 8.0
+                                                                  : 0),
+                                                          child: TextField(
+                                                            controller: controllers[
+                                                                    categoria]![
+                                                                imageIndex],
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  isLargeScreen
+                                                                      ? 14.0
+                                                                      : 12.0,
+                                                            ),
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            decoration:
+                                                                InputDecoration(
+                                                              hintText: 'Valor',
+                                                              filled: true,
+                                                              fillColor: Colors
+                                                                  .grey[50],
+                                                              border:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8.0),
+                                                                borderSide: BorderSide(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300]!),
+                                                              ),
+                                                              enabledBorder:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8.0),
+                                                                borderSide: BorderSide(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300]!),
+                                                              ),
+                                                              focusedBorder:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8.0),
+                                                                borderSide: const BorderSide(
+                                                                    color: Color(
+                                                                        0xFFaed513),
+                                                                    width: 2),
+                                                              ),
+                                                              contentPadding:
+                                                                  EdgeInsets
+                                                                      .symmetric(
+                                                                horizontal:
+                                                                    12.0,
+                                                                vertical: 8.0,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      )
+                                    : Container(
+                                        margin: EdgeInsets.all(
+                                            isLargeScreen ? 16.0 : 12.0),
+                                        padding: EdgeInsets.all(
+                                            isLargeScreen ? 20.0 : 16.0),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[50],
+                                          borderRadius:
+                                              BorderRadius.circular(12.0),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.info_outline,
+                                                color: Colors.grey, size: 20),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'Nenhuma categoria disponível.',
                                               style: TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold,
+                                                color: Colors.grey[600],
                                                 fontSize:
                                                     isLargeScreen ? 14.0 : 12.0,
                                               ),
                                             ),
-                                          ),
-                                          SizedBox(height: 8.0),
-                                          Row(
-                                            children: displayedImages
-                                                .asMap()
-                                                .entries
-                                                .map((imageEntry) {
-                                              final int imageIndex =
-                                                  imageEntry.key;
-                                              return Expanded(
-                                                child: Container(
-                                                  margin: EdgeInsets.only(
-                                                      right: imageIndex <
-                                                              displayedImages
-                                                                      .length -
-                                                                  1
-                                                          ? 8.0
-                                                          : 0),
-                                                  child: TextField(
-                                                    controller: controllers[
-                                                        categoria]![imageIndex],
-                                                    style: TextStyle(
-                                                      fontSize: isLargeScreen
-                                                          ? 14.0
-                                                          : 12.0,
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                    decoration: InputDecoration(
-                                                      hintText: 'Valor',
-                                                      filled: true,
-                                                      fillColor:
-                                                          Colors.grey[50],
-                                                      border:
-                                                          OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8.0),
-                                                        borderSide: BorderSide(
-                                                            color: Colors
-                                                                .grey[300]!),
-                                                      ),
-                                                      enabledBorder:
-                                                          OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8.0),
-                                                        borderSide: BorderSide(
-                                                            color: Colors
-                                                                .grey[300]!),
-                                                      ),
-                                                      focusedBorder:
-                                                          OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8.0),
-                                                        borderSide:
-                                                            const BorderSide(
-                                                                color: Color(
-                                                                    0xFFaed513),
-                                                                width: 2),
-                                                      ),
-                                                      contentPadding:
-                                                          EdgeInsets.symmetric(
-                                                        horizontal: 12.0,
-                                                        vertical: 8.0,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    );
-                                  }).toList(),
-                                ),
-                              )
-                            else
-                              Container(
-                                margin:
-                                    EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                                padding:
-                                    EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[50],
-                                  borderRadius: BorderRadius.circular(12.0),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.info_outline,
-                                        color: Colors.grey, size: 20),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'Nenhuma categoria disponível.',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: isLargeScreen ? 14.0 : 12.0,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
+                            ),
                           ],
                         ),
                       ),
