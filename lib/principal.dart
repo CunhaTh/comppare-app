@@ -410,7 +410,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.grey[900],
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: const Color(0xFFaed513).withValues(alpha: 0.3),
@@ -418,7 +418,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -450,7 +450,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                                 Text(
                                   'Criar Novo Álbum',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: Colors.black,
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -459,7 +459,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                                 Text(
                                   'Dê um nome para seu álbum',
                                   style: TextStyle(
-                                    color: Colors.white54,
+                                    color: Colors.black54,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -471,10 +471,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       const SizedBox(height: 24),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[800],
+                          color: Colors.grey[50],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.grey[700]!,
+                            color: Colors.grey[300]!,
                             width: 1,
                           ),
                         ),
@@ -482,13 +482,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
                           controller: folderNameController,
                           enabled: !isDialogLoading,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Ex: Minhas Férias 2024',
                             hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: Colors.black.withValues(alpha: 0.5),
                               fontSize: 16,
                             ),
                             border: InputBorder.none,
@@ -498,7 +498,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                             ),
                             prefixIcon: Icon(
                               Icons.folder,
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: Colors.black.withValues(alpha: 0.7),
                               size: 20,
                             ),
                           ),
@@ -529,7 +529,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                             Text(
                               'Criando álbum...',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.8),
+                                color: Colors.black.withValues(alpha: 0.8),
                                 fontSize: 14,
                               ),
                             ),
@@ -557,7 +557,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                               child: Text(
                                 'Cancelar',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.black.withValues(alpha: 0.7),
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
