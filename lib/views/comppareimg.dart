@@ -1814,6 +1814,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Título do diálogo
                     Container(
                       padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
                       decoration: const BoxDecoration(
@@ -1855,6 +1856,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ],
                       ),
                     ),
+                    // Imagens exibidas em um Row centralizado
                     Expanded(
                       child: RepaintBoundary(
                         key: repaintKey,
@@ -2064,6 +2066,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                       ),
                     ),
+                    // Botões de compartilhar e baixar
                     Container(
                       padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
                       decoration: const BoxDecoration(
@@ -2141,6 +2144,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ],
                       ),
                     ),
+                    // Miniaturas das imagens selecionadas
                     Container(
                       height: isLargeScreen ? 120.0 : 100.0,
                       margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
