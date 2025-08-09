@@ -10,6 +10,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
+
 import 'dart:html' as html; // Para web, se aplicável
 import 'package:application_progress/main.dart' as main_app;
 import 'package:http/http.dart' as http;
@@ -1398,8 +1399,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                               MainAxisAlignment.center,
                                           children:
                                               displayedImages.map((imageItem) {
-                                            return Container(
-                                              color: Colors.red,
+                                            return Expanded(
                                               child: Image.memory(
                                                 imageItem.imageData!,
                                                 fit: BoxFit.contain,
@@ -1438,7 +1438,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                   color: const Color(0xFFaed513),
                                   size: isLargeScreen ? 20.0 : 18.0,
                                 ),
-                                SizedBox(width: 12.0),
+                                const SizedBox(width: 12.0),
                                 Expanded(
                                   child: Text(
                                     'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
@@ -1546,7 +1546,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                             ),
                                             const SizedBox(height: 16),
                                             Text(
-                                              'Preparando compartilhamento...',
+                                              'Preparando imagem para compartilhamento...',
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w500,
@@ -1573,18 +1573,40 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
                                 try {
                                   if (kIsWeb) {
+                                    // Para web, criar um blob e compartilhar via Web Share API
                                     final blob =
                                         html.Blob([imageBytes], 'image/png');
                                     final url =
                                         html.Url.createObjectUrlFromBlob(blob);
-                                    final anchor = html.AnchorElement(href: url)
-                                      ..setAttribute('download',
-                                          'comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png')
-                                      ..click();
-                                    html.Url.revokeObjectUrl(url);
-                                    _showSuccessDialog(
-                                        'Imagem baixada com sucesso! Compartilhe manualmente.');
+
+                                    // Tentar usar a Web Share API para compartilhamento social
+                                    if (html.window.navigator.share != null) {
+                                      try {
+                                        await html.window.navigator.share({
+                                          'title':
+                                              'Comparação de Progresso - Comppare',
+                                          'text':
+                                              'Confira minha comparação de progresso no Comppare! 💪',
+                                          'url': url,
+                                        });
+                                        _showSuccessDialog(
+                                            'Compartilhamento social iniciado com sucesso!');
+                                      } catch (shareError) {
+                                        // Se falhar, tentar compartilhar via URL em redes sociais
+                                        _showSocialShareOptions(url);
+                                      }
+                                    } else {
+                                      // Fallback: mostrar opções de compartilhamento social
+                                      _showSocialShareOptions(url);
+                                    }
+
+                                    // Limpar a URL após um tempo
+                                    Future.delayed(const Duration(seconds: 10),
+                                        () {
+                                      html.Url.revokeObjectUrl(url);
+                                    });
                                   } else {
+                                    // Para mobile, usar o Share.shareXFiles para compartilhamento social
                                     final tempDir =
                                         await getTemporaryDirectory();
                                     final file = await File(
@@ -1599,7 +1621,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                           'Comparação de Progresso - Comppare',
                                     );
                                     _showSuccessDialog(
-                                        'Compartilhamento iniciado com sucesso!');
+                                        'Compartilhamento social iniciado com sucesso!');
                                   }
                                 } catch (e) {
                                   _showErrorDialog('Erro ao compartilhar: $e');
@@ -2617,5 +2639,87 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
         );
       },
     );
+  }
+
+  // Método para mostrar opções de compartilhamento social na web
+  void _showSocialShareOptions(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Compartilhar nas Redes Sociais'),
+          content:
+              const Text('Escolha onde deseja compartilhar sua comparação:'),
+          actions: [
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _shareToFacebook(imageUrl);
+              },
+              icon: const Icon(Icons.facebook, color: Colors.blue),
+              label: const Text('Facebook'),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _shareToTwitter(imageUrl);
+              },
+              icon: const Icon(Icons.flutter_dash, color: Colors.lightBlue),
+              label: const Text('Twitter/X'),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _shareToWhatsApp(imageUrl);
+              },
+              icon: const Icon(Icons.chat, color: Colors.green),
+              label: const Text('WhatsApp'),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _shareToEmail(imageUrl);
+              },
+              icon: const Icon(Icons.email, color: Colors.orange),
+              label: const Text('Email'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Métodos para compartilhamento específico em cada rede social
+  void _shareToFacebook(String imageUrl) {
+    final url =
+        'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(imageUrl)}';
+    html.window.open(url, '_blank');
+  }
+
+  void _shareToTwitter(String imageUrl) {
+    final text = Uri.encodeComponent(
+        'Confira minha comparação de progresso no Comppare! 💪');
+    final url =
+        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent(imageUrl)}';
+    html.window.open(url, '_blank');
+  }
+
+  void _shareToWhatsApp(String imageUrl) {
+    final text = Uri.encodeComponent(
+        'Confira minha comparação de progresso no Comppare! 💪 $imageUrl');
+    final url = 'https://wa.me/?text=$text';
+    html.window.open(url, '_blank');
+  }
+
+  void _shareToEmail(String imageUrl) {
+    final subject = Uri.encodeComponent('Comparação de Progresso - Comppare');
+    final body = Uri.encodeComponent(
+        'Confira minha comparação de progresso no Comppare! 💪\n\n$imageUrl');
+    final url = 'mailto:?subject=$subject&body=$body';
+    html.window.open(url, '_blank');
   }
 }
