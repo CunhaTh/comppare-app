@@ -17,6 +17,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../infra/api_endponts.dart';
+
 class ImagemDetalhesPage extends StatefulWidget {
   final List<ImageModel> images;
   final List<String> categorias;
@@ -3055,24 +3057,80 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     );
   }
 
-  // Nova função para compartilhar a imagem sem pacotes externos
   Future<void> shareImage(Uint8List imageBytes) async {
     if (kIsWeb) {
-      // Para web, mostrar opções de compartilhamento com redes sociais
-      //   _showSocialShareOptionsWeb(imageBytes);
+      // Para web, usar Web Share API
+      try {
+        final blob = html.Blob([imageBytes], 'image/png');
+        final file =
+            html.File([blob], 'comppare_comparison.png', {'type': 'image/png'});
 
-      final shareData = <String, dynamic>{
-        'title': 'Minha Comparação - Comppare',
-        'text': 'Confira minha comparação de progresso no Comppare! 😊',
-        'url': 'https://dev.comppare.com.br/',
-      };
+        final shareData = <String, dynamic>{
+          'title': 'Minha Comparação - Comppare',
+          'text': 'Confira minha comparação de progresso no Comppare! 😊',
+          'files': [file],
+        };
 
-      await (html.window.navigator as dynamic).share(shareData);
+        await (html.window.navigator as dynamic).share(shareData);
+        //_showSuccessDialog('Compartilhamento iniciado com sucesso!');
+      } catch (e) {
+        print('Web Share API falhou: $e');
+        // Fallback: mostrar opções de compartilhamento
+        //_showSocialShareOptionsWeb(imageBytes);
+      }
     } else {
-      // Para mobile, usar o método existente
-      await shareToSocialMedia(imageBytes);
+      // Para mobile (Android/iOS)
+      try {
+        final directory = await getTemporaryDirectory();
+        final imagePath =
+            '${directory.path}/comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png';
+        final imageFile = File(imagePath);
+        await imageFile.writeAsBytes(imageBytes);
+        final xFile = XFile(imagePath);
+
+        await Share.shareXFiles(
+          [xFile],
+          text: 'Confira minha comparação de progresso no Comppare! 😊',
+          subject: 'Comparação de Progresso - Comppare',
+        );
+        _showSuccessDialog('Compartilhamento realizado com sucesso!');
+      } catch (e) {
+        print('Erro ao compartilhar no mobile: $e');
+        _showErrorDialog('Erro ao compartilhar a imagem: $e');
+      }
     }
   }
+
+  // // Nova função para compartilhar a imagem sem pacotes externos
+  // Future<void> shareImage(Uint8List imageBytes) async {
+  //   final directory = await getApplicationDocumentsDirectory();
+  //   final params = ShareParams(
+  //     text: 'Confira minha comparação de progresso no Comppare! 😊',
+  //     files: [XFile('${directory.path}/image.png')],
+  //   );
+
+  //   final result = await SharePlus.instance.share(params);
+
+  //   if (result.status == ShareResultStatus.success) {
+  //     print('Thank you for sharing the picture!');
+  //   }
+  //   // if (kIsWeb) {
+  //   //   // Para web, mostrar opções de compartilhamento com redes sociais
+  //   //   //   _showSocialShareOptionsWeb(imageBytes);
+
+  //   //   final shareData = <String, dynamic>{
+  //   //     'title': 'Minha Comparação - Comppare',
+  //   //     'text': 'Confira minha comparação de progresso no Comppare! 😊',
+  //   //     'url': ApiEndpoints.baseUrl,
+  //   //   };
+
+  //   //   await (html.window.navigator as dynamic).share(shareData);
+
+  //   // } else {
+  //   //   // Para mobile, usar o método existente
+  //   //   await shareToSocialMedia(imageBytes);
+  //   // }
+  // }
 
   // Método para mostrar opções de compartilhamento na web com redes sociais
   void _showSocialShareOptionsWeb(Uint8List imageBytes) {
@@ -3191,7 +3249,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                             'title': 'Minha Comparação - Comppare',
                             'text':
                                 'Confira minha comparação de progresso no Comppare! 😊',
-                            'url': 'https://dev.comppare.com.br/',
+                            'url': '${ApiEndpoints.baseUrl}',
                           };
 
                           await (html.window.navigator as dynamic)
@@ -3385,7 +3443,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       final shareData = <String, dynamic>{
         'title': 'Minha Comparação - Comppare',
         'text':
-            'Confira minha comparação de progresso no Comppare! 😊 https://dev.comppare.com.br/',
+            'Confira minha comparação de progresso no Comppare! 😊 ${ApiEndpoints.baseUrl}',
         'files': [file],
       };
 
@@ -3399,7 +3457,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       _downloadImageWeb(imageBytes);
 
       final text = Uri.encodeComponent(
-          'Confira minha comparação de progresso no Comppare! 😊 https://dev.comppare.com.br/');
+          'Confira minha comparação de progresso no Comppare! 😊 ${ApiEndpoints.baseUrl}');
       final url = 'https://wa.me/?text=$text';
       html.window.open(url, '_blank');
       _showSuccessDialog('Imagem baixada! Redirecionando para o WhatsApp...');
@@ -3412,7 +3470,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       final shareData = <String, dynamic>{
         'title': 'Minha Comparação - Comppare',
         'text': 'Confira minha comparação de progresso no Comppare! 😊',
-        'url': 'https://dev.comppare.com.br/',
+        'url': '${ApiEndpoints.baseUrl}',
       };
 
       await (html.window.navigator as dynamic).share(shareData);
@@ -3424,7 +3482,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       final text = Uri.encodeComponent(
           'Confira minha comparação de progresso no Comppare! 😊');
       final url =
-          'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent('https://dev.comppare.com.br/')}&quote=$text';
+          'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent('${ApiEndpoints.baseUrl}')}&quote=$text';
       html.window.open(url, '_blank');
       _showSuccessDialog('Redirecionando para o Facebook...');
     }
@@ -3441,7 +3499,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     final text = Uri.encodeComponent(
         'Confira minha comparação de progresso no Comppare! 😊');
     final url =
-        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent('https://dev.comppare.com.br/')}';
+        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent('${ApiEndpoints.baseUrl}')}';
     html.window.open(url, '_blank');
     _showSuccessDialog('Redirecionando para o Twitter...');
   }
@@ -3449,7 +3507,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   void _shareToEmailWeb() {
     final subject = Uri.encodeComponent('Comparação de Progresso - Comppare');
     final body = Uri.encodeComponent(
-        'Confira minha comparação de progresso no Comppare! 😊\n\nhttps://dev.comppare.com.br/');
+        'Confira minha comparação de progresso no Comppare! 😊\n\n${ApiEndpoints.baseUrl}');
     final url = 'mailto:?subject=$subject&body=$body';
     html.window.open(url, '_blank');
     _showSuccessDialog('Redirecionando para o email...');
@@ -3773,7 +3831,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     final text = Uri.encodeComponent(
         'Confira minha comparação de progresso no Comppare! 💪');
     final url =
-        'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent('https://dev.comppare.com.br/')}&quote=$text';
+        'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent('${ApiEndpoints.baseUrl}')}&quote=$text';
     html.window.open(url, '_blank');
     _showSuccessDialog('Redirecionando para o Facebook...');
   }
@@ -3782,14 +3840,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     final text = Uri.encodeComponent(
         'Confira minha comparação de progresso no Comppare! 💪');
     final url =
-        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent('https://dev.comppare.com.br/')}';
+        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent('${ApiEndpoints.baseUrl}')}';
     html.window.open(url, '_blank');
     _showSuccessDialog('Redirecionando para o Twitter...');
   }
 
   void _shareToWhatsAppWithText() {
     final text = Uri.encodeComponent(
-        'Confira minha comparação de progresso no Comppare! 💪 https://dev.comppare.com.br/');
+        'Confira minha comparação de progresso no Comppare! 💪 ${ApiEndpoints.baseUrl}');
     final url = 'https://wa.me/?text=$text';
     html.window.open(url, '_blank');
     _showSuccessDialog('Redirecionando para o WhatsApp...');
@@ -3798,7 +3856,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   void _shareToEmailWithText() {
     final subject = Uri.encodeComponent('Comparação de Progresso - Comppare');
     final body = Uri.encodeComponent(
-        'Confira minha comparação de progresso no Comppare! 💪\n\nhttps://dev.comppare.com.br/');
+        'Confira minha comparação de progresso no Comppare! 💪\n\n${ApiEndpoints.baseUrl}');
     final url = 'mailto:?subject=$subject&body=$body';
     html.window.open(url, '_blank');
     _showSuccessDialog('Redirecionando para o email...');
