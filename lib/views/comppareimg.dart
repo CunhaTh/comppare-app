@@ -1633,7 +1633,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
         builder: (BuildContext context) {
           return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
+              borderRadius: BorderRadius.circular(24),
             ),
             child: Container(
               width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
@@ -1641,7 +1641,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                 maxHeight: screenHeight * 0.85,
               ),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20.0),
+                borderRadius: BorderRadius.circular(24),
                 color: Colors.white,
               ),
               child: Column(
@@ -1671,35 +1671,17 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: Colors.black.withOpacity(0.2),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.share_rounded,
-                                color: Colors.black,
-                                size: 22,
-                              ),
+                        Expanded(
+                          child: Text(
+                            'Compartilhar Comparação',
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 20.0 : 18.0,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                              letterSpacing: -0.5,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(width: 16),
-                            Text(
-                              'Compartilhar Comparação',
-                              style: TextStyle(
-                                fontSize: isLargeScreen ? 20.0 : 18.0,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                         GestureDetector(
                           onTap: () => Navigator.of(context).pop(),
@@ -1917,12 +1899,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     color: Colors.grey[600],
                                   ),
                                   SizedBox(width: 8.0),
-                                  Text(
-                                    'Cancelar',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: isLargeScreen ? 16.0 : 14.0,
-                                      color: Colors.grey[700],
+                                  Expanded(
+                                    child: Text(
+                                      'Cancelar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                        color: Colors.grey[700],
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -2108,11 +2093,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     size: isLargeScreen ? 20.0 : 18.0,
                                   ),
                                   SizedBox(width: 8.0),
-                                  Text(
-                                    'Compartilhar',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                  Expanded(
+                                    child: Text(
+                                      'Compartilhar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -3067,6 +3055,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: isLargeScreen ? 14.0 : 12.0,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ),
@@ -3098,6 +3087,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: isLargeScreen ? 14.0 : 12.0,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ),
