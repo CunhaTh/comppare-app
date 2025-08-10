@@ -1147,262 +1147,198 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
         builder: (context) {
           return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24.0),
+              borderRadius: BorderRadius.circular(20.0),
             ),
             child: Container(
-              width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
+              width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
               constraints: BoxConstraints(
-                maxHeight: screenHeight * 0.85,
+                maxHeight: screenHeight * 0.8,
               ),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24.0),
+                borderRadius: BorderRadius.circular(20.0),
                 color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 25,
-                    offset: const Offset(0, 12),
-                    spreadRadius: 2,
-                  ),
-                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header aprimorado
                   Container(
-                    padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFaed513), Color(0xFF9bc412)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFaed513),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),
+                        topRight: Radius.circular(20.0),
                       ),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(24.0),
-                        topRight: Radius.circular(24.0),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFaed513).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: Colors.black.withOpacity(0.2),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.share_rounded,
-                                color: Colors.black,
-                                size: 22,
-                              ),
+                        Expanded(
+                          child: Text(
+                            'Editar Imagem',
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 20.0 : 18.0,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
                             ),
-                            const SizedBox(width: 16),
-                            Text(
-                              'Compartilhar Comparação',
-                              style: TextStyle(
-                                fontSize: isLargeScreen ? 20.0 : 18.0,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                         GestureDetector(
                           onTap: () => Navigator.of(context).pop(),
                           child: Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: Colors.black.withOpacity(0.2),
-                                width: 1.5,
-                              ),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
-                              Icons.close_rounded,
+                              Icons.close,
                               color: Colors.black,
-                              size: 22,
+                              size: 20,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  // Content com design aprimorado
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
+                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Preview da imagem com design aprimorado
                           Container(
-                            margin: EdgeInsets.only(
-                                bottom: isLargeScreen ? 12.0 : 10.0),
+                            height: isLargeScreen
+                                ? screenHeight * 0.3
+                                : screenHeight * 0.25,
+                            width: double.infinity,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 8),
-                                  spreadRadius: 1,
-                                ),
-                              ],
+                              borderRadius: BorderRadius.circular(16.0),
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20.0),
-                              child: RepaintBoundary(
-                                key: shareRepaintKey,
-                                child: Container(
-                                  color: Colors.white,
-                                  padding: EdgeInsets.all(
-                                          isLargeScreen ? 12.0 : 10.0)
-                                      .copyWith(right: 0),
+                              borderRadius: BorderRadius.circular(16.0),
+                              child: imageItem.imageData!.isNotEmpty
+                                  ? Image.memory(
+                                      imageItem.imageData!,
+                                      fit: BoxFit.fitHeight,
+                                    )
+                                  : Container(
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.image_not_supported,
+                                                color: Colors.grey, size: 48),
+                                            SizedBox(height: 8),
+                                            Text('Imagem não disponível',
+                                                style: TextStyle(
+                                                    color: Colors.grey)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          SizedBox(height: isLargeScreen ? 24.0 : 20.0),
+                          if (categorias.isNotEmpty)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: categorias.map((categoria) {
+                                return Container(
+                                  margin: EdgeInsets.only(
+                                      bottom: isLargeScreen ? 16.0 : 12.0),
                                   child: Column(
-                                    mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.center,
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      // Container principal das imagens
-                                      // Container(
-                                      //   padding: const EdgeInsets.all(20),
-                                      //   height: isLargeScreen ? 320.0 : 270.0,
-                                      //   child: Row(
-                                      //     mainAxisAlignment:
-                                      //         MainAxisAlignment.center,
-                                      //     children:
-                                      //         displayedImages.map((imageItem) {
-                                      //       return Expanded(
-                                      //         child: Container(
-                                      //           margin:
-                                      //               const EdgeInsets.symmetric(
-                                      //                   horizontal: 8),
-                                      //           decoration: BoxDecoration(
-                                      //             borderRadius:
-                                      //                 BorderRadius.circular(16),
-                                      //             border: Border.all(
-                                      //               color: Colors.grey[200]!,
-                                      //               width: 1.5,
-                                      //             ),
-                                      //           ),
-                                      //           child: ClipRRect(
-                                      //             borderRadius:
-                                      //                 BorderRadius.circular(16),
-                                      //             child: Image.memory(
-                                      //               imageItem.imageData!,
-                                      //               fit: BoxFit.contain,
-                                      //               height: double.infinity,
-                                      //             ),
-                                      //           ),
-                                      //         ),
-                                      //       );
-                                      //     }).toList(),
-                                      //   ),
-                                      // ),
-                                      SizedBox(
-                                          height: isLargeScreen ? 20.0 : 16.0),
-                                      // Logo do Comppare com design aprimorado
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
+                                      Text(
+                                        categoria,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isLargeScreen ? 16.0 : 14.0,
+                                          color: Colors.black,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFaed513)
-                                              .withOpacity(0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: const Color(0xFFaed513)
-                                                .withOpacity(0.3),
-                                            width: 1.5,
+                                      ),
+                                      SizedBox(height: 8.0),
+                                      TextField(
+                                        controller: controllers[categoria],
+                                        decoration: InputDecoration(
+                                          hintText:
+                                              'Insira o valor para $categoria',
+                                          filled: true,
+                                          fillColor: Colors.grey[50],
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12.0),
+                                            borderSide: BorderSide(
+                                                color: Colors.grey[300]!),
                                           ),
-                                        ),
-                                        child: Image.asset(
-                                          "assets/logo_cortada.png",
-                                          width: isLargeScreen ? 90.0 : 70.0,
-                                          height: isLargeScreen ? 45.0 : 35.0,
-                                          fit: BoxFit.contain,
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12.0),
+                                            borderSide: BorderSide(
+                                                color: Colors.grey[300]!),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12.0),
+                                            borderSide: const BorderSide(
+                                                color: Color(0xFFaed513),
+                                                width: 2),
+                                          ),
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16.0,
+                                            vertical: 12.0,
+                                          ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
+                                );
+                              }).toList(),
+                            )
+                          else
+                            Container(
+                              padding:
+                                  EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12.0),
                               ),
-                            ),
-                          ),
-                          // Informações do compartilhamento com design aprimorado
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[50],
-                              borderRadius: BorderRadius.circular(16.0),
-                              border: Border.all(
-                                color: Colors.grey[200]!,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFaed513)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.info_outline_rounded,
-                                    color: const Color(0xFFaed513),
-                                    size: isLargeScreen ? 22.0 : 20.0,
-                                  ),
-                                ),
-                                const SizedBox(width: 16.0),
-                                Expanded(
-                                  child: Text(
-                                    'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      color: Colors.grey, size: 20),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Sem categorias disponíveis no momento.',
                                     style: TextStyle(
-                                      fontSize: isLargeScreen ? 15.0 : 13.0,
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w500,
-                                      height: 1.4,
+                                      color: Colors.grey[600],
+                                      fontSize: isLargeScreen ? 14.0 : 12.0,
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
                   ),
-                  // Actions com design aprimorado
                   Container(
-                    padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(24.0),
-                        bottomRight: Radius.circular(24.0),
+                        bottomLeft: Radius.circular(20.0),
+                        bottomRight: Radius.circular(20.0),
                       ),
                     ),
                     child: Row(
@@ -1410,41 +1346,35 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       children: [
                         Expanded(
                           child: Container(
-                            margin: const EdgeInsets.only(right: 10.0),
+                            margin: const EdgeInsets.only(right: 8.0),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey[100],
-                                foregroundColor: Colors.black87,
+                                backgroundColor: Colors.grey[200],
+                                foregroundColor: Colors.black,
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 24.0,
-                                  vertical: isLargeScreen ? 18.0 : 16.0,
+                                  vertical: isLargeScreen ? 16.0 : 14.0,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  side: BorderSide(
-                                    color: Colors.grey[300]!,
-                                    width: 1.5,
-                                  ),
+                                  borderRadius: BorderRadius.circular(12.0),
                                 ),
                                 elevation: 0,
-                                shadowColor: Colors.transparent,
                               ),
                               onPressed: () => Navigator.of(context).pop(),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.cancel_rounded,
-                                    size: isLargeScreen ? 20.0 : 18.0,
-                                    color: Colors.grey[600],
-                                  ),
+                                  Icon(Icons.cancel,
+                                      size: isLargeScreen ? 18.0 : 16.0),
                                   SizedBox(width: 8.0),
-                                  Text(
-                                    'Cancelar',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: isLargeScreen ? 16.0 : 14.0,
-                                      color: Colors.grey[700],
+                                  Expanded(
+                                    child: Text(
+                                      'Cancelar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -1454,187 +1384,60 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                         Expanded(
                           child: Container(
-                            margin: const EdgeInsets.only(left: 10.0),
+                            margin: const EdgeInsets.only(left: 8.0),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFaed513),
                                 foregroundColor: Colors.black,
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 24.0,
-                                  vertical: isLargeScreen ? 18.0 : 16.0,
+                                  vertical: isLargeScreen ? 16.0 : 14.0,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16.0),
+                                  borderRadius: BorderRadius.circular(12.0),
                                 ),
-                                elevation: 3,
-                                shadowColor:
-                                    const Color(0xFFaed513).withOpacity(0.4),
+                                elevation: 2,
                               ),
-                              onPressed: () async {
-                                Navigator.of(context).pop();
-
-                                // Mostrar loading
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (BuildContext context) {
-                                    return Dialog(
-                                      backgroundColor: Colors.transparent,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(36),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(28),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black
-                                                  .withOpacity(0.15),
-                                              blurRadius: 25,
-                                              offset: const Offset(0, 12),
-                                              spreadRadius: 2,
-                                            ),
-                                          ],
-                                        ),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            // Container do loading com fundo aprimorado
-                                            Container(
-                                              padding: const EdgeInsets.all(24),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFaed513)
-                                                    .withOpacity(0.08),
-                                                borderRadius:
-                                                    BorderRadius.circular(24),
-                                                border: Border.all(
-                                                  color: const Color(0xFFaed513)
-                                                      .withOpacity(0.2),
-                                                  width: 2,
-                                                ),
-                                              ),
-                                              child:
-                                                  const CircularProgressIndicator(
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                            Color>(
-                                                        Color(0xFFaed513)),
-                                                strokeWidth: 4,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 28),
-
-                                            // Título com tipografia melhorada
-                                            const Text(
-                                              'Preparando...',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.black87,
-                                                letterSpacing: -0.5,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-
-                                            // Mensagem com melhor legibilidade
-                                            const Text(
-                                              'Preparando imagem para compartilhamento',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black54,
-                                                height: 1.5,
-                                                fontWeight: FontWeight.w400,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
+                              onPressed: () {
+                                final updatedItem = ImageModel(
+                                  id: imageItem.id,
+                                  url: imageItem.url,
+                                  imageData: imageItem.imageData,
+                                  date: controllers['Data']?.text ??
+                                      imageItem.date,
+                                  weight: controllers['Peso']?.text ??
+                                      imageItem.weight,
+                                  waist: controllers['Série']?.text ??
+                                      imageItem.waist,
+                                  observation: controllers['Obs']?.text ??
+                                      imageItem.observation,
+                                  customCategorias: {
+                                    ...imageItem.customCategorias,
+                                    for (var categoria in categorias)
+                                      if (categoria != 'Data' &&
+                                          categoria != 'Peso' &&
+                                          categoria != 'Série' &&
+                                          categoria != 'Obs')
+                                        categoria: controllers[categoria]!.text,
                                   },
+                                  takenAt: '',
                                 );
-
-                                final Uint8List? imageBytes =
-                                    await captureCard(shareRepaintKey);
-
-                                // Fechar loading
-                                Navigator.of(context).pop();
-
-                                if (imageBytes == null) {
-                                  _showErrorDialog(
-                                      'Erro ao capturar a imagem para compartilhamento.');
-                                  return;
-                                }
-
-                                try {
-                                  if (kIsWeb) {
-                                    // Para web, criar um blob e compartilhar via Web Share API
-                                    final blob =
-                                        html.Blob([imageBytes], 'image/png');
-                                    final url =
-                                        html.Url.createObjectUrlFromBlob(blob);
-
-                                    // Tentar usar a Web Share API para compartilhamento social
-                                    if (html.window.navigator.share != null) {
-                                      try {
-                                        await html.window.navigator.share({
-                                          'title':
-                                              'Comparação de Progresso - Comppare',
-                                          'text':
-                                              'Confira minha comparação de progresso no Comppare! 💪',
-                                          'url': url,
-                                        });
-                                        _showSuccessDialog(
-                                            'Compartilhamento social iniciado com sucesso!');
-                                      } catch (shareError) {
-                                        // Se falhar, tentar compartilhar via URL em redes sociais
-                                        _showSocialShareOptions(url);
-                                      }
-                                    } else {
-                                      // Fallback: mostrar opções de compartilhamento social
-                                      _showSocialShareOptions(url);
-                                    }
-
-                                    // Limpar a URL após um tempo
-                                    Future.delayed(const Duration(seconds: 10),
-                                        () {
-                                      html.Url.revokeObjectUrl(url);
-                                    });
-                                  } else {
-                                    // Para mobile, usar o Share.shareXFiles para compartilhamento social
-                                    final tempDir =
-                                        await getTemporaryDirectory();
-                                    final file = await File(
-                                            '${tempDir.path}/comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png')
-                                        .writeAsBytes(imageBytes);
-                                    final xFile = XFile(file.path);
-                                    await Share.shareXFiles(
-                                      [xFile],
-                                      text:
-                                          'Confira minha comparação de progresso no Comppare! 💪',
-                                      subject:
-                                          'Comparação de Progresso - Comppare',
-                                    );
-                                    _showSuccessDialog(
-                                        'Compartilhamento social iniciado com sucesso!');
-                                  }
-                                } catch (e) {
-                                  _showErrorDialog('Erro ao compartilhar: $e');
-                                }
+                                saveChanges(updatedItem);
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.share_rounded,
-                                    size: isLargeScreen ? 20.0 : 18.0,
-                                  ),
+                                  Icon(Icons.save,
+                                      size: isLargeScreen ? 18.0 : 16.0),
                                   SizedBox(width: 8.0),
-                                  Text(
-                                    'Compartilhar',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                  Expanded(
+                                    child: Text(
+                                      'Salvar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
                                 ],
