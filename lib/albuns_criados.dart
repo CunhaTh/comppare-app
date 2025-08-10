@@ -371,7 +371,6 @@ Future<T> _handleApiCall<T>(Future<T> apiFunction) async {
 }
 
   
-  // Função para criar subpasta com tags
 Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
   final String subfolderNameForApi = subfolderName.trim();
   debugPrint(
@@ -399,7 +398,7 @@ Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
         'tags': apiTags,
       });
 
-      await _syncTagsWithApi(newSubfolder.id as String);
+      await _saveTagsLocally(newSubfolder.id as String, apiTags);
       setState(() {
         _subfolders.add(newSubfolder);
       });
@@ -410,6 +409,12 @@ Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
     }
   } as Future);
 }
+
+  Future<void> _saveTagsLocally(String key, List<String> tags) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, jsonEncode(tags));
+    debugPrint('Tags salvas localmente para chave $key: ${tags.join(",")}');
+  }
 
 Future<void> _syncTagsWithApi(String nomeTag) async {
     final user = UserHelper().user;
@@ -595,8 +600,11 @@ Future<List<String>> _validateTags(String tagsString) async {
                   ),
                   ElevatedButton(
                     child: const Text('Salvar'),
-                    onPressed: isDialogLoading ? null : () async {
-                            final subalbumName = _subalbumNameController.text.trim();
+                    onPressed: isDialogLoading
+                        ? null
+                        : () async {
+                            final subalbumName =
+                                _subalbumNameController.text.trim();
                             if (subalbumName.isEmpty) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -626,7 +634,8 @@ Future<List<String>> _validateTags(String tagsString) async {
                             } catch (e) {
                               debugPrint('Erro no modal de criar subálbum: $e');
                               if (mounted) {
-                                _showErrorDialog('Você atingiu o limite de supálbuns criados: $e');
+                                _showErrorDialog(
+                                    'Você atingiu o limite de supálbuns criados: $e');
                               }
                             } finally {
                               if (context.mounted) {
@@ -634,7 +643,6 @@ Future<List<String>> _validateTags(String tagsString) async {
                               }
                             }
                           },
-                    
                   ),
                 ],
               );
@@ -1036,7 +1044,7 @@ Future<List<String>> _validateTags(String tagsString) async {
               MaterialPageRoute(
                 builder: (context) => ImagemDetalhesPage(
                   images: group.imagens ?? [],
-                  tags: tags,
+                  categorias: tags,
                   subAlbumName:
                       group.albunsCriadosPageDisplayName ?? 'Sem nome',
                 ),
@@ -1151,7 +1159,7 @@ Future<List<String>> _validateTags(String tagsString) async {
                 Row(
                   children: [
                     Text(
-                      '+ tags',
+                      '+ categorias',
                       style: TextStyle(
                         color: Colors.black.withValues(alpha: 0.7),
                         fontSize: 14,

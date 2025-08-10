@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/infra/api_services.dart';
-import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +10,6 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
-
 import 'dart:html' as html; // Para web, se aplicável
 import 'package:application_progress/main.dart' as main_app;
 import 'package:http/http.dart' as http;
@@ -37,25 +34,7 @@ class ImagemDetalhesPage extends StatefulWidget {
 
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     with TickerProviderStateMixin {
-    final GlobalKey shareRepaintKey = GlobalKey();
-    late Future<List<ImageModel>> _imageItemsFuture;
-    List<String> _availableTags = [];
-
-  // Method to capture card image
-  Future<Uint8List?> captureCard(GlobalKey key) async {
-    try {
-      RenderRepaintBoundary boundary =
-          key.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
-      return byteData?.buffer.asUint8List();
-    } catch (e) {
-      devtools.debugPrint("Erro ao capturar o card: $e");
-      return null;
-    }
-  }
-
+  late Future<List<ImageModel>> _imageItemsFuture;
   late List<String> categorias;
   final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
@@ -66,7 +45,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  
+
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
   // Função para deletar imagens selecionadas
@@ -85,159 +64,20 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 25,
-                  offset: const Offset(0, 12),
-                  spreadRadius: 2,
-                ),
-              ],
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: const Text(
+              'Tem certeza que deseja excluir as imagens selecionadas? Esta ação não poderá ser desfeita.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ícone de exclusão com animação
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.2),
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.delete_forever_rounded,
-                    color: Colors.red,
-                    size: 36,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Título com tipografia melhorada
-                const Text(
-                  'Confirmar Exclusão',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                    letterSpacing: -0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 18),
-
-                // Mensagem com melhor legibilidade
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: const Text(
-                    'Tem certeza que deseja excluir as imagens selecionadas? Esta ação não poderá ser desfeita.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                      height: 1.5,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // Botões com design aprimorado
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[50],
-                            foregroundColor: Colors.black87,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              side: BorderSide(
-                                color: Colors.grey[300]!,
-                                width: 1.5,
-                              ),
-                            ),
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                          ),
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(false),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.close_rounded,
-                                size: 18,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Cancelar',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 10),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 3,
-                            shadowColor: Colors.red.withOpacity(0.4),
-                          ),
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(true),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.delete_forever_rounded,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Excluir',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
             ),
-          ),
+          ],
         );
       },
     );
@@ -263,7 +103,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Imagens deletadas com sucesso!')),
+        SnackBar(content: Text('Imagens deletadas com sucesso!')),
       );
     } catch (e) {
       debugPrint('Erro ao deletar imagens: $e');
@@ -305,27 +145,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       debugPrint('Erro ao carregar imagem da URL $url: $e');
       return null;
     }
-  }
-
-  // Método para carregar tags globais disponíveis
-  Future<List<String>> _loadAvailableTags() async {
-    final prefs = await SharedPreferences.getInstance();
-    final tagsString = prefs.getString('global_tags');
-    if (tagsString != null) {
-      final tags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
-      if (mounted) {
-        setState(() {
-          _availableTags = tags;
-        });
-      }
-      return tags;
-    }
-    if (mounted) {
-      setState(() {
-        _availableTags = [];
-      });
-    }
-    return [];
   }
 
   Future<List<ImageModel>> _prepareImageItems() async {
@@ -661,7 +480,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
   @override
   Widget build(BuildContext context) {
-    
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
@@ -681,16 +499,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
             child: const Icon(Icons.arrow_back, color: Colors.black),
           ),
           onPressed: () {
-            Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AlbunsCriadosPage(
-                      initialFolderName: '', 
-                      initialFolderId: 1, 
-                      folderApiPath: '',
-                    ),
-                  ),
-                );
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const PrincipalPage()),
+              (Route<dynamic> route) => false,
+            );
           },
         ),
         title: Center(
@@ -711,14 +524,16 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                   color: Colors.black.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.home, color: Colors.black),
+                child: const Icon(Icons.exit_to_app, color: Colors.black),
               ),
               onPressed: () {
-               Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const PrincipalPage()),
-              (Route<dynamic> route) => false,
-            );
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const main_app.MyHomePage(title: ''),
+                  ),
+                  (Route<dynamic> route) => false,
+                );
               },
             ),
           ),
@@ -772,7 +587,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Erro ao carregar imagens',
                     style: TextStyle(
                       fontSize: 18,
@@ -810,7 +625,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Nenhuma imagem encontrada',
                     style: TextStyle(
                       fontSize: 18,
@@ -880,110 +695,47 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 25,
-                  offset: const Offset(0, 12),
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ícone de sucesso com design aprimorado
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFaed513).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFaed513).withOpacity(0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_rounded,
-                    color: Color(0xFFaed513),
-                    size: 36,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Título com tipografia melhorada
-                const Text(
-                  'Sucesso!',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                    letterSpacing: -0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 18),
-
-                // Mensagem com melhor legibilidade
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                      height: 1.5,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // Botão OK com design aprimorado
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFaed513),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 3,
-                      shadowColor: const Color(0xFFaed513).withOpacity(0.4),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.check_rounded,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'OK',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
           ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFaed513).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFFaed513),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Sucesso',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: Color(0xFFaed513),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -993,110 +745,47 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 25,
-                  offset: const Offset(0, 12),
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ícone de erro com design aprimorado
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.error_outline_rounded,
-                    color: Colors.red,
-                    size: 36,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Título com tipografia melhorada
-                const Text(
-                  'Ops! Algo deu errado',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                    letterSpacing: -0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 18),
-
-                // Mensagem com melhor legibilidade
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                      height: 1.5,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // Botão com design aprimorado
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 3,
-                      shadowColor: Colors.red.withOpacity(0.4),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.thumb_up_rounded,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Entendi',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
           ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Erro',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: Color(0xFFaed513),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1244,17 +933,20 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                             width: double.infinity,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16.0),
-                              border: Border.all(
-                                color: Colors.grey[300]!,
-                                width: 1,
-                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8.0,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16.0),
                               child: imageItem.imageData!.isNotEmpty
                                   ? Image.memory(
                                       imageItem.imageData!,
-                                      fit: BoxFit.fitHeight,
+                                      fit: BoxFit.cover,
                                     )
                                   : Container(
                                       color: Colors.grey[200],
@@ -1295,7 +987,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                           color: Colors.black,
                                         ),
                                       ),
-                                      const SizedBox(height: 8.0),
+                                      SizedBox(height: 8.0),
                                       TextField(
                                         controller: controllers[categoria],
                                         decoration: InputDecoration(
@@ -1322,7 +1014,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                 color: Color(0xFFaed513),
                                                 width: 2),
                                           ),
-                                          contentPadding: const EdgeInsets.symmetric(
+                                          contentPadding: EdgeInsets.symmetric(
                                             horizontal: 16.0,
                                             vertical: 12.0,
                                           ),
@@ -1343,9 +1035,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.info_outline,
+                                  Icon(Icons.info_outline,
                                       color: Colors.grey, size: 20),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12),
                                   Text(
                                     'Sem categorias disponíveis no momento.',
                                     style: TextStyle(
@@ -1394,7 +1086,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.cancel,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  const SizedBox(width: 8.0),
+                                  SizedBox(width: 8.0),
                                   Text(
                                     'Cancelar',
                                     style: TextStyle(
@@ -1454,7 +1146,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.save,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  const SizedBox(width: 8.0),
+                                  SizedBox(width: 8.0),
                                   Text(
                                     'Salvar',
                                     style: TextStyle(
@@ -1479,7 +1171,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     });
   }
 
-  // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
+// Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
   void _showComparisonDialog(
       BuildContext context,
       List<ImageModel> imagesToCompare,
@@ -1497,110 +1189,50 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 25,
-                    offset: const Offset(0, 12),
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Ícone de atenção com design aprimorado
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.orange,
-                      size: 36,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Título com tipografia melhorada
-                  const Text(
-                    'Atenção',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                      letterSpacing: -0.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Mensagem com melhor legibilidade
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: const Text(
-                      'Selecione pelo menos 2 imagens para comparar.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black54,
-                        height: 1.5,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // Botão com design aprimorado
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 3,
-                        shadowColor: Colors.orange.withOpacity(0.4),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.lightbulb_rounded,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Entendi',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
             ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Atenção',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Selecione pelo menos 2 imagens para comparar.',
+              style: TextStyle(fontSize: 16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    color: Color(0xFFaed513),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           );
         },
       );
@@ -1648,7 +1280,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       }
     }
 
-Future<void> shareImages() async {
+    Future<void> shareImages() async {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -2227,171 +1859,238 @@ Future<void> shareImages() async {
                     // Imagens exibidas em um Row centralizado
                     Expanded(
                       child: RepaintBoundary(
-  key: repaintKey,
-  child: Column(
-    children: [
-      // Imagens exibidas em um Row centralizado (altura fixa)
-      Expanded(
-        child: SizedBox(
-          height: isLargeScreen ? 360.0 : 280.0,
-          child: Container(
-            margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(
-                color: Colors.grey[300]!,
-                width: 1.0,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: displayedImages.map((imageItem) {
-                  int index = displayedImages.indexOf(imageItem);
-                  return Expanded(
-                    child: Align(
-                      alignment: index == 0
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Image.memory(
-                        imageItem.imageData!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          devtools.debugPrint(
-                              'Erro ao carregar imagem em displayedImages: $error');
-                          return Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.error, color: Colors.red, size: 40),
-                                  SizedBox(height: 8),
-                                  Text('Erro de imagem',
-                                      style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ),
-      ),
-      SizedBox(
-          height: isLargeScreen ? screenWidth * 0.02 : screenWidth * 0.01),
-      // Conteúdo rolável: categorias + ações + miniaturas
-      Expanded(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: _availableTags.isNotEmpty // Condição para exibir tags
-                ? _availableTags.map((tag) {
-                    return Container(
-                      margin: EdgeInsets.only(bottom: isLargeScreen ? 12.0 : 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0,
-                              vertical: 6.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFaed513),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Text(
-                              tag,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isLargeScreen ? 14.0 : 12.0,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8.0),
-                          Row(
-                            children: displayedImages.asMap().entries.map((imageEntry) {
-                              final int imageIndex = imageEntry.key;
-                              return Expanded(
-                                child: Container(
-                                  margin: EdgeInsets.only(
-                                      right: imageIndex < displayedImages.length - 1 ? 8.0 : 0),
-                                  child: TextField(
-                                    controller: controllers[tag]![imageIndex],
-                                    style: TextStyle(
-                                      fontSize: isLargeScreen ? 14.0 : 12.0,
+                        key: repaintKey,
+                        child: Column(
+                          children: [
+                            // Imagens exibidas em um Row centralizado
+                            Expanded(
+                              child: Container(
+                                margin:
+                                    EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8.0,
+                                      offset: const Offset(0, 4),
                                     ),
-                                    textAlign: TextAlign.center,
-                                    decoration: InputDecoration(
-                                      hintText: 'Valor',
-                                      filled: true,
-                                      fillColor: Colors.grey[50],
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8.0),
-                                        borderSide: BorderSide(color: Colors.grey[300]!),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8.0),
-                                        borderSide: BorderSide(color: Colors.grey[300]!),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8.0),
-                                        borderSide: const BorderSide(
-                                            color: Color(0xFFaed513), width: 2),
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 12.0,
-                                        vertical: 8.0,
-                                      ),
-                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: displayedImages.map((imageItem) {
+                                      return Expanded(
+                                        child: Container(
+                                          height: double.infinity,
+                                          child: Image.memory(
+                                            imageItem.imageData!,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              devtools.debugPrint(
+                                                  'Erro ao carregar imagem em displayedImages: $error');
+                                              return Container(
+                                                color: Colors.grey[200],
+                                                child: const Center(
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(Icons.error,
+                                                          color: Colors.red,
+                                                          size: 40),
+                                                      SizedBox(height: 8),
+                                                      Text('Erro de imagem',
+                                                          style: TextStyle(
+                                                              color:
+                                                                  Colors.red)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList()
-                : [
-                    Container(
-                      margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline, color: Colors.grey, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Nenhuma tag disponível.',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: isLargeScreen ? 14.0 : 12.0,
+                              ),
                             ),
-                          ),
-                        ],
+                            SizedBox(
+                                height: isLargeScreen
+                                    ? screenWidth * 0.02
+                                    : screenWidth * 0.01),
+                            // Tags e TextFields (rolável)
+                            Flexible(
+                              child: SingleChildScrollView(
+                                padding: EdgeInsets.zero,
+                                child: categorias.isNotEmpty
+                                    ? Container(
+                                        padding: EdgeInsets.all(
+                                            isLargeScreen ? 16.0 : 12.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: categorias.map((categoria) {
+                                            return Container(
+                                              margin: EdgeInsets.only(
+                                                  bottom: isLargeScreen
+                                                      ? 12.0
+                                                      : 8.0),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal: 12.0,
+                                                      vertical: 6.0,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFaed513),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8.0),
+                                                    ),
+                                                    child: Text(
+                                                      categoria,
+                                                      style: TextStyle(
+                                                        color: Colors.black,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: isLargeScreen
+                                                            ? 14.0
+                                                            : 12.0,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 8.0),
+                                                  Row(
+                                                    children: displayedImages
+                                                        .asMap()
+                                                        .entries
+                                                        .map((imageEntry) {
+                                                      final int imageIndex =
+                                                          imageEntry.key;
+                                                      return Expanded(
+                                                        child: Container(
+                                                          margin: EdgeInsets.only(
+                                                              right: imageIndex <
+                                                                      displayedImages
+                                                                              .length -
+                                                                          1
+                                                                  ? 8.0
+                                                                  : 0),
+                                                          child: TextField(
+                                                            controller: controllers[
+                                                                    categoria]![
+                                                                imageIndex],
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  isLargeScreen
+                                                                      ? 14.0
+                                                                      : 12.0,
+                                                            ),
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            decoration:
+                                                                InputDecoration(
+                                                              hintText: 'Valor',
+                                                              filled: true,
+                                                              fillColor: Colors
+                                                                  .grey[50],
+                                                              border:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8.0),
+                                                                borderSide: BorderSide(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300]!),
+                                                              ),
+                                                              enabledBorder:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8.0),
+                                                                borderSide: BorderSide(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300]!),
+                                                              ),
+                                                              focusedBorder:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8.0),
+                                                                borderSide: const BorderSide(
+                                                                    color: Color(
+                                                                        0xFFaed513),
+                                                                    width: 2),
+                                                              ),
+                                                              contentPadding:
+                                                                  EdgeInsets
+                                                                      .symmetric(
+                                                                horizontal:
+                                                                    12.0,
+                                                                vertical: 8.0,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      )
+                                    : Container(
+                                        margin: EdgeInsets.all(
+                                            isLargeScreen ? 16.0 : 12.0),
+                                        padding: EdgeInsets.all(
+                                            isLargeScreen ? 20.0 : 16.0),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[50],
+                                          borderRadius:
+                                              BorderRadius.circular(12.0),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.info_outline,
+                                                color: Colors.grey, size: 20),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'Nenhuma categoria disponível.',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize:
+                                                    isLargeScreen ? 14.0 : 12.0,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-          ),
-        ),
-      ),
-    ],
-  ),
-),
-                    ),
+                    // Botões de compartilhar e baixar
                     Container(
                       padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
                       decoration: const BoxDecoration(
@@ -2430,7 +2129,6 @@ Future<void> shareImages() async {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: isLargeScreen ? 14.0 : 12.0,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ),
@@ -2462,7 +2160,6 @@ Future<void> shareImages() async {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: isLargeScreen ? 14.0 : 12.0,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ),
@@ -2471,6 +2168,7 @@ Future<void> shareImages() async {
                         ],
                       ),
                     ),
+                    // Miniaturas das imagens selecionadas
                     Container(
                       height: isLargeScreen ? 120.0 : 100.0,
                       margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
@@ -2496,7 +2194,7 @@ Future<void> shareImages() async {
                                     width: isLargeScreen ? 80.0 : 70.0,
                                     height: isLargeScreen ? 80.0 : 70.0,
                                     margin:
-                                        const EdgeInsets.symmetric(horizontal: 8.0),
+                                        EdgeInsets.symmetric(horizontal: 8.0),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12.0),
                                       border: Border.all(
