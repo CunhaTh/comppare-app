@@ -343,7 +343,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   }*/
 
 
-Future<T> _handleApiCall<T>(Future<T> apiFunction) async {
+Future<Map<String, dynamic>> _handleApiCall(Future<Map<String, dynamic>> apiFunction) async {
   final user = UserHelper().user;
   if (user == null || user.id == null) {
     debugPrint('Tentativa de operação sem usuário ou ID válido.');
@@ -376,38 +376,39 @@ Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
   debugPrint(
       '[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}, tags: ${tags.join(",")}');
 
-  await _handleApiCall(() async {
-    final response = await _apiService.createSubFolder(
+  final response = await _handleApiCall(() async {
+    return await _apiService.createSubFolder(
       parentFolderId: widget.initialFolderId,
       idUsuario: UserHelper().user!.id!,
       folderName: subfolderNameForApi,
       parentFolderPath: widget.folderApiPath,
       tags: tags,
     );
-    debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
+  } as Future<Map<String, dynamic>>);
 
-    if (mounted) {
-      final apiTags = (response['tags'] as List<dynamic>?)?.map((t) => t.toString()).toList() ?? tags;
-      final newSubfolder = Folder.fromMap({
-        'id': response['id'] ?? 0,
-        'nome': response['caminho'] ?? '${response['nome'] ?? subfolderNameForApi}',
-        'caminho': response['caminho'],
-        'idPastaPai': widget.initialFolderId,
-        'imagens': [],
-        'subpastas': [],
-        'tags': apiTags,
-      });
+  debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
 
-      await _saveTagsLocally(newSubfolder.id as String, apiTags);
-      setState(() {
-        _subfolders.add(newSubfolder);
-      });
-      debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}, tags=${newSubfolder.tags?.join(",") ?? "nenhuma"}');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
-      );
-    }
-  } as Future);
+  if (mounted) {
+    final apiTags = (response['tags'] as List<dynamic>?)?.map((t) => t.toString()).toList() ?? tags;
+    final newSubfolder = Folder.fromMap({
+      'id': response['id'] ?? 0,
+      'nome': response['caminho'] ?? '${response['nome'] ?? subfolderNameForApi}',
+      'caminho': response['caminho'],
+      'idPastaPai': widget.initialFolderId,
+      'imagens': [],
+      'subpastas': [],
+      'tags': apiTags,
+    });
+
+    await _saveTagsLocally(newSubfolder.id as String, apiTags);
+    setState(() {
+      _subfolders.add(newSubfolder);
+    });
+    debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}, tags=${newSubfolder.tags?.join(",") ?? "nenhuma"}');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
+    );
+  }
 }
 
   Future<void> _saveTagsLocally(String key, List<String> tags) async {
@@ -469,7 +470,7 @@ Future<void> _createTags() async {
         SnackBar(content: Text('Tags criadas com sucesso: $uniqueTags')),
       );
     }
-  } as Future);
+  } as Future<Map<String, dynamic>>);
 }
 
 // Função reutilizável para validar tags
