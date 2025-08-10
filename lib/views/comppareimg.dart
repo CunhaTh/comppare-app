@@ -2029,61 +2029,10 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                   return;
                                 }
 
-                                try {
-                                  if (kIsWeb) {
-                                    // Para web, criar um blob e compartilhar via Web Share API
-                                    final blob =
-                                        html.Blob([imageBytes], 'image/png');
-                                    final url =
-                                        html.Url.createObjectUrlFromBlob(blob);
-
-                                    // Tentar usar a Web Share API para compartilhamento social
-                                    if (html.window.navigator.share != null) {
-                                      try {
-                                        await html.window.navigator.share({
-                                          'title':
-                                              'Comparação de Progresso - Comppare',
-                                          'text':
-                                              'Confira minha comparação de progresso no Comppare! 💪',
-                                          'url': url,
-                                        });
-                                        _showSuccessDialog(
-                                            'Compartilhamento social iniciado com sucesso!');
-                                      } catch (shareError) {
-                                        // Se falhar, tentar compartilhar via URL em redes sociais
-                                        _showSocialShareOptions(url);
-                                      }
-                                    } else {
-                                      // Fallback: mostrar opções de compartilhamento social
-                                      _showSocialShareOptions(url);
-                                    }
-
-                                    // Limpar a URL após um tempo
-                                    Future.delayed(const Duration(seconds: 10),
-                                        () {
-                                      html.Url.revokeObjectUrl(url);
-                                    });
-                                  } else {
-                                    // Para mobile, usar o Share.shareXFiles para compartilhamento social
-                                    final tempDir =
-                                        await getTemporaryDirectory();
-                                    final file = await File(
-                                            '${tempDir.path}/comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png')
-                                        .writeAsBytes(imageBytes);
-                                    final xFile = XFile(file.path);
-                                    await Share.shareXFiles(
-                                      [xFile],
-                                      text:
-                                          'Confira minha comparação de progresso no Comppare! 💪',
-                                      subject:
-                                          'Comparação de Progresso - Comppare',
-                                    );
-                                    _showSuccessDialog(
-                                        'Compartilhamento social iniciado com sucesso!');
-                                  }
-                                } catch (e) {
-                                  _showErrorDialog('Erro ao compartilhar: $e');
-                                }
+                                // // Usar o novo método melhorado para compartilhamento
+                                // await shareToSocialMedia(imageBytes);
+                                // Chamar o novo método de compartilhamento
+                                await shareImage(imageBytes);
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -3106,8 +3055,27 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     );
   }
 
-  // Método para mostrar opções de compartilhamento social na web
-  void _showSocialShareOptions(String imageUrl) {
+  // Nova função para compartilhar a imagem sem pacotes externos
+  Future<void> shareImage(Uint8List imageBytes) async {
+    if (kIsWeb) {
+      // Para web, mostrar opções de compartilhamento com redes sociais
+      //   _showSocialShareOptionsWeb(imageBytes);
+
+      final shareData = <String, dynamic>{
+        'title': 'Minha Comparação - Comppare',
+        'text': 'Confira minha comparação de progresso no Comppare! 😊',
+        'url': 'https://dev.comppare.com.br/',
+      };
+
+      await (html.window.navigator as dynamic).share(shareData);
+    } else {
+      // Para mobile, usar o método existente
+      await shareToSocialMedia(imageBytes);
+    }
+  }
+
+  // Método para mostrar opções de compartilhamento na web com redes sociais
+  void _showSocialShareOptionsWeb(Uint8List imageBytes) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -3171,6 +3139,470 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                 // Botões de redes sociais
                 Column(
                   children: [
+                    // Download da imagem primeiro
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFaed513),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _downloadImageWeb(imageBytes);
+                        },
+                        icon: const Icon(Icons.download, size: 20),
+                        label: const Text(
+                          'Baixar Imagem',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // WhatsApp
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          // _shareToWhatsAppWeb(imageBytes);
+                          final shareData = <String, dynamic>{
+                            'title': 'Minha Comparação - Comppare',
+                            'text':
+                                'Confira minha comparação de progresso no Comppare! 😊',
+                            'url': 'https://dev.comppare.com.br/',
+                          };
+
+                          await (html.window.navigator as dynamic)
+                              .share(shareData);
+                          // _showSuccessDialog(
+                          //     'Compartilhamento iniciado com sucesso!');
+                        },
+                        icon: const Icon(Icons.chat, size: 20),
+                        label: const Text(
+                          'WhatsApp',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // // Facebook
+                    // Container(
+                    //   width: double.infinity,
+                    //   margin: const EdgeInsets.only(bottom: 12),
+                    //   child: ElevatedButton.icon(
+                    //     style: ElevatedButton.styleFrom(
+                    //       backgroundColor: Colors.blue,
+                    //       foregroundColor: Colors.white,
+                    //       padding: const EdgeInsets.symmetric(
+                    //           vertical: 16, horizontal: 20),
+                    //       shape: RoundedRectangleBorder(
+                    //         borderRadius: BorderRadius.circular(12),
+                    //       ),
+                    //       elevation: 2,
+                    //     ),
+                    //     onPressed: () {
+                    //       Navigator.of(context).pop();
+                    //       _shareToFacebookWeb();
+                    //     },
+                    //     icon: const Icon(Icons.facebook, size: 20),
+                    //     label: const Text(
+                    //       'Facebook',
+                    //       style: TextStyle(
+                    //         fontWeight: FontWeight.w600,
+                    //         fontSize: 16,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+
+                    // // Instagram
+                    // Container(
+                    //   width: double.infinity,
+                    //   margin: const EdgeInsets.only(bottom: 12),
+                    //   child: ElevatedButton.icon(
+                    //     style: ElevatedButton.styleFrom(
+                    //       backgroundColor: Colors.purple,
+                    //       foregroundColor: Colors.white,
+                    //       padding: const EdgeInsets.symmetric(
+                    //           vertical: 16, horizontal: 20),
+                    //       shape: RoundedRectangleBorder(
+                    //         borderRadius: BorderRadius.circular(12),
+                    //       ),
+                    //       elevation: 2,
+                    //     ),
+                    //     onPressed: () {
+                    //       Navigator.of(context).pop();
+                    //       _shareToInstagramWeb(imageBytes);
+                    //     },
+                    //     icon: const Icon(Icons.camera_alt, size: 20),
+                    //     label: const Text(
+                    //       'Instagram',
+                    //       style: TextStyle(
+                    //         fontWeight: FontWeight.w600,
+                    //         fontSize: 16,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+
+                    // // Twitter/X
+                    // Container(
+                    //   width: double.infinity,
+                    //   margin: const EdgeInsets.only(bottom: 12),
+                    //   child: ElevatedButton.icon(
+                    //     style: ElevatedButton.styleFrom(
+                    //       backgroundColor: Colors.lightBlue,
+                    //       foregroundColor: Colors.white,
+                    //       padding: const EdgeInsets.symmetric(
+                    //           vertical: 16, horizontal: 20),
+                    //       shape: RoundedRectangleBorder(
+                    //         borderRadius: BorderRadius.circular(12),
+                    //       ),
+                    //       elevation: 2,
+                    //     ),
+                    //     onPressed: () {
+                    //       Navigator.of(context).pop();
+                    //       _shareToTwitterWeb();
+                    //     },
+                    //     icon: const Icon(Icons.flutter_dash, size: 20),
+                    //     label: const Text(
+                    //       'Twitter/X',
+                    //       style: TextStyle(
+                    //         fontWeight: FontWeight.w600,
+                    //         fontSize: 16,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+
+                    // // Email
+                    // Container(
+                    //   width: double.infinity,
+                    //   margin: const EdgeInsets.only(bottom: 20),
+                    //   child: ElevatedButton.icon(
+                    //     style: ElevatedButton.styleFrom(
+                    //       backgroundColor: Colors.orange,
+                    //       foregroundColor: Colors.white,
+                    //       padding: const EdgeInsets.symmetric(
+                    //           vertical: 16, horizontal: 20),
+                    //       shape: RoundedRectangleBorder(
+                    //         borderRadius: BorderRadius.circular(12),
+                    //       ),
+                    //       elevation: 2,
+                    //     ),
+                    //     onPressed: () {
+                    //       Navigator.of(context).pop();
+                    //       _shareToEmailWeb();
+                    //     },
+                    //     icon: const Icon(Icons.email, size: 20),
+                    //     label: const Text(
+                    //       'Email',
+                    //       style: TextStyle(
+                    //         fontWeight: FontWeight.w600,
+                    //         fontSize: 16,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+                  ],
+                ),
+
+                // Botão cancelar
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[100],
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'Cancelar',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Métodos específicos para compartilhamento na web
+  void _downloadImageWeb(Uint8List imageBytes) {
+    final blob = html.Blob([imageBytes], 'image/png');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download',
+          'comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+    _showSuccessDialog('Imagem baixada com sucesso!');
+  }
+
+  void _shareToWhatsAppWeb(Uint8List imageBytes) async {
+    try {
+      // Tentar usar a Web Share API nativa com arquivo
+      final blob = html.Blob([imageBytes], 'image/png');
+      final file =
+          html.File([blob], 'comppare_comparison.png', {'type': 'image/png'});
+
+      final shareData = <String, dynamic>{
+        'title': 'Minha Comparação - Comppare',
+        'text':
+            'Confira minha comparação de progresso no Comppare! 😊 https://dev.comppare.com.br/',
+        'files': [file],
+      };
+
+      // Tentar compartilhar usando Web Share API
+      await (html.window.navigator as dynamic).share(shareData);
+      _showSuccessDialog('Compartilhamento iniciado com sucesso!');
+    } catch (e) {
+      print('Web Share API falhou: $e');
+
+      // Fallback: baixar imagem e redirecionar para WhatsApp Web
+      _downloadImageWeb(imageBytes);
+
+      final text = Uri.encodeComponent(
+          'Confira minha comparação de progresso no Comppare! 😊 https://dev.comppare.com.br/');
+      final url = 'https://wa.me/?text=$text';
+      html.window.open(url, '_blank');
+      _showSuccessDialog('Imagem baixada! Redirecionando para o WhatsApp...');
+    }
+  }
+
+  void _shareToFacebookWeb() async {
+    try {
+      // Tentar usar a Web Share API nativa
+      final shareData = <String, dynamic>{
+        'title': 'Minha Comparação - Comppare',
+        'text': 'Confira minha comparação de progresso no Comppare! 😊',
+        'url': 'https://dev.comppare.com.br/',
+      };
+
+      await (html.window.navigator as dynamic).share(shareData);
+      _showSuccessDialog('Compartilhamento iniciado com sucesso!');
+    } catch (e) {
+      print('Web Share API falhou: $e');
+
+      // Fallback: redirecionar para Facebook
+      final text = Uri.encodeComponent(
+          'Confira minha comparação de progresso no Comppare! 😊');
+      final url =
+          'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent('https://dev.comppare.com.br/')}&quote=$text';
+      html.window.open(url, '_blank');
+      _showSuccessDialog('Redirecionando para o Facebook...');
+    }
+  }
+
+  void _shareToInstagramWeb(Uint8List imageBytes) {
+    // Instagram Web não suporta compartilhamento direto, então baixa a imagem
+    _downloadImageWeb(imageBytes);
+    _showSuccessDialog(
+        'Para compartilhar no Instagram, baixe a imagem e use o app!');
+  }
+
+  void _shareToTwitterWeb() {
+    final text = Uri.encodeComponent(
+        'Confira minha comparação de progresso no Comppare! 😊');
+    final url =
+        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent('https://dev.comppare.com.br/')}';
+    html.window.open(url, '_blank');
+    _showSuccessDialog('Redirecionando para o Twitter...');
+  }
+
+  void _shareToEmailWeb() {
+    final subject = Uri.encodeComponent('Comparação de Progresso - Comppare');
+    final body = Uri.encodeComponent(
+        'Confira minha comparação de progresso no Comppare! 😊\n\nhttps://dev.comppare.com.br/');
+    final url = 'mailto:?subject=$subject&body=$body';
+    html.window.open(url, '_blank');
+    _showSuccessDialog('Redirecionando para o email...');
+  }
+
+  // Método melhorado para compartilhamento social
+  Future<void> shareToSocialMedia(Uint8List imageBytes) async {
+    try {
+      if (kIsWeb) {
+        // Para web, criar um blob e tentar diferentes estratégias de compartilhamento
+        final blob = html.Blob([imageBytes], 'image/png');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+
+        // Estratégia 1: Tentar Web Share API (funciona em alguns navegadores)
+        if (html.window.navigator.share != null) {
+          try {
+            await html.window.navigator.share({
+              'title': 'Comparação de Progresso - Comppare',
+              'text': 'Confira minha comparação de progresso no Comppare! 💪',
+              'url': url,
+            });
+            _showSuccessDialog('Compartilhamento social iniciado com sucesso!');
+
+            // Limpar a URL após um tempo
+            Future.delayed(const Duration(seconds: 10), () {
+              html.Url.revokeObjectUrl(url);
+            });
+            return;
+          } catch (shareError) {
+            devtools.debugPrint('Web Share API falhou: $shareError');
+          }
+        }
+
+        // Estratégia 2: Mostrar opções de compartilhamento com download da imagem
+        _showSocialShareOptionsWithDownload(imageBytes, url);
+      } else {
+        // Para mobile (Android/iOS)
+        final tempDir = await getTemporaryDirectory();
+        final fileName =
+            'comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png';
+        final file =
+            await File('${tempDir.path}/$fileName').writeAsBytes(imageBytes);
+        final xFile = XFile(file.path);
+
+        await Share.shareXFiles(
+          [xFile],
+          text: 'Confira minha comparação de progresso no Comppare! 💪',
+          subject: 'Comparação de Progresso - Comppare',
+        );
+        _showSuccessDialog('Compartilhamento social iniciado com sucesso!');
+      }
+    } catch (e) {
+      devtools.debugPrint('Erro no compartilhamento: $e');
+      _showErrorDialog('Erro ao compartilhar: $e');
+    }
+  }
+
+  // Método para mostrar opções de compartilhamento com download na web
+  void _showSocialShareOptionsWithDownload(
+      Uint8List imageBytes, String blobUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header com ícone
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFaed513).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.share,
+                    color: Color(0xFFaed513),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Título
+                const Text(
+                  'Compartilhar nas Redes Sociais',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+
+                // Subtítulo
+                const Text(
+                  'Escolha onde deseja compartilhar sua comparação:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                // Botões de redes sociais
+                Column(
+                  children: [
+                    // Download da imagem primeiro
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFaed513),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _downloadImage(imageBytes);
+                        },
+                        icon: const Icon(Icons.download, size: 20),
+                        label: const Text(
+                          'Baixar Imagem',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
                     // Facebook
                     Container(
                       width: double.infinity,
@@ -3188,7 +3620,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                         onPressed: () {
                           Navigator.of(context).pop();
-                          _shareToFacebook(imageUrl);
+                          _shareToFacebookWithText();
                         },
                         icon: const Icon(Icons.facebook, size: 20),
                         label: const Text(
@@ -3218,7 +3650,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                         onPressed: () {
                           Navigator.of(context).pop();
-                          _shareToTwitter(imageUrl);
+                          _shareToTwitterWithText();
                         },
                         icon: const Icon(Icons.flutter_dash, size: 20),
                         label: const Text(
@@ -3248,7 +3680,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                         onPressed: () {
                           Navigator.of(context).pop();
-                          _shareToWhatsApp(imageUrl);
+                          _shareToWhatsAppWithText();
                         },
                         icon: const Icon(Icons.chat, size: 20),
                         label: const Text(
@@ -3278,7 +3710,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                         onPressed: () {
                           Navigator.of(context).pop();
-                          _shareToEmail(imageUrl);
+                          _shareToEmailWithText();
                         },
                         icon: const Icon(Icons.email, size: 20),
                         label: const Text(
@@ -3324,33 +3756,51 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     );
   }
 
-  // Métodos para compartilhamento específico em cada rede social
-  void _shareToFacebook(String imageUrl) {
-    final url =
-        'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(imageUrl)}';
-    html.window.open(url, '_blank');
+  // Método para download da imagem na web
+  void _downloadImage(Uint8List imageBytes) {
+    final blob = html.Blob([imageBytes], 'image/png');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download',
+          'comppare_comparison_${DateTime.now().millisecondsSinceEpoch}.png')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+    _showSuccessDialog('Imagem baixada com sucesso!');
   }
 
-  void _shareToTwitter(String imageUrl) {
+  // Métodos para compartilhamento específico em cada rede social (apenas texto)
+  void _shareToFacebookWithText() {
     final text = Uri.encodeComponent(
         'Confira minha comparação de progresso no Comppare! 💪');
     final url =
-        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent(imageUrl)}';
+        'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent('https://dev.comppare.com.br/')}&quote=$text';
     html.window.open(url, '_blank');
+    _showSuccessDialog('Redirecionando para o Facebook...');
   }
 
-  void _shareToWhatsApp(String imageUrl) {
+  void _shareToTwitterWithText() {
     final text = Uri.encodeComponent(
-        'Confira minha comparação de progresso no Comppare! 💪 $imageUrl');
+        'Confira minha comparação de progresso no Comppare! 💪');
+    final url =
+        'https://twitter.com/intent/tweet?text=$text&url=${Uri.encodeComponent('https://dev.comppare.com.br/')}';
+    html.window.open(url, '_blank');
+    _showSuccessDialog('Redirecionando para o Twitter...');
+  }
+
+  void _shareToWhatsAppWithText() {
+    final text = Uri.encodeComponent(
+        'Confira minha comparação de progresso no Comppare! 💪 https://dev.comppare.com.br/');
     final url = 'https://wa.me/?text=$text';
     html.window.open(url, '_blank');
+    _showSuccessDialog('Redirecionando para o WhatsApp...');
   }
 
-  void _shareToEmail(String imageUrl) {
+  void _shareToEmailWithText() {
     final subject = Uri.encodeComponent('Comparação de Progresso - Comppare');
     final body = Uri.encodeComponent(
-        'Confira minha comparação de progresso no Comppare! 💪\n\n$imageUrl');
+        'Confira minha comparação de progresso no Comppare! 💪\n\nhttps://dev.comppare.com.br/');
     final url = 'mailto:?subject=$subject&body=$body';
     html.window.open(url, '_blank');
+    _showSuccessDialog('Redirecionando para o email...');
   }
 }
