@@ -1011,14 +1011,11 @@ class _PrincipalPageState extends State<PrincipalPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.black, size: 24),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => main_app.MyHomePage(title: '')),
-                (Route<dynamic> route) => false,
-              );
-            },
+            onPressed: () async {
+                        await TokenHelper().clear();
+                        await UserHelper().removeUser();
+                        _navigateToLogin();
+                      },
             tooltip: 'Sair',
           ),
         ],

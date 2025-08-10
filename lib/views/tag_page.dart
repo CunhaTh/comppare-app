@@ -1,5 +1,9 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'package:application_progress/infra/api_exception.dart';
+import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/infra/user_helper.dart';
+import 'package:application_progress/login.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,6 +18,7 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
   final _tagsController = TextEditingController();
   bool _isLoading = false;
   List<String> _tags = [];
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -22,19 +27,96 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
   }
 
   Future<void> _loadTags() async {
-    final prefs = await SharedPreferences.getInstance();
-    final tagsString = prefs.getString('global_tags');
-    if (tagsString != null) {
-      setState(() {
-        _tags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
-      });
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      _navigateToLogin();
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final tagsFromApi = await _apiService.getTags(user.id!);
+      if (tagsFromApi.isNotEmpty) {
+        final tagsSet = LinkedHashSet<String>.from(tagsFromApi).toList();
+        await _saveTagsLocally('user_${user.id}_tags', tagsSet);
+        await _saveGlobalTags(tagsSet); // Salva tags globais
+        await UserHelper().setUserTags(tagsSet);
+        if (mounted) {
+          setState(() {
+            _tags = tagsSet;
+            debugPrint('Tags carregadas do servidor: $_tags');
+          });
+        }
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        final tagsKey = 'user_${user.id}_tags';
+        final tagsString = prefs.getString(tagsKey);
+        if (tagsString != null) {
+          final localTags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
+          await _saveGlobalTags(localTags);
+          await UserHelper().setUserTags(localTags);
+          if (mounted) {
+            setState(() {
+              _tags = localTags;
+              debugPrint('Tags carregadas do cache local: $_tags');
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar tags: $e');
+      final prefs = await SharedPreferences.getInstance();
+      final tagsKey = 'user_${user.id}_tags';
+      final tagsString = prefs.getString(tagsKey);
+      if (tagsString != null && mounted) {
+        setState(() {
+          _tags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
+          debugPrint('Tags carregadas do cache local (fallback): $_tags');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  Future<void> _saveTags(String key, List<String> tags) async {
+  Future<void> _saveTagsLocally(String key, List<String> tags) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, jsonEncode(tags));
     debugPrint('Tags salvas localmente para chave $key: ${tags.join(",")}');
+  }
+
+  Future<void> _saveGlobalTags(List<String> tags) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('global_tags', jsonEncode(tags)); // Corrigido para 'global_tags'
+    debugPrint('Tags globais salvas: ${tags.join(",")}');
+  }
+
+  Future<void> _syncTagsWithApi(String nomeTag) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      _navigateToLogin();
+      return;
+    }
+    try {
+      await _apiService.refreshTokenIfNeeded();
+      final response = await _apiService.saveTags(
+        nomeTag: nomeTag,
+        usuario: user.id!,
+      );
+      debugPrint('Tags sincronizadas com a API: ${response['message']}');
+      if (response['codRetorno'] == 201) {
+        await _loadTags(); // Recarrega após sucesso
+      }
+    } catch (e) {
+      debugPrint('Erro ao sincronizar tags com a API: $e');
+      if (e is ApiException && e.statusCode == 401) {
+        _navigateToLogin();
+      } else if (mounted) {
+        _showErrorDialog('Falha ao salvar tags no servidor: $e');
+      }
+    }
   }
 
   Future<void> _createTags() async {
@@ -46,24 +128,33 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
 
     setState(() => _isLoading = true);
     try {
-      final tags = tagsString.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+      final tags = tagsString.split(',').map((tag) => tag.trim()).where((tag) {
+        if (tag.isEmpty) return false;
+        if (tag.length > 20) {
+          _showErrorDialog('As tags devem ter no máximo 20 caracteres.');
+          return false;
+        }
+        if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(tag)) {
+          _showErrorDialog('As tags só podem conter letras, números e underline (_).');
+          return false;
+        }
+        return true;
+      }).toList();
+
       if (tags.isEmpty) {
         _showErrorDialog('Nenhuma tag válida foi fornecida.');
         return;
       }
 
-      // Remover duplicatas mantendo a ordem
-      // ignore: prefer_collection_literals
-      final uniqueTags = LinkedHashSet<String>.from([..._tags, ...tags]).toList();
-      await _saveTags('global_tags', uniqueTags);
+      final uniqueTags = tags.join(',');
+      await _syncTagsWithApi(uniqueTags);
 
       if (mounted) {
         setState(() {
-          _tags = uniqueTags;
           _tagsController.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Tags criadas com sucesso: ${uniqueTags.join(",")}')),
+          SnackBar(content: Text('Tags criadas com sucesso: $uniqueTags')),
         );
       }
     } catch (e) {
@@ -97,7 +188,10 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
 
   void _navigateToLogin() {
     if (!mounted) return;
-    // Lógica de navegação para login, se necessário
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   @override
@@ -181,14 +275,21 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
+                      onPressed: () async {
                         setState(() {
                           _tags.removeAt(index);
-                          _saveTags('global_tags', _tags);
                         });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Tag "$tag" removida com sucesso')),
-                        );
+                        final user = UserHelper().user;
+                        if (user != null && user.id != null) {
+                          await _saveTagsLocally('user_${user.id}_tags', _tags);
+                          await _syncTagsWithApi(_tags.join(','));
+                          await _loadTags(); // Recarrega após remoção
+                        }
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Tag "$tag" removida com sucesso')),
+                          );
+                        }
                       },
                     ),
                   );

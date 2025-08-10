@@ -439,7 +439,7 @@ class _MyHomePageState extends State<MyHomePage> {
           plan.nome.toLowerCase().contains('básico') &&
           !plan.nome.toLowerCase().contains('anual'),
       orElse: () => PlanModel(
-        id: 2,
+        id: 3,
         nome: 'Avançado Mensal',
         descricao: 'Plano Avançado mensal com acesso a mais funcionalidades',
         valor: 24.90,
@@ -452,37 +452,6 @@ class _MyHomePageState extends State<MyHomePage> {
         tempoGratuidade: 1,
       ),
     );
-
-    // Try to find the "Avançado Mensal" plan
-    final avancado = monthlyPlans.firstWhere(
-      (plan) =>
-          plan.nome.toLowerCase().contains('avançado') &&
-          !plan.nome.toLowerCase().contains('anual'),
-      orElse: () => PlanModel(
-        id: 3,
-        nome: 'Avançado Anual',
-        descricao: 'Plano avançado mensal com todos os recursos',
-        valor: 39.90,
-        quantidadeTags: 10,
-        quantidadeFotos: 100,
-        quantidadeConvites: 1,
-        quantidadePastas: 1,
-        status: 1,
-        frequenciaCobranca: 1,
-        tempoGratuidade: 1,
-      ),
-    );
-
-    // Add plans to selectedPlans if not already present
-    if (!selectedPlans.containsKey(gratuito.id)) {
-      selectedPlans[gratuito.id] = false;
-    }
-    if (!selectedPlans.containsKey(basico.id)) {
-      selectedPlans[basico.id] = false;
-    }
-    if (!selectedPlans.containsKey(avancado.id)) {
-      selectedPlans[avancado.id] = false;
-    }
 
     // Add plan cards only for plans that were found or have valid fallbacks
     planCards.add(

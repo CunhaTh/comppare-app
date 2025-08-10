@@ -44,7 +44,8 @@ class ApiEndpoints {
   /// Endpoint para criar uma nova pasta.
   // POST: { "idUsuario": ..., "nomePasta": ..., "parentFolderId": ..., "tags": [...] }
   static String get createFolder => '$baseUrl/pasta/create';
-
+ 
+  //Endpoint para criar subalbuns
   static String get createSubFolder => '$baseUrl/pasta/create';
 
   /// Endpoint para excluir uma pasta.
@@ -65,7 +66,10 @@ class ApiEndpoints {
 
 
   // Salva as tags
-  static String get saveTags => '$baseUrl/pasta/associar-tags';
+  static String get saveTags => '$baseUrl/tags/cadastrar';
+
+  // exclui as tags
+  static String get excluiTags => '$baseUrl/tags/excluir';
 
   // --- Endpoints de Pastas e Conteúdo ---
 
@@ -78,12 +82,3 @@ class ApiEndpoints {
     return '$baseUrl/pasta/recuperar?idPasta=$idFolder';
   }
 }
-
-
- /*POST /api/pasta/associar-tags
-     * Content-Type: application/json
-     * 
-     * Body:
-
-     * - tags[]: obrigatorio
-     * - pasta: 15 (obrigatório) - ID da pasta onde */

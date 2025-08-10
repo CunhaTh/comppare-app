@@ -254,6 +254,29 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> deleteTag(int userId, String tag) async {
+    final url = Uri.parse('${ApiEndpoints.excluiTags}?usuario=$userId&nomeTag=$tag');
+    final token = TokenHelper().token;
+    if (token == null || token.isEmpty) {
+      throw ApiException('Token de autenticação ausente', statusCode: 401);
+    }
+
+    final response = await http.delete(
+      Uri.parse(ApiEndpoints.excluiTags),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'usuario': userId, 'nomeTag': tag}),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException('Falha ao excluir tag: ${response.body}', statusCode: response.statusCode);
+    }
+  }
+
   Future<Map<String, dynamic>> deleteImage(int idUsuario, int idImagem) async {
     final url = Uri.parse(ApiEndpoints.deleteImage);
     foundation
@@ -272,6 +295,8 @@ class ApiService {
       errorMessage: 'Falha ao excluir imagem.',
     );
   }
+
+  
 
   /// Função para listar TODAS as pastas principais do usuário logado.
   /// Este método agora obtém as pastas do UserHelper, que foram salvas durante o login.
@@ -417,38 +442,6 @@ class ApiService {
     }
   }
 
-  /// Função para associar tags a uma pasta específica.
-  /*Future<Map<String, dynamic>> saveTags({
-    required int pastaId,
-    required List<String> tags,
-  }) async {
-    if (tags.isEmpty) {
-      throw ApiException(
-        'A lista de tags não pode estar vazia.',
-        statusCode: 400,
-        body: '',
-      );
-    }
-
-    final url = Uri.parse(ApiEndpoints.saveTags);
-    foundation.debugPrint(
-        '[_saveTags] Requisição para associar tags em: $url com pastaId: $pastaId, tags: ${tags.join(",")}');
-
-    final body = {
-      'pasta': pastaId,
-      'tags[]': tags.join(','),
-    };
-
-    return _sendRequest(
-      () => _httpClient.post(
-        url,
-        headers: _getHeaders(includeContentType: true),
-        body: jsonEncode(body),
-      ),
-      successMessage: 'Tags associadas com sucesso.',
-      errorMessage: 'Falha ao associar tags à pasta.',
-    );
-  }*/
 
   Future<Map<String, dynamic>> createSubFolder({
     required int parentFolderId,
@@ -604,4 +597,48 @@ class ApiService {
 
     return PaymentPixReturnModel.fromMap(response);
   }
+
+  
+  /// Função para salvar tags no servidor.
+  Future<Map<String, dynamic>> saveTags({
+    required String nomeTag,
+    required int usuario,
+  }) async {
+    final url = Uri.parse(ApiEndpoints.saveTags);
+    foundation.debugPrint(
+        '[_saveTags] Requisição para salvar tags em: $url, nomeTag: $nomeTag, usuario: $usuario');
+
+    final body = {
+      'nomeTag': nomeTag,
+      'usuario': usuario,
+    };
+
+    return _sendRequest(
+      () => _httpClient.post(
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Tags salvas com sucesso.',
+      errorMessage: 'Falha ao salvar tags.',
+    );
+  }
+
+    /// Função para listar tags do usuário.
+  Future<List<String>> getTags(int usuario) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/tags/listar?usuario=$usuario');
+    final responseBody = await _sendRequest(
+      () => _httpClient.get(url, headers: _getHeaders()),
+      successMessage: 'Tags carregadas com sucesso.',
+      errorMessage: 'Falha ao carregar tags.',
+    );
+
+    if (responseBody.containsKey('data') && responseBody['data'] is List) {
+      final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
+      return tagsJson.map((e) => e['nomeTag'].toString()).toList();
+    } else {
+      return [];
+    }
+  }
 }
+

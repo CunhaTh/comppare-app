@@ -66,12 +66,17 @@ class UserHelper {
   UserHelper._internal();
   static final UserHelper _instance = UserHelper._internal();
   factory UserHelper() => _instance;
-
   final _box = GetStorage();
   static const String _userKey = 'currentUser';
 
   User? _user;
+  User? get user => _user;
   bool _isInitialized = false;
+  List<String>? _tags;
+
+  List<String>? get tags => _tags;
+
+ 
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -90,7 +95,9 @@ class UserHelper {
     _isInitialized = true;
   }
 
-  User? get user => _user;
+ Future<void> setUserTags(List<String> tags) async {
+    _tags = tags;
+  }
 
   Future<void> setUser(User user) async {
     if (user.id == null) {

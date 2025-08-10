@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +47,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-
+  
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
   // Função para deletar imagens selecionadas
@@ -98,7 +100,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Imagens deletadas com sucesso!')),
+        const SnackBar(content: Text('Imagens deletadas com sucesso!')),
       );
     } catch (e) {
       debugPrint('Erro ao deletar imagens: $e');
@@ -473,6 +475,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
   @override
   Widget build(BuildContext context) {
+    
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
@@ -492,11 +495,16 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
             child: const Icon(Icons.arrow_back, color: Colors.black),
           ),
           onPressed: () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const PrincipalPage()),
-              (Route<dynamic> route) => false,
-            );
+            Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AlbunsCriadosPage(
+                      initialFolderName: '', 
+                      initialFolderId: 1, 
+                      folderApiPath: '',
+                    ),
+                  ),
+                );
           },
         ),
         title: Center(
@@ -517,16 +525,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                   color: Colors.black.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.exit_to_app, color: Colors.black),
+                child: const Icon(Icons.home, color: Colors.black),
               ),
               onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const main_app.MyHomePage(title: ''),
-                  ),
-                  (Route<dynamic> route) => false,
-                );
+               Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const PrincipalPage()),
+              (Route<dynamic> route) => false,
+            );
               },
             ),
           ),
@@ -580,7 +586,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Erro ao carregar imagens',
                     style: TextStyle(
                       fontSize: 18,
@@ -618,7 +624,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Nenhuma imagem encontrada',
                     style: TextStyle(
                       fontSize: 18,
@@ -976,7 +982,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                           color: Colors.black,
                                         ),
                                       ),
-                                      SizedBox(height: 8.0),
+                                      const SizedBox(height: 8.0),
                                       TextField(
                                         controller: controllers[tag],
                                         decoration: InputDecoration(
@@ -1002,7 +1008,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                 color: Color(0xFFaed513),
                                                 width: 2),
                                           ),
-                                          contentPadding: EdgeInsets.symmetric(
+                                          contentPadding: const EdgeInsets.symmetric(
                                             horizontal: 16.0,
                                             vertical: 12.0,
                                           ),
@@ -1023,9 +1029,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.info_outline,
+                                  const Icon(Icons.info_outline,
                                       color: Colors.grey, size: 20),
-                                  SizedBox(width: 12),
+                                  const SizedBox(width: 12),
                                   Text(
                                     'Sem tags disponíveis no momento.',
                                     style: TextStyle(
@@ -1074,7 +1080,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.cancel,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
+                                  const SizedBox(width: 8.0),
                                   Text(
                                     'Cancelar',
                                     style: TextStyle(
@@ -1134,7 +1140,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.save,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
+                                  const SizedBox(width: 8.0),
                                   Text(
                                     'Salvar',
                                     style: TextStyle(
@@ -1428,7 +1434,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                   color: const Color(0xFFaed513),
                                   size: isLargeScreen ? 20.0 : 18.0,
                                 ),
-                                SizedBox(width: 12.0),
+                                const SizedBox(width: 12.0),
                                 Expanded(
                                   child: Text(
                                     'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
@@ -1480,7 +1486,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.cancel,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
+                                  const SizedBox(width: 8.0),
                                   Text(
                                     'Cancelar',
                                     style: TextStyle(
@@ -1526,15 +1532,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                           borderRadius:
                                               BorderRadius.circular(16),
                                         ),
-                                        child: Column(
+                                        child: const Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const CircularProgressIndicator(
+                                            CircularProgressIndicator(
                                               valueColor:
                                                   AlwaysStoppedAnimation<Color>(
                                                       Color(0xFFaed513)),
                                             ),
-                                            const SizedBox(height: 16),
+                                            SizedBox(height: 16),
                                             Text(
                                               'Preparando compartilhamento...',
                                               style: TextStyle(
@@ -1600,7 +1606,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.share,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
+                                  const SizedBox(width: 8.0),
                                   Text(
                                     'Compartilhar',
                                     style: TextStyle(
@@ -1924,7 +1930,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                             CrossAxisAlignment.start,
                                         children: [
                                           Container(
-                                            padding: EdgeInsets.symmetric(
+                                            padding: const EdgeInsets.symmetric(
                                               horizontal: 12.0,
                                               vertical: 6.0,
                                             ),
@@ -1943,7 +1949,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                               ),
                                             ),
                                           ),
-                                          SizedBox(height: 8.0),
+                                          const SizedBox(height: 8.0),
                                           Row(
                                             children: displayedImages
                                                 .asMap()
@@ -2004,7 +2010,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                                 width: 2),
                                                       ),
                                                       contentPadding:
-                                                          EdgeInsets.symmetric(
+                                                          const EdgeInsets.symmetric(
                                                         horizontal: 12.0,
                                                         vertical: 8.0,
                                                       ),
@@ -2032,9 +2038,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.info_outline,
+                                    const Icon(Icons.info_outline,
                                         color: Colors.grey, size: 20),
-                                    SizedBox(width: 12),
+                                    const SizedBox(width: 12),
                                     Text(
                                       'Nenhuma tag disponível.',
                                       style: TextStyle(
@@ -2151,7 +2157,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     width: isLargeScreen ? 80.0 : 70.0,
                                     height: isLargeScreen ? 80.0 : 70.0,
                                     margin:
-                                        EdgeInsets.symmetric(horizontal: 8.0),
+                                        const EdgeInsets.symmetric(horizontal: 8.0),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12.0),
                                       border: Border.all(
