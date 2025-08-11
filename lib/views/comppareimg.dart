@@ -1753,8 +1753,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                       children: [
                                         // Container principal das imagens
                                         Container(
-                                          padding: const EdgeInsets.all(20),
-                                          height: isLargeScreen ? 320.0 : 270.0,
+                                          //padding: const EdgeInsets.all(20),
+                                          height: isLargeScreen ? 300 : 200,
                                           child: Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
@@ -1770,7 +1770,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                             16),
                                                     child: Image.memory(
                                                       imageItem.imageData!,
-                                                      fit: BoxFit.contain,
+                                                      fit: BoxFit.fitWidth,
                                                       height: double.infinity,
                                                     ),
                                                   ),
