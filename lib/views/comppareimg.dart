@@ -1729,83 +1729,68 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 ),
                               ],
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20.0),
-                              child: RepaintBoundary(
-                                key: shareRepaintKey,
-                                child: Container(
-                                  color: Colors.white,
-                                  padding: EdgeInsets.all(
-                                          isLargeScreen ? 12.0 : 10.0)
-                                      .copyWith(right: 0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      // Container principal das imagens
-                                      Container(
-                                        padding: const EdgeInsets.all(20),
-                                        height: isLargeScreen ? 320.0 : 270.0,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children:
-                                              displayedImages.map((imageItem) {
-                                            return Expanded(
-                                              child: Container(
-                                                margin:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  border: Border.all(
-                                                    color: Colors.grey[200]!,
-                                                    width: 1.5,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.grey[200]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20.0),
+                                child: RepaintBoundary(
+                                  key: shareRepaintKey,
+                                  child: Container(
+                                    color: Colors.white,
+                                    padding: EdgeInsets.all(
+                                            isLargeScreen ? 12.0 : 10.0)
+                                        .copyWith(right: 0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        // Container principal das imagens
+                                        Container(
+                                          padding: const EdgeInsets.all(20),
+                                          height: isLargeScreen ? 320.0 : 270.0,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: displayedImages
+                                                .map((imageItem) {
+                                              return Expanded(
+                                                child: Container(
+                                                  margin: const EdgeInsets
+                                                      .symmetric(horizontal: 8),
+                                                  child: ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            16),
+                                                    child: Image.memory(
+                                                      imageItem.imageData!,
+                                                      fit: BoxFit.contain,
+                                                      height: double.infinity,
+                                                    ),
                                                   ),
                                                 ),
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  child: Image.memory(
-                                                    imageItem.imageData!,
-                                                    fit: BoxFit.contain,
-                                                    height: double.infinity,
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                      SizedBox(
-                                          height: isLargeScreen ? 20.0 : 16.0),
-                                      // Logo do Comppare com design aprimorado
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFaed513)
-                                              .withOpacity(0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: const Color(0xFFaed513)
-                                                .withOpacity(0.3),
-                                            width: 1.5,
+                                              );
+                                            }).toList(),
                                           ),
                                         ),
-                                        child: Image.asset(
+                                        SizedBox(
+                                            height:
+                                                isLargeScreen ? 20.0 : 16.0),
+                                        // Logo do Comppare com design aprimorado
+                                        Image.asset(
                                           "assets/logo_cortada.png",
                                           width: isLargeScreen ? 90.0 : 70.0,
                                           height: isLargeScreen ? 45.0 : 35.0,
                                           fit: BoxFit.contain,
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
