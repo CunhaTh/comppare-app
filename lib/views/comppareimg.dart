@@ -215,15 +215,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                           ),
                           onPressed: () =>
                               Navigator.of(dialogContext).pop(true),
-                          child: Row(
+                          child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.delete_forever_rounded,
                                 size: 18,
                               ),
-                              const SizedBox(width: 8),
-                              const Text(
+                              SizedBox(width: 8),
+                              Text(
                                 'Excluir',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
@@ -964,15 +964,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       shadowColor: const Color(0xFFaed513).withOpacity(0.4),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_rounded,
                           size: 18,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8),
+                        Text(
                           'OK',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
@@ -1077,15 +1077,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       shadowColor: Colors.red.withOpacity(0.4),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.thumb_up_rounded,
                           size: 18,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8),
+                        Text(
                           'Entendi',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
@@ -1581,15 +1581,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         shadowColor: Colors.orange.withOpacity(0.4),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.lightbulb_rounded,
                             size: 18,
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
+                          SizedBox(width: 8),
+                          Text(
                             'Entendi',
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
@@ -1811,7 +1811,7 @@ Future<void> shareImages() async {
                                   color: const Color(0xFFaed513),
                                   size: isLargeScreen ? 20.0 : 18.0,
                                 ),
-                                SizedBox(width: 12.0),
+                                const SizedBox(width: 12.0),
                                 Expanded(
                                   child: Text(
                                     'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
@@ -1863,7 +1863,7 @@ Future<void> shareImages() async {
                                 children: [
                                   Icon(Icons.cancel,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
+                                  const SizedBox(width: 8.0),
                                   Text(
                                     'Cancelar',
                                     style: TextStyle(
@@ -1909,15 +1909,15 @@ Future<void> shareImages() async {
                                           borderRadius:
                                               BorderRadius.circular(16),
                                         ),
-                                        child: Column(
+                                        child: const Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const CircularProgressIndicator(
+                                            CircularProgressIndicator(
                                               valueColor:
                                                   AlwaysStoppedAnimation<Color>(
                                                       Color(0xFFaed513)),
                                             ),
-                                            const SizedBox(height: 16),
+                                            SizedBox(height: 16),
                                             Text(
                                               'Preparando compartilhamento...',
                                               style: TextStyle(
@@ -1983,7 +1983,7 @@ Future<void> shareImages() async {
                                 children: [
                                   Icon(Icons.share,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
+                                  const SizedBox(width: 8.0),
                                   Text(
                                     'Compartilhar',
                                     style: TextStyle(

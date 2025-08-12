@@ -1217,7 +1217,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => CreateTagsPage()),
+                          MaterialPageRoute(builder: (_) => const CreateTagsPage()),
                         );
                       },
                     ),

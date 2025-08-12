@@ -362,7 +362,7 @@ Future<Map<String, dynamic>> _handleApiCall(Future<Map<String, dynamic>> apiFunc
     } else if (mounted) {
       _showErrorDialog('Falha na operação: $e');
     }
-    throw e;
+    rethrow;
   } finally {
     if (mounted) {
       setState(() => _isLoading = false);
@@ -600,7 +600,6 @@ Future<List<String>> _validateTags(String tagsString) async {
                     child: const Text('Cancelar'),
                   ),
                   ElevatedButton(
-                    child: const Text('Salvar'),
                     onPressed: isDialogLoading
                         ? null
                         : () async {
@@ -644,6 +643,7 @@ Future<List<String>> _validateTags(String tagsString) async {
                               }
                             }
                           },
+                    child: const Text('Salvar'),
                   ),
                 ],
               );
@@ -1262,9 +1262,9 @@ Future<List<String>> _validateTags(String tagsString) async {
             const SizedBox(width: 4),
             GestureDetector(
               onTap: () => _removeTagFromFolder(group, tag),
-              child: Icon(
+              child: const Icon(
                 Icons.close,
-                color: const Color(0xFFaed513),
+                color: Color(0xFFaed513),
                 size: 14,
               ),
             ),

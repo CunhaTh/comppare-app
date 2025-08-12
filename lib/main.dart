@@ -60,7 +60,7 @@ class MyApp extends StatelessWidget {
                 );
               default:
                 return MaterialPageRoute(
-                  builder: (_) => SplashScreen()
+                  builder: (_) => const SplashScreen()
                         //PrincipalPage()
                       // const AuthWrapper(),
                       //Urlimg()

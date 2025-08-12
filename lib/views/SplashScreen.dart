@@ -1,6 +1,5 @@
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
-import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';

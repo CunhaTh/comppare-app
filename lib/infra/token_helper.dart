@@ -42,7 +42,7 @@ class TokenHelper {
 
   /// Salva o token no cache interno e no GetStorage.
   Future<void> saveToken(String token) async {
-    if (token == null || token.isEmpty) {
+    if (token.isEmpty) {
       foundation.debugPrint('TokenHelper: Tentativa de salvar token inválido.');
       return;
     }

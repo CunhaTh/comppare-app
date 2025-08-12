@@ -1,14 +1,12 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:application_progress/infra/api_exception.dart';
-import 'package:application_progress/models/image_model.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
-import 'package:application_progress/models/folder_model.dart';
 import '../models/models.dart'; // Para o modelo Folder
 
 /// Uma classe de serviço para interagir com a API do seu backend.
@@ -624,19 +622,31 @@ class ApiService {
     );
   }
 
-    /// Função para listar tags do usuário.
-  Future<List<String>> getTags(int usuario) async {
-    final url = Uri.parse('${ApiEndpoints.baseUrl}/tags/listar?usuario=$usuario');
+Future<List<String>> getTags(int usuario) async {
+    final User? user = UserHelper().user;
+    if (user == null || user.id == null) {
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/tags/recuperar-tags-usuario');
+    final body = {
+      'usuario': user.id,
+    };
     final responseBody = await _sendRequest(
-      () => _httpClient.get(url, headers: _getHeaders()),
+      () => _httpClient.post(
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
       successMessage: 'Tags carregadas com sucesso.',
       errorMessage: 'Falha ao carregar tags.',
     );
 
     if (responseBody.containsKey('data') && responseBody['data'] is List) {
       final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
+      foundation.debugPrint('Tags do usuário: ${tagsJson.map((e) => e['nomeTag'].toString()).toList()}');
       return tagsJson.map((e) => e['nomeTag'].toString()).toList();
     } else {
+      foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
       return [];
     }
   }
