@@ -40,9 +40,9 @@ class ImagemDetalhesPage extends StatefulWidget {
 
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     with TickerProviderStateMixin {
-    final GlobalKey shareRepaintKey = GlobalKey();
-    late Future<List<ImageModel>> _imageItemsFuture;
-    List<String> _availableTags = [];
+  final GlobalKey shareRepaintKey = GlobalKey();
+  late Future<List<ImageModel>> _imageItemsFuture;
+  List<String> _availableTags = [];
 
   // Method to capture card image
   Future<Uint8List?> captureCard(GlobalKey key) async {
@@ -69,7 +69,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  
+
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
   // Função para deletar imagens selecionadas
@@ -315,7 +315,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     final prefs = await SharedPreferences.getInstance();
     final tagsString = prefs.getString('global_tags');
     if (tagsString != null) {
-      final tags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
+      final tags = (jsonDecode(tagsString) as List<dynamic>)
+          .map((e) => e.toString())
+          .toList();
       if (mounted) {
         setState(() {
           _availableTags = tags;
@@ -664,7 +666,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
   @override
   Widget build(BuildContext context) {
-    
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
@@ -675,51 +676,56 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
         elevation: 0,
         backgroundColor: Colors.white,
         leading: IconButton(
-      icon: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(Icons.arrow_back, color: Colors.black),
-      ),
-      onPressed: () {
-        // ⭐ Corrigido: Usamos os dados do usuário atual para navegar
-        final user = UserHelper().user;
-
-        // Verifica se o usuário e suas pastas existem
-        if (user != null && user.pastas != null && user.pastas!.isNotEmpty) {
-          // Pega a primeira pasta do usuário como destino
-          final firstFolder = user.pastas!.first;
-
-          // Usa os dados dinâmicos do usuário para navegar
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AlbunsCriadosPage(
-                // Use os dados da primeira pasta do usuário
-                initialFolderName: firstFolder.nome,
-                initialFolderId: firstFolder.id,
-                folderApiPath: firstFolder.caminho, // Supondo que 'caminho' seja o folderApiPath
-              ),
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            (Route<dynamic> route) => false,
-          );
-        } else {
-          // ⭐ TRATAMENTO DE ERRO: Se o usuário ou as pastas não existirem,
-          // você pode redirecioná-lo para a tela de login ou exibir um aviso.
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro: Usuário não logado ou sem pastas criadas.')),
-          );
-          // Opcional: Navegar de volta para a tela de login
-          // Navigator.pushAndRemoveUntil(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => const LoginScreen()),
-          //   (Route<dynamic> route) => false,
-          // );
-        }
-      },
-    ),
+            child: const Icon(Icons.arrow_back, color: Colors.black),
+          ),
+          onPressed: () {
+            // ⭐ Corrigido: Usamos os dados do usuário atual para navegar
+            final user = UserHelper().user;
+
+            // Verifica se o usuário e suas pastas existem
+            if (user != null &&
+                user.pastas != null &&
+                user.pastas!.isNotEmpty) {
+              // Pega a primeira pasta do usuário como destino
+              final firstFolder = user.pastas!.first;
+
+              // Usa os dados dinâmicos do usuário para navegar
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AlbunsCriadosPage(
+                    // Use os dados da primeira pasta do usuário
+                    initialFolderName: firstFolder.nome,
+                    initialFolderId: firstFolder.id,
+                    folderApiPath: firstFolder
+                        .caminho, // Supondo que 'caminho' seja o folderApiPath
+                  ),
+                ),
+                (Route<dynamic> route) => false,
+              );
+            } else {
+              // ⭐ TRATAMENTO DE ERRO: Se o usuário ou as pastas não existirem,
+              // você pode redirecioná-lo para a tela de login ou exibir um aviso.
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text(
+                        'Erro: Usuário não logado ou sem pastas criadas.')),
+              );
+              // Opcional: Navegar de volta para a tela de login
+              // Navigator.pushAndRemoveUntil(
+              //   context,
+              //   MaterialPageRoute(builder: (context) => const LoginScreen()),
+              //   (Route<dynamic> route) => false,
+              // );
+            }
+          },
+        ),
         title: Center(
           child: Image.asset(
             "assets/logo_cortada.png",
@@ -741,11 +747,12 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                 child: const Icon(Icons.home, color: Colors.black),
               ),
               onPressed: () {
-               Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const PrincipalPage()),
-              (Route<dynamic> route) => false,
-            );
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const PrincipalPage()),
+                  (Route<dynamic> route) => false,
+                );
               },
             ),
           ),
@@ -1349,7 +1356,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                 color: Color(0xFFaed513),
                                                 width: 2),
                                           ),
-                                          contentPadding: const EdgeInsets.symmetric(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
                                             horizontal: 16.0,
                                             vertical: 12.0,
                                           ),
@@ -1506,7 +1514,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     });
   }
 
- // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
+  // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
   void _showComparisonDialog(
       BuildContext context,
       List<ImageModel> imagesToCompare,
@@ -1547,16 +1555,16 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.08),
+                      color: const Color(0xFFaed513).withOpacity(0.08),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: const Color(0xFFaed513).withOpacity(0.3),
                         width: 2,
                       ),
                     ),
                     child: const Icon(
                       Icons.warning_amber_rounded,
-                      color: Colors.orange,
+                      color: const Color(0xFFaed513),
                       size: 36,
                     ),
                   ),
@@ -1596,14 +1604,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: const Color(0xFFaed513),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 3,
-                        shadowColor: Colors.orange.withOpacity(0.4),
+                        shadowColor: const Color(0xFFaed513).withOpacity(0.4),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                       child: Row(
@@ -3396,7 +3404,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     //   margin: const EdgeInsets.only(bottom: 20),
                     //   child: ElevatedButton.icon(
                     //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Colors.orange,
+                    //       backgroundColor: const Color(0xFFaed513),
                     //       foregroundColor: Colors.white,
                     //       padding: const EdgeInsets.symmetric(
                     //           vertical: 16, horizontal: 20),
@@ -3789,7 +3797,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       margin: const EdgeInsets.only(bottom: 20),
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: const Color(0xFFaed513),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               vertical: 16, horizontal: 20),
