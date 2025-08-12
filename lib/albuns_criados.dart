@@ -62,9 +62,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   @override
   void initState() {
     super.initState();
-    _loadAvailableTags().then((_) {
-      if (mounted) setState(() {});
-    });
+    _loadAvailableTags();
     _fetchSubfoldersFromApiAndRefreshState();
   }
 
@@ -75,59 +73,39 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     super.dispose();
   }
 
+  
 
-// Método para carregar tags globais disponíveis
-  Future<List<String>> _loadAvailableTags() async {
+
+  Future<void> _loadAvailableTags() async {
     final prefs = await SharedPreferences.getInstance();
     final tagsString = prefs.getString('global_tags');
     if (tagsString != null) {
-      final tags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
-      if (mounted) {
-        setState(() {
-          _availableTags = tags;
-        });
-      }
-      return tags;
-    }
-    if (mounted) {
       setState(() {
-        _availableTags = [];
+        _availableTags = (jsonDecode(tagsString) as List<dynamic>)
+            .map((e) => e.toString())
+            .toList();
       });
     }
-    return [];
   }
 
-
-// Método para salvar tags no shared_preferences
+  // Método para salvar tags no shared_preferences
   Future<void> _saveTags(int folderId, List<String> tags) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('tags_$folderId', jsonEncode(tags));
-    debugPrint('Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
+    debugPrint(
+        'Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
   }
 
-
-// Método para recuperar tags do shared_preferences
+  // Método para recuperar tags do shared_preferences
   Future<List<String>> _loadTags(int folderId) async {
     final prefs = await SharedPreferences.getInstance();
     final tagsString = prefs.getString('tags_$folderId');
     return tagsString != null
-        ? (jsonDecode(tagsString) as List<dynamic>).map((t) => t.toString()).toList()
+        ? (jsonDecode(tagsString) as List<dynamic>)
+            .map((t) => t.toString())
+            .toList()
         : [];
   }
-  
-
-  // Método para salvar tags globais
-  Future<void> _saveGlobalTags(List<String> tags) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('global_tags', jsonEncode(tags));
-    if (mounted) {
-      setState(() {
-        _availableTags = tags;
-      });
-    }
-    debugPrint('Tags globais salvas: ${tags.join(",")}');
-  }
-
 
   void _addTagToFolder(Folder folder, String tag) {
     setState(() {
@@ -139,103 +117,32 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     });
   }
 
-
-// Método unificado para remover tag de um folder
-  Future<void> _removeTagFromFolder(Folder folder, String tag, {bool removeAll = false}) async {
-    if (!mounted) return;
+  void _removeTagDaPasta(Folder folder, String tag) {
     setState(() {
-      if (removeAll) {
-        folder.tags = [];
-      } else if (folder.tags != null && folder.tags!.contains(tag)) {
-        folder.tags = folder.tags!.where((t) => t != tag).toList();
+      final currentTags = folder.tags ?? [];
+      if (currentTags.contains(tag)) {
+        folder.tags = currentTags.where((t) => t != tag).toList();
+        _saveTags(folder.id, folder.tags!);
       }
     });
-    await _saveTags(folder.id, folder.tags ?? []);
-    debugPrint('Tag "${removeAll ? 'todas' : tag}" removida do folderId ${folder.id}');
   }
 
-  // Método para remover todas as tags ao deletar subpasta
-  Future<void> _removeAllTags(int folderId) async {
+  // Método para remover tags ao deletar subpasta
+  Future<void> _removeTags(int folderId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('tags_$folderId');
-    debugPrint('Todas as tags removidas localmente para folderId $folderId');
+    debugPrint('Tags removidas localmente para folderId $folderId');
   }
 
-  
-// Add Tag Dialog
-  Future<void> _showAddTagDialog(Folder group) async {
+  // Método para remover uma tag específica
+  Future<void> _removeTag(Folder folder, String tag) async {
     if (!mounted) return;
-
-    // Recarregar tags globais antes de exibir o diálogo
-    try {
-      final tags = await _loadAvailableTags();
-      if (mounted) {
-        setState(() {
-          _availableTags = tags;
-        });
-      }
-    } catch (e) {
-      debugPrint('Erro ao carregar availableTags: $e');
-      if (mounted) {
-        setState(() {
-          _availableTags = [];
-        });
-      }
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text(
-          'Categorias',
-          style: TextStyle(color: Colors.black),
-        ),
-        content: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: _availableTags.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text('Nenhuma categoria disponível. Crie categorias na página de categorias.'),
-                )
-              : DropdownButton<String>(
-                  hint: const Text('Selecione uma categoria'),
-                  value: null,
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  items: _availableTags.map((tag) {
-                    return DropdownMenuItem<String>(
-                      value: tag,
-                      child: Text(tag),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null && mounted) {
-                      _addTagToFolder(group, value);
-                      Navigator.of(context).pop();
-                    }
-                  },
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              if (mounted) Navigator.of(context).pop();
-            },
-            child: const Text(
-              'Fechar',
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-        ],
-      ),
-    );
+    setState(() {
+      folder.tags?.remove(tag);
+    });
+    await _saveTags(folder.id, folder.tags ?? []);
+    debugPrint('Tag "$tag" removida do folderId ${folder.id}');
   }
-
 
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
     if (!mounted) return;
@@ -295,206 +202,78 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       }
     }
   }
-  /*Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
-    debugPrint('AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
-    debugPrint('AlbunsCriados: Buscando subpastas para initialFolderId: ${widget.initialFolderId}');
+
+  Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      debugPrint(
+          '[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
+      _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
+      _navigateToLogin();
+      return;
+    }
 
     try {
-      final user = UserHelper().user;
-      if (user == null || user.id == null || !TokenHelper().hasToken()) {
-        debugPrint('Usuário não autenticado ou token ausente. Redirecionando para login.');
-        _navigateToLogin();
-        return;
-      }
+      final String subfolderNameForApi = subfolderName.trim();
+      debugPrint(
+          '[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}, tags: ${tags.join(",")}');
 
-      final List<Folder> subfolders = await _apiService.fetchSubfolders(widget.initialFolderId);
-      debugPrint('Subpastas recebidas da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}, tags=${f.tags?.join(",") ?? "nenhuma"}').join(', ')}');
+      final response = await _apiService.createSubFolder(
+        parentFolderId: widget.initialFolderId,
+        idUsuario: user.id!,
+        folderName: subfolderNameForApi,
+        parentFolderPath: widget.folderApiPath,
+        tags: tags,
+      );
+      debugPrint(
+          '[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
 
       if (mounted) {
-        final updatedSubfolders = await Future.wait(subfolders.map((f) async {
-          final localTags = await _loadTags(f.id);
-          return copyFolder(f, tags: localTags.isNotEmpty ? localTags : f.tags ?? []);
-        }).toList());
-        setState(() {
-          _subfolders = updatedSubfolders;
-          debugPrint('Subpastas atualizadas: ${_subfolders.length}');
+        final newSubfolder = Folder.fromMap({
+          'id': response['id'] ?? 0,
+          'nome': response['caminho'] ??
+              '${response['nome'] ?? subfolderNameForApi}',
+          'caminho': response['caminho'],
+          'idPastaPai': widget.initialFolderId,
+          'imagens': [],
+          'subpastas': [],
+          'tags': (response['tags'] as List<dynamic>?)
+                  ?.map((t) => t.toString())
+                  .toList() ??
+              tags,
         });
+        await _saveTags(newSubfolder.id, tags); // Salvar tags localmente
+        setState(() {
+          _subfolders.add(newSubfolder);
+        });
+        debugPrint(
+            '[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}, tags=${newSubfolder.tags?.join(",") ?? "nenhuma"}');
       }
-    } on ApiException catch (e) {
-      debugPrint('Erro ao atualizar subpastas da API: ${e.message}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao carregar subpastas: ${e.message}')));
+    } catch (e) {
+      debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
+      if (e is ApiException && mounted) {
+        _showErrorDialog('Falha ao criar a subpasta: ${e.message}');
         if (e.statusCode == 401) {
           _navigateToLogin();
         }
       }
-    } catch (e) {
-      debugPrint('Erro inesperado ao atualizar subpastas da API: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ocorreu um erro inesperado ao carregar subpastas.')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
-  }*/
 
-
-Future<Map<String, dynamic>> _handleApiCall(Future<Map<String, dynamic>> apiFunction) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null) {
-    debugPrint('Tentativa de operação sem usuário ou ID válido.');
-    _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
-    _navigateToLogin();
-    throw ApiException('Usuário não logado', statusCode: 401);
-  }
-
-  setState(() => _isLoading = true);
-  try {
-    return await apiFunction;
-  } catch (e) {
-    debugPrint('Erro na chamada à API: $e');
-    if (e is ApiException && e.statusCode == 401) {
-      _navigateToLogin();
-    } else if (mounted) {
-      _showErrorDialog('Falha na operação: $e');
-    }
-    rethrow;
-  } finally {
     if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
-}
-
-  
-Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
-  final String subfolderNameForApi = subfolderName.trim();
-  debugPrint(
-      '[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}, tags: ${tags.join(",")}');
-
-  final response = await _handleApiCall(() async {
-    return await _apiService.createSubFolder(
-      parentFolderId: widget.initialFolderId,
-      idUsuario: UserHelper().user!.id!,
-      folderName: subfolderNameForApi,
-      parentFolderPath: widget.folderApiPath,
-      tags: tags,
-    );
-  } as Future<Map<String, dynamic>>);
-
-  debugPrint('[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
-
-  if (mounted) {
-    final apiTags = (response['tags'] as List<dynamic>?)?.map((t) => t.toString()).toList() ?? tags;
-    final newSubfolder = Folder.fromMap({
-      'id': response['id'] ?? 0,
-      'nome': response['caminho'] ?? '${response['nome'] ?? subfolderNameForApi}',
-      'caminho': response['caminho'],
-      'idPastaPai': widget.initialFolderId,
-      'imagens': [],
-      'subpastas': [],
-      'tags': apiTags,
-    });
-
-    await _saveTagsLocally(newSubfolder.id as String, apiTags);
-    setState(() {
-      _subfolders.add(newSubfolder);
-    });
-    debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}, tags=${newSubfolder.tags?.join(",") ?? "nenhuma"}');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
-    );
-  }
-}
-
-  Future<void> _saveTagsLocally(String key, List<String> tags) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(key, jsonEncode(tags));
-    debugPrint('Tags salvas localmente para chave $key: ${tags.join(",")}');
-  }
-
-Future<void> _syncTagsWithApi(String nomeTag) async {
-    final user = UserHelper().user;
-    if (user == null || user.id == null) {
-      _navigateToLogin();
-      return;
-    }
-    try {
-      await _apiService.refreshTokenIfNeeded();
-      final response = await _apiService.saveTags(
-        nomeTag: nomeTag,
-        usuario: user.id!,
-      );
-      debugPrint('Tags sincronizadas com a API: ${response['message']}');
-      if (response['codRetorno'] == 201) {
-        await _loadTags(nomeTag as int); // Recarrega após sucesso
-      }
-    } catch (e) {
-      debugPrint('Erro ao sincronizar tags com a API: $e');
-      if (e is ApiException && e.statusCode == 401) {
-        _navigateToLogin();
-      } else if (mounted) {
-        _showErrorDialog('Falha ao salvar tags no servidor: $e');
+      try {
+        await _fetchSubfoldersFromApiAndRefreshState();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Subpasta "$subfolderName" criada com sucesso!')),
+        );
+      } catch (e) {
+        debugPrint('[_addSubfolder] Erro ao atualizar após criação: $e');
+        if (mounted) {
+          _showErrorDialog('Erro ao atualizar a lista de subpastas.');
+        }
       }
     }
   }
-
-// Função para criar e sincronizar tags (usada em ambas as funções)
-Future<void> _createAndSyncTags(String uniqueTags) async {
-  await _syncTagsWithApi(uniqueTags);
-  await _loadAvailableTags(); // Recarrega após sincronização
-}
-
-
-// Função para criar tags
-Future<void> _createTags() async {
-  final tagsString = _tagsController.text.trim();
-  if (tagsString.isEmpty) {
-    _showErrorDialog('As tags não podem estar vazias.');
-    return;
-  }
-
-  await _handleApiCall(() async {
-    final tags = await _validateTags(tagsString);
-    final uniqueTags = tags.join(',');
-    await _createAndSyncTags(uniqueTags);
-    if (mounted) {
-      setState(() {
-        _tagsController.clear();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tags criadas com sucesso: $uniqueTags')),
-      );
-    }
-  } as Future<Map<String, dynamic>>);
-}
-
-// Função reutilizável para validar tags
-Future<List<String>> _validateTags(String tagsString) async {
-  final tags = tagsString.split(',').map((tag) => tag.trim()).where((tag) {
-    if (tag.isEmpty) return false;
-    if (tag.length > 20) {
-      _showErrorDialog('As tags devem ter no máximo 20 caracteres.');
-      return false;
-    }
-    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(tag)) {
-      _showErrorDialog('As tags só podem conter letras, números e underline (_).');
-      return false;
-    }
-    return true;
-  }).toList();
-
-  if (tags.isEmpty) {
-    _showErrorDialog('Nenhuma tag válida foi fornecida.');
-    throw ApiException('Nenhuma tag válida', statusCode: 400);
-  }
-
-  return tags;
-}
 
   void _showErrorDialog(String message) {
     if (!mounted) return;
@@ -516,7 +295,6 @@ Future<List<String>> _validateTags(String tagsString) async {
     });
   }
 
-
   void _navigateToLogin() {
     if (!mounted) return;
     TokenHelper().clear();
@@ -527,7 +305,6 @@ Future<List<String>> _validateTags(String tagsString) async {
       (Route<dynamic> route) => false,
     );
   }
-
 
   void _showAddSubalbumDialog() {
     if (!mounted) return;
@@ -567,21 +344,6 @@ Future<List<String>> _validateTags(String tagsString) async {
                       ),
                       enabled: !isDialogLoading,
                     ),
-                    TextField(
-                      controller: _tagsController,
-                      decoration: InputDecoration(
-                        hintText: 'Tags (separadas por vírgula)',
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: isLargeScreen
-                              ? screenWidth * 0.02
-                              : screenWidth * 0.028,
-                          vertical: isLargeScreen
-                              ? screenWidth * 0.015
-                              : screenWidth * 0.022,
-                        ),
-                      ),
-                      enabled: !isDialogLoading,
-                    ),
                     if (isDialogLoading)
                       // ignore: dead_code
                       const Padding(
@@ -600,6 +362,7 @@ Future<List<String>> _validateTags(String tagsString) async {
                     child: const Text('Cancelar'),
                   ),
                   ElevatedButton(
+                    child: const Text('Salvar'),
                     onPressed: isDialogLoading
                         ? null
                         : () async {
@@ -643,7 +406,6 @@ Future<List<String>> _validateTags(String tagsString) async {
                               }
                             }
                           },
-                    child: const Text('Salvar'),
                   ),
                 ],
               );
@@ -653,7 +415,6 @@ Future<List<String>> _validateTags(String tagsString) async {
       },
     );
   }
-
 
   void _addMultipleImages(Folder group) async {
     devtools.debugPrint(
@@ -740,7 +501,6 @@ Future<List<String>> _validateTags(String tagsString) async {
     }
   }
 
-
   Future<void> _confirmAndDeleteSubfolder(Folder subfolder) async {
     final user = UserHelper().user;
     if (user == null || user.id == null || !TokenHelper().hasToken()) {
@@ -776,7 +536,7 @@ Future<List<String>> _validateTags(String tagsString) async {
 
       try {
         await _apiService.deleteFolder(user.id!, subfolder.id);
-        await _removeAllTags(subfolder.id); // Remover tags persistidas
+        await _removeTags(subfolder.id); // Remover tags persistidas
 
         if (mounted) {
           setState(() {
@@ -811,7 +571,6 @@ Future<List<String>> _validateTags(String tagsString) async {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -890,7 +649,6 @@ Future<List<String>> _validateTags(String tagsString) async {
     );
   }
 
-
   // Header Section
   Widget _buildHeaderSection() {
     return Container(
@@ -955,7 +713,6 @@ Future<List<String>> _validateTags(String tagsString) async {
     );
   }
 
-
   // Empty State
   Widget _buildEmptyState() {
     return Center(
@@ -997,7 +754,6 @@ Future<List<String>> _validateTags(String tagsString) async {
     );
   }
 
-
   // Subalbums List
   Widget _buildSubalbumsList() {
     return RefreshIndicator(
@@ -1014,7 +770,6 @@ Future<List<String>> _validateTags(String tagsString) async {
       ),
     );
   }
-
 
   // Subalbum Card
   Widget _buildSubalbumCard(Folder group, List<String> tags) {
@@ -1157,10 +912,26 @@ Future<List<String>> _validateTags(String tagsString) async {
 
                 // Add Tags Section
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text(
-                      '+ categorias',
+                      Row(
+                        children: [
+                          Row(children: [
+                              IconButton(
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.add,
+                                  color: Colors.black.withOpacity(0.7),
+                                  size: 20,
+                                ),
+                              ),
+                              onPressed: _showInsertNameTag,
+                            ),
+                      Text(
+                      'categorias',
                       style: TextStyle(
                         color: Colors.black.withValues(alpha: 0.7),
                         fontSize: 14,
@@ -1174,6 +945,8 @@ Future<List<String>> _validateTags(String tagsString) async {
                       ),
                       onPressed: () => _showAddTagDialog(group),
                     ),
+                    ],)
+                    
                   ],
                 ),
 
@@ -1234,7 +1007,6 @@ Future<List<String>> _validateTags(String tagsString) async {
     );
   }
 
-
   // Tag Chip
   Widget _buildTagChip(Folder group, String tag) {
     return Container(
@@ -1261,10 +1033,10 @@ Future<List<String>> _validateTags(String tagsString) async {
             ),
             const SizedBox(width: 4),
             GestureDetector(
-              onTap: () => _removeTagFromFolder(group, tag),
-              child: const Icon(
+              onTap: () => _removeTag(group, tag),
+              child: Icon(
                 Icons.close,
-                color: Color(0xFFaed513),
+                color: const Color(0xFFaed513),
                 size: 14,
               ),
             ),
@@ -1274,5 +1046,104 @@ Future<List<String>> _validateTags(String tagsString) async {
     );
   }
 
+    // Função que exibe o diálogo para o usuário inserir a tag
+  void _showInsertNameTag() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text('Criar Nova Tag', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: _tagsController,
+            decoration: InputDecoration(
+              hintText: 'Ex: Treino de pernas',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _tagsController.clear();
+              },
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newTag = _tagsController.text.trim();
+                if (newTag.isNotEmpty) {
+                  // Chama a função para adicionar a tag ao subálbum
+                  _addTagToFolder(context as Folder,newTag);
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Tag "$newTag" sendo adicionada...')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.lightGreen,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Criar Tag', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
+  // Add Tag Dialog
+  void _showAddTagDialog(Folder group) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text(
+          'Categorias',
+          style: TextStyle(color: Colors.black),
+        ),
+        content: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: DropdownButton<String>(
+            hint: const Text('Selecione uma categoria'),
+            value: null,
+            isExpanded: true,
+            underline: const SizedBox(),
+            items: _availableTags.map((tag) {
+              return DropdownMenuItem<String>(
+                value: tag,
+                child: Text(tag),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                _addTagToFolder(group, value);
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Fechar',
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

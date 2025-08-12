@@ -302,18 +302,6 @@ class _MyHomePageState extends State<MyHomePage> {
             },
             child: _buildActionButton(context, 'ENTRAR', const LoginScreen()),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const PrincipalPage()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-            ),
-            child: const Text('ADM', style: TextStyle(color: Colors.white)),
-          ),
         ],
       ),
     );
