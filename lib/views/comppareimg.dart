@@ -1,10 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/infra/api_services.dart';
-import 'package:application_progress/infra/user_helper.dart';
-import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
@@ -42,7 +39,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     with TickerProviderStateMixin {
   final GlobalKey shareRepaintKey = GlobalKey();
   late Future<List<ImageModel>> _imageItemsFuture;
-  List<String> _availableTags = [];
 
   // Method to capture card image
   Future<Uint8List?> captureCard(GlobalKey key) async {
@@ -216,15 +212,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                           ),
                           onPressed: () =>
                               Navigator.of(dialogContext).pop(true),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.delete_forever_rounded,
                                 size: 18,
                               ),
-                              SizedBox(width: 8),
-                              Text(
+                              const SizedBox(width: 8),
+                              const Text(
                                 'Excluir',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
@@ -266,7 +262,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Imagens deletadas com sucesso!')),
+        SnackBar(content: Text('Imagens deletadas com sucesso!')),
       );
     } catch (e) {
       debugPrint('Erro ao deletar imagens: $e');
@@ -308,29 +304,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       debugPrint('Erro ao carregar imagem da URL $url: $e');
       return null;
     }
-  }
-
-  // Método para carregar tags globais disponíveis
-  Future<List<String>> _loadAvailableTags() async {
-    final prefs = await SharedPreferences.getInstance();
-    final tagsString = prefs.getString('global_tags');
-    if (tagsString != null) {
-      final tags = (jsonDecode(tagsString) as List<dynamic>)
-          .map((e) => e.toString())
-          .toList();
-      if (mounted) {
-        setState(() {
-          _availableTags = tags;
-        });
-      }
-      return tags;
-    }
-    if (mounted) {
-      setState(() {
-        _availableTags = [];
-      });
-    }
-    return [];
   }
 
   Future<List<ImageModel>> _prepareImageItems() async {
@@ -685,45 +658,11 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
             child: const Icon(Icons.arrow_back, color: Colors.black),
           ),
           onPressed: () {
-            // ⭐ Corrigido: Usamos os dados do usuário atual para navegar
-            final user = UserHelper().user;
-
-            // Verifica se o usuário e suas pastas existem
-            if (user != null &&
-                user.pastas != null &&
-                user.pastas!.isNotEmpty) {
-              // Pega a primeira pasta do usuário como destino
-              final firstFolder = user.pastas!.first;
-
-              // Usa os dados dinâmicos do usuário para navegar
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AlbunsCriadosPage(
-                    // Use os dados da primeira pasta do usuário
-                    initialFolderName: firstFolder.nome,
-                    initialFolderId: firstFolder.id,
-                    folderApiPath: firstFolder
-                        .caminho, // Supondo que 'caminho' seja o folderApiPath
-                  ),
-                ),
-                (Route<dynamic> route) => false,
-              );
-            } else {
-              // ⭐ TRATAMENTO DE ERRO: Se o usuário ou as pastas não existirem,
-              // você pode redirecioná-lo para a tela de login ou exibir um aviso.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text(
-                        'Erro: Usuário não logado ou sem pastas criadas.')),
-              );
-              // Opcional: Navegar de volta para a tela de login
-              // Navigator.pushAndRemoveUntil(
-              //   context,
-              //   MaterialPageRoute(builder: (context) => const LoginScreen()),
-              //   (Route<dynamic> route) => false,
-              // );
-            }
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const PrincipalPage()),
+              (Route<dynamic> route) => false,
+            );
           },
         ),
         title: Center(
@@ -744,13 +683,14 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                   color: Colors.black.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.home, color: Colors.black),
+                child: const Icon(Icons.exit_to_app, color: Colors.black),
               ),
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const PrincipalPage()),
+                    builder: (context) => const main_app.MyHomePage(title: ''),
+                  ),
                   (Route<dynamic> route) => false,
                 );
               },
@@ -806,7 +746,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Erro ao carregar imagens',
                     style: TextStyle(
                       fontSize: 18,
@@ -844,7 +784,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Nenhuma imagem encontrada',
                     style: TextStyle(
                       fontSize: 18,
@@ -996,15 +936,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       shadowColor: const Color(0xFFaed513).withOpacity(0.4),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.check_rounded,
                           size: 18,
                         ),
-                        SizedBox(width: 8),
-                        Text(
+                        const SizedBox(width: 8),
+                        const Text(
                           'OK',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
@@ -1109,15 +1049,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       shadowColor: Colors.red.withOpacity(0.4),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.thumb_up_rounded,
                           size: 18,
                         ),
-                        SizedBox(width: 8),
-                        Text(
+                        const SizedBox(width: 8),
+                        const Text(
                           'Entendi',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
@@ -1329,7 +1269,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                           color: Colors.black,
                                         ),
                                       ),
-                                      const SizedBox(height: 8.0),
+                                      SizedBox(height: 8.0),
                                       TextField(
                                         controller: controllers[categoria],
                                         decoration: InputDecoration(
@@ -1356,8 +1296,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                 color: Color(0xFFaed513),
                                                 width: 2),
                                           ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
+                                          contentPadding: EdgeInsets.symmetric(
                                             horizontal: 16.0,
                                             vertical: 12.0,
                                           ),
@@ -1378,9 +1317,9 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.info_outline,
+                                  Icon(Icons.info_outline,
                                       color: Colors.grey, size: 20),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12),
                                   Text(
                                     'Sem categorias disponíveis no momento.',
                                     style: TextStyle(
@@ -1429,12 +1368,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.cancel,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  const SizedBox(width: 8.0),
-                                  Text(
-                                    'Cancelar',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                  SizedBox(width: 8.0),
+                                  Expanded(
+                                    child: Text(
+                                      'Cancelar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -1489,12 +1431,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                 children: [
                                   Icon(Icons.save,
                                       size: isLargeScreen ? 18.0 : 16.0),
-                                  const SizedBox(width: 8.0),
-                                  Text(
-                                    'Salvar',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: isLargeScreen ? 16.0 : 14.0,
+                                  SizedBox(width: 8.0),
+                                  Expanded(
+                                    child: Text(
+                                      'Salvar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -1555,16 +1500,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFaed513).withOpacity(0.08),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFFaed513).withOpacity(0.3),
+                        color: Color(0xFFaed513),
                         width: 2,
                       ),
                     ),
                     child: const Icon(
                       Icons.warning_amber_rounded,
-                      color: const Color(0xFFaed513),
+                      color: Color(0xFFaed513),
                       size: 36,
                     ),
                   ),
@@ -1604,17 +1548,16 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFaed513),
+                        backgroundColor: Color(0xFFaed513),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 3,
-                        shadowColor: const Color(0xFFaed513).withOpacity(0.4),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(
@@ -1770,87 +1713,58 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Preview da imagem com design aprimorado
-                          Container(
-                            margin: EdgeInsets.only(
-                                bottom: isLargeScreen ? 12.0 : 10.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 8),
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
+                          RepaintBoundary(
+                            key: shareRepaintKey,
                             child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.grey[200]!,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20.0),
-                                child: RepaintBoundary(
-                                  key: shareRepaintKey,
-                                  child: Container(
-                                    color: Colors.white,
-                                    padding: EdgeInsets.all(
-                                            isLargeScreen ? 12.0 : 10.0)
-                                        .copyWith(right: 0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        // Container principal das imagens
-                                        Container(
-                                          //padding: const EdgeInsets.all(20),
-                                          height: isLargeScreen ? 300 : 200,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: displayedImages
-                                                .map((imageItem) {
-                                              return Expanded(
-                                                child: Container(
-                                                  margin: const EdgeInsets
-                                                      .symmetric(horizontal: 8),
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            16),
-                                                    child: Image.memory(
-                                                      imageItem.imageData!,
-                                                      fit: BoxFit.fitWidth,
-                                                      height: double.infinity,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
+                              color: Colors.white,
+                              // padding:
+                              //     EdgeInsets.all(isLargeScreen ? 12.0 : 10.0)
+                              //         .copyWith(right: 0),
+                              child: Stack(
+                                children: [
+                                  // Container principal das imagens
+                                  Container(
+                                    //padding: const EdgeInsets.all(20),
+                                    height: 150,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children:
+                                          displayedImages.map((imageItem) {
+                                        final index =
+                                            displayedImages.indexOf(imageItem);
+                                        return Expanded(
+                                          child: Align(
+                                            alignment: index == 0
+                                                ? Alignment.centerRight
+                                                : Alignment.centerLeft,
+                                            child: Image.memory(
+                                              imageItem.imageData!,
+                                              fit: BoxFit.fitWidth,
+                                              height: double.infinity,
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(
-                                            height:
-                                                isLargeScreen ? 20.0 : 16.0),
-                                        // Logo do Comppare com design aprimorado
-                                        Image.asset(
-                                          "assets/logo_cortada.png",
-                                          width: isLargeScreen ? 90.0 : 70.0,
-                                          height: isLargeScreen ? 45.0 : 35.0,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ],
+                                        );
+                                      }).toList(),
                                     ),
                                   ),
-                                ),
+
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 10,
+                                    child: Image.asset(
+                                      "assets/logo_cortada.png",
+                                      width: isLargeScreen ? 50.0 : 50.0,
+                                      height: isLargeScreen ? 35.0 : 25.0,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
+                          const SizedBox(height: 8),
                           // Informações do compartilhamento com design aprimorado
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -1866,7 +1780,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                             child: Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFaed513)
                                         .withOpacity(0.1),
@@ -1878,7 +1791,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     size: isLargeScreen ? 22.0 : 20.0,
                                   ),
                                 ),
-                                const SizedBox(width: 16.0),
+                                const SizedBox(width: 16),
                                 Expanded(
                                   child: Text(
                                     'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
@@ -1888,6 +1801,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                       fontWeight: FontWeight.w500,
                                       height: 1.4,
                                     ),
+                                    textAlign: TextAlign.justify,
                                   ),
                                 ),
                               ],
@@ -3404,7 +3318,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     //   margin: const EdgeInsets.only(bottom: 20),
                     //   child: ElevatedButton.icon(
                     //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: const Color(0xFFaed513),
+                    //       backgroundColor: Color(0xFFaed513).withOpacity(0.3),
                     //       foregroundColor: Colors.white,
                     //       padding: const EdgeInsets.symmetric(
                     //           vertical: 16, horizontal: 20),
@@ -3797,7 +3711,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                       margin: const EdgeInsets.only(bottom: 20),
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFaed513),
+                          backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               vertical: 16, horizontal: 20),
