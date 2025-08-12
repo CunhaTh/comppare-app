@@ -1500,16 +1500,15 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: Color(0xFFaed513),
                         width: 2,
                       ),
                     ),
                     child: const Icon(
                       Icons.warning_amber_rounded,
-                      color: Colors.orange,
+                      color: Color(0xFFaed513),
                       size: 36,
                     ),
                   ),
@@ -1549,17 +1548,16 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Color(0xFFaed513),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 3,
-                        shadowColor: Colors.orange.withOpacity(0.4),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(
@@ -3349,7 +3347,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                     //   margin: const EdgeInsets.only(bottom: 20),
                     //   child: ElevatedButton.icon(
                     //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Colors.orange,
+                    //       backgroundColor: Color(0xFFaed513).withOpacity(0.3),
                     //       foregroundColor: Colors.white,
                     //       padding: const EdgeInsets.symmetric(
                     //           vertical: 16, horizontal: 20),
