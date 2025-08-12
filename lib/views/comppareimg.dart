@@ -1713,87 +1713,58 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Preview da imagem com design aprimorado
-                          Container(
-                            margin: EdgeInsets.only(
-                                bottom: isLargeScreen ? 12.0 : 10.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 8),
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
+                          RepaintBoundary(
+                            key: shareRepaintKey,
                             child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.grey[200]!,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20.0),
-                                child: RepaintBoundary(
-                                  key: shareRepaintKey,
-                                  child: Container(
-                                    color: Colors.white,
-                                    padding: EdgeInsets.all(
-                                            isLargeScreen ? 12.0 : 10.0)
-                                        .copyWith(right: 0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        // Container principal das imagens
-                                        Container(
-                                          //padding: const EdgeInsets.all(20),
-                                          height: isLargeScreen ? 300 : 200,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: displayedImages
-                                                .map((imageItem) {
-                                              return Expanded(
-                                                child: Container(
-                                                  margin: const EdgeInsets
-                                                      .symmetric(horizontal: 8),
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            16),
-                                                    child: Image.memory(
-                                                      imageItem.imageData!,
-                                                      fit: BoxFit.fitWidth,
-                                                      height: double.infinity,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
+                              color: Colors.white,
+                              // padding:
+                              //     EdgeInsets.all(isLargeScreen ? 12.0 : 10.0)
+                              //         .copyWith(right: 0),
+                              child: Stack(
+                                children: [
+                                  // Container principal das imagens
+                                  Container(
+                                    //padding: const EdgeInsets.all(20),
+                                    height: 150,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children:
+                                          displayedImages.map((imageItem) {
+                                        final index =
+                                            displayedImages.indexOf(imageItem);
+                                        return Expanded(
+                                          child: Align(
+                                            alignment: index == 0
+                                                ? Alignment.centerRight
+                                                : Alignment.centerLeft,
+                                            child: Image.memory(
+                                              imageItem.imageData!,
+                                              fit: BoxFit.fitWidth,
+                                              height: double.infinity,
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(
-                                            height:
-                                                isLargeScreen ? 20.0 : 16.0),
-                                        // Logo do Comppare com design aprimorado
-                                        Image.asset(
-                                          "assets/logo_cortada.png",
-                                          width: isLargeScreen ? 90.0 : 70.0,
-                                          height: isLargeScreen ? 45.0 : 35.0,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ],
+                                        );
+                                      }).toList(),
                                     ),
                                   ),
-                                ),
+
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 10,
+                                    child: Image.asset(
+                                      "assets/logo_cortada.png",
+                                      width: isLargeScreen ? 50.0 : 50.0,
+                                      height: isLargeScreen ? 35.0 : 25.0,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
+                          const SizedBox(height: 8),
                           // Informações do compartilhamento com design aprimorado
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -1809,7 +1780,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                             child: Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFaed513)
                                         .withOpacity(0.1),
@@ -1821,7 +1791,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     size: isLargeScreen ? 22.0 : 20.0,
                                   ),
                                 ),
-                                const SizedBox(width: 16.0),
+                                const SizedBox(width: 16),
                                 Expanded(
                                   child: Text(
                                     'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
@@ -1831,6 +1801,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                       fontWeight: FontWeight.w500,
                                       height: 1.4,
                                     ),
+                                    textAlign: TextAlign.justify,
                                   ),
                                 ),
                               ],
