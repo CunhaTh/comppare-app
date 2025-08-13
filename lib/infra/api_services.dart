@@ -296,7 +296,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> deleteTag(int userId, String tag) async {
-    final url = Uri.parse('${ApiEndpoints.excluiTags}?usuario=$userId&nomeTag=$tag');
+    final url = Uri.parse('${ApiEndpoints.excluiTags}/excluir');
     final token = TokenHelper().token;
     if (token == null || token.isEmpty) {
       throw ApiException('Token de autenticação ausente', statusCode: 401);
