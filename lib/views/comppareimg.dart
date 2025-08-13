@@ -1754,7 +1754,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                     right: 0,
                                     bottom: 10,
                                     child: Image.asset(
-                                      "assets/logo_cortada.png",
+                                      "assets/logo_all_green.png",
                                       width: isLargeScreen ? 50.0 : 50.0,
                                       height: isLargeScreen ? 35.0 : 25.0,
                                       fit: BoxFit.contain,
