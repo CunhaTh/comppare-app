@@ -150,7 +150,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     debugPrint(
         'AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
     debugPrint(
-        'AlbunsCriados: Buscando subpastas para initialFolderId: ${widget.initialFolderId}');
+        'AlbunsCriados: Buscando subálbum para initialFolderId: ${widget.initialFolderId}');
 
     try {
       final user = UserHelper().user;
@@ -164,7 +164,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       final List<Folder> subfolders =
           await _apiService.fetchSubfolders(widget.initialFolderId);
       debugPrint(
-          'Subpastas recebidas da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}, tags=${f.tags?.join(",") ?? "nenhuma"}').join(', ')}');
+          'subálbum recebidos da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}, tags=${f.tags?.join(",") ?? "nenhuma"}').join(', ')}');
 
       if (mounted) {
         final updatedSubfolders = await Future.wait(subfolders.map((f) async {
@@ -174,14 +174,14 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         }).toList());
         setState(() {
           _subfolders = updatedSubfolders;
-          debugPrint('Subpastas atualizadas: ${_subfolders.length}');
+          debugPrint('subálbum atualizados: ${_subfolders.length}');
         });
       }
     } on ApiException catch (e) {
-      debugPrint('Erro ao atualizar subpastas da API: ${e.message}');
+      debugPrint('Erro ao atualizar subálbum da API: ${e.message}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar subpastas: ${e.message}')),
+          SnackBar(content: Text('Erro ao carregar subálbum: ${e.message}')),
         );
         if (e.statusCode == 401) {
           _navigateToLogin();
@@ -193,7 +193,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content:
-                  Text('Ocorreu um erro inesperado ao carregar subpastas.')),
+                  Text('Ocorreu um erro inesperado ao carregar subálbum.')),
         );
       }
     } finally {
@@ -203,7 +203,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     }
   }
 
-  Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
+  Future<void> _addSubfolder(String subfolderName) async {
     final user = UserHelper().user;
     if (user == null || user.id == null) {
       debugPrint(
@@ -216,17 +216,16 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     try {
       final String subfolderNameForApi = subfolderName.trim();
       debugPrint(
-          '[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}, tags: ${tags.join(",")}');
+          '[_addSubfolder] Tentando criar subálbum com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}}');
 
       final response = await _apiService.createSubFolder(
         parentFolderId: widget.initialFolderId,
         idUsuario: user.id!,
         folderName: subfolderNameForApi,
         parentFolderPath: widget.folderApiPath,
-        tags: tags,
       );
       debugPrint(
-          '[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
+          '[_addSubfolder] Subalbum criada com sucesso, resposta: ${json.encode(response)}');
 
       if (mounted) {
         final newSubfolder = Folder.fromMap({
@@ -237,17 +236,13 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
           'idPastaPai': widget.initialFolderId,
           'imagens': [],
           'subpastas': [],
-          'tags': (response['tags'] as List<dynamic>?)
-                  ?.map((t) => t.toString())
-                  .toList() ??
-              tags,
+              
         });
-        await _saveTags(newSubfolder.id, tags); // Salvar tags localmente
         setState(() {
           _subfolders.add(newSubfolder);
         });
         debugPrint(
-            '[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}, tags=${newSubfolder.tags?.join(",") ?? "nenhuma"}');
+            '[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai} ?? "nenhuma"}');
       }
     } catch (e) {
       debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
@@ -390,7 +385,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
                             setDialogState(() => isDialogLoading = true);
                             try {
-                              await _addSubfolder(subalbumName, tags);
+                              await _addSubfolder(subalbumName);
                               if (context.mounted) {
                                 Navigator.of(dialogContext).pop();
                               }
@@ -514,7 +509,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
           content: Text(
-              'Tem certeza que deseja excluir a subpasta "${subfolder.albunsCriadosPageDisplayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
+              'Tem certeza que deseja excluir o subálbum "${subfolder.albunsCriadosPageDisplayName}"? Esta ação removerá todas as imagens e informações inseridas e não poderá ser desfeita.'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -1055,11 +1050,11 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text('Criar Nova Tag', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text('Criar Categoria', style: TextStyle(fontWeight: FontWeight.bold)),
           content: TextField(
             controller: _tagsController,
             decoration: InputDecoration(
-              hintText: 'Ex: Treino de pernas',
+              hintText: 'Ex: peso',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1081,7 +1076,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                   _addTagToFolder(context as Folder,newTag);
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Tag "$newTag" sendo adicionada...')),
+                    SnackBar(content: Text('Categoria "$newTag" sendo adicionada...')),
                   );
                 }
               },
@@ -1091,7 +1086,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text('Criar Tag', style: TextStyle(color: Colors.white)),
+              child: const Text('Criar', style: TextStyle(color: Colors.white)),
             ),
           ],
         );

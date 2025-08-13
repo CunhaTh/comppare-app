@@ -262,45 +262,130 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-
   Widget _buildHeroSection() {
-    return Stack(
-      children: [
-        Image.asset(
-          'assets/bg-comppare.jpeg',
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: 600,
-        ),
-        Positioned.fill(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: _buildHeader(context),
-              ),
-              const SizedBox(height: 20),
-            ],
+    return Container(
+      width: double.infinity,
+      color: Colors.grey[50], // Cor de fundo suave
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 80),
+          const Text(
+            'Comppare imagens de forma interativa e inteligente',
+            style: TextStyle(
+              fontSize: 35,
+              fontWeight: FontWeight.bold,
+              height: 1.1,
+              color: Color(0xFF222222),
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+          Text(
+            'Transforme a maneira como você acompanha a evolução dos seus projetos e resultados com a plataforma visual mais avançada do mercado.',
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                // Lógica para criar conta
+                navigateToCadastro(PlanModel.empty());
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFaed513),
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Crie sua conta grátis',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          /*SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                // Rola para a seção de planos
+                Scrollable.ensureVisible(
+                  context,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOut,
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                side: const BorderSide(color: Color(0xFFaed513)),
+              ),
+              child: const Text(
+                'Conheça os planos',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFaed513),
+                ),
+              ),
+            ),
+          ),*/
+          const SizedBox(height: 80),
+        ],
+      ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          TextButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-              );
-            },
-            child: _buildActionButton(context, 'ENTRAR', const LoginScreen()),
+          Row(
+            children: [
+              Image.asset('assets/logo_cortada.png', height: 40), // Adicione sua logo aqui
+              const SizedBox(width: 8),
+            ],
+          ),
+          SizedBox(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFaed513),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Entrar',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
         ],
       ),

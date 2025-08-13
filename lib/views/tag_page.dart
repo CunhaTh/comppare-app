@@ -154,13 +154,53 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
           _tagsController.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Tags criadas com sucesso: $uniqueTags')),
+          SnackBar(content: Text('Categorias criadas com sucesso: $uniqueTags')),
         );
       }
     } catch (e) {
-      debugPrint('Erro ao criar tags: $e');
+      debugPrint('Erro ao criar Categoria: $e');
       if (mounted) {
-        _showErrorDialog('Falha ao criar tags: $e');
+        _showErrorDialog('Falha ao criar categoria: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _deleteTagFromApi(String tag, int index) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      _navigateToLogin();
+      return;
+    }
+
+    // Crie uma nova lista removendo a tag, sem alterar o estado atual da UI.
+    final List<String> updatedTags = List<String>.from(_tags);
+    updatedTags.remove(tag); // Usamos o valor da tag para remover.
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Sincronize a lista de tags completa e atualizada com a API.
+      // O `_syncTagsWithApi` irá sobrescrever a lista no servidor.
+      await _syncTagsWithApi(updatedTags.join(','));
+
+      // A função `_syncTagsWithApi` já chama `_loadTags` em caso de sucesso.
+      // Portanto, não há necessidade de chamar _loadTags novamente aqui.
+      // A UI será atualizada automaticamente com a lista correta.
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Tag "$tag" removida com sucesso')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Erro ao excluir tag: $e');
+      if (mounted) {
+        _showErrorDialog('Falha ao excluir tag: $e');
+        _loadTags(); // Recarrega para garantir que a UI reflita o estado do servidor.
       }
     } finally {
       if (mounted) {
@@ -281,9 +321,8 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
                         });
                         final user = UserHelper().user;
                         if (user != null && user.id != null) {
-                          await _saveTagsLocally('user_${user.id}_tags', _tags);
-                          await _syncTagsWithApi(_tags.join(','));
-                          await _loadTags(); // Recarrega após remoção
+                          await _deleteTagFromApi(index as String, tag as int);
+                         // Recarrega após remoção
                         }
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(

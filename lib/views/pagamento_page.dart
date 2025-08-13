@@ -656,9 +656,9 @@ class _PagamentoPageState extends State<PagamentoPage>
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Escaneie o QR Code para pagar',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -897,16 +897,16 @@ class _PagamentoPageState extends State<PagamentoPage>
                       ),
                     ],
                   )
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.check_circle,
                         color: Colors.white,
                         size: 20,
                       ),
-                      SizedBox(width: 8),
-                      Text(
+                      const SizedBox(width: 8),
+                      const Text(
                         'Ir para a tela principal',
                         style: TextStyle(
                           color: Colors.white,

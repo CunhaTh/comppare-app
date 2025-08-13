@@ -37,6 +37,49 @@ class ApiService {
     return headers;
   }
 
+    /// lib/infra/api_services.dart
+  /// Função para atualizar uma pasta existente (renomear ou alterar tags).
+  ///
+  /// Requer o ID da pasta a ser atualizada, o ID do usuário,
+  /// o novo nome da pasta (opcional) e uma lista de tags (opcional).
+  ///
+  /// O novo endpoint para esta requisição deve ser definido em `ApiEndpoints`
+  /// como, por exemplo: `static const String updateFolder = '/pastas/atualizar';`
+  Future<Map<String, dynamic>> updateFolder({
+    required int folderId,
+    required int idUsuario,
+    String? folderName,
+    List<String>? tags,
+  }) async {
+    // Verifica se pelo menos o nome ou as tags foram fornecidos para a atualização.
+    if (folderName == null && (tags == null || tags.isEmpty)) {
+      throw ApiException('É necessário fornecer um novo nome de pasta ou tags para a atualização.', statusCode: 400);
+    }
+
+    final url = Uri.parse(ApiEndpoints.authenticateUser);
+    foundation.debugPrint(
+        '[updateFolder] Requisição para atualizar pasta em: $url com ID: $folderId, nome: $folderName, tags: $tags');
+
+    // Constrói o corpo da requisição com os dados a serem atualizados.
+    final body = {
+      'idUsuario': idUsuario,
+      'idPasta': folderId,
+      if (folderName != null) 'nomePasta': folderName,
+      if (tags != null) 'tags': tags,
+    };
+
+    return _sendRequest(
+      () => _httpClient.put( // Usando o método PUT para atualizar a pasta.
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Pasta atualizada com sucesso.',
+      errorMessage: 'Falha ao atualizar a pasta.',
+    );
+  }
+
+
   Future<Map<String, dynamic>> _sendRequest(
     Future<http.Response> Function() requestFunction, {
     String? successMessage,
