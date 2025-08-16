@@ -1181,8 +1181,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 child: Column(
                   children: [
                     _buildDrawerItem(
-                      icon: Icons.home,
-                      title: 'Início',
+                      icon: Icons.person,
+                      title: 'Perfil',
                       onTap: () {
                         Navigator.pop(context);
                         showDialog(

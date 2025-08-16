@@ -1,14 +1,17 @@
 import 'dart:convert';
+import 'dart:js_interop';
 
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
+import 'package:application_progress/models/tag_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/comppareimg.dart'
     hide FilePickerHelper;
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as foundation;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Meus imports
@@ -18,6 +21,7 @@ import 'package:application_progress/login.dart';
 import 'package:application_progress/file_picker_helper.dart';
 import 'package:flutter/material.dart' as devtools;
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart' hide User; 
 
 // Função auxiliar para copiar Folder
 Folder copyFolder(Folder folder, {List<String>? tags}) {
@@ -55,9 +59,14 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   final String _searchQuery = '';
   List<Folder> _subfolders = [];
   List<String> _availableTags = [];
+  List<TagModel> _tags = [];
+
+  late Future<List<TagModel>> _tagsFuture;
+  String? _selectedTag;
   bool _isLoading = true;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
+  
 
   @override
   void initState() {
@@ -73,7 +82,36 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     super.dispose();
   }
 
-  
+  // 1. Crie uma função unificada para carregar as tags
+// Esta função irá carregar as tags do cache ou da API, garantindo que
+// os dados estejam prontos antes de serem usados.
+Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
+  final prefs = await SharedPreferences.getInstance();
+  final tagsKey = 'user_${userId}_tags';
+
+  try {
+    // Tenta carregar as tags da API
+    final tagsFromApi = await apiService.getTags(userId as int);
+    
+    // Serializa e salva no cache
+    final tagsJsonList = tagsFromApi.map((tag) => tag.toMap()).toList();
+    await prefs.setString(tagsKey, jsonEncode(tagsJsonList));
+    
+    return tagsFromApi;
+  } catch (e) {
+    // Se a API falhar, tenta carregar do cache
+    final tagsString = prefs.getString(tagsKey);
+    if (tagsString != null) {
+      final List<dynamic> decodedJson = jsonDecode(tagsString);
+      return decodedJson.map((e) => TagModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    
+    // Se o cache também estiver vazio, retorna uma lista vazia
+    debugPrint('Erro: Falha ao carregar tags da API e do cache local.');
+    return [];
+  }
+}
+
 
 
   Future<void> _loadAvailableTags() async {
@@ -88,13 +126,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     }
   }
 
-  // Método para salvar tags no shared_preferences
-  Future<void> _saveTags(int folderId, List<String> tags) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('tags_$folderId', jsonEncode(tags));
-    debugPrint(
-        'Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
-  }
+
 
   // Método para recuperar tags do shared_preferences
   Future<List<String>> _loadTags(int folderId) async {
@@ -107,16 +139,16 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         : [];
   }
 
-  void _addTagToFolder(Folder folder, String tag) {
-    setState(() {
-      final currentTags = folder.tags ?? [];
-      if (!currentTags.contains(tag)) {
-        folder.tags = [...currentTags, tag];
-        _saveTags(folder.id, folder.tags!);
-      }
-    });
+
+    // Método para salvar tags no shared_preferences
+  Future<void> _saveTags(int folderId, List<String> tags) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('tags_$folderId', jsonEncode(tags));
+    debugPrint(
+        'Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
   }
 
+  
   void _removeTagDaPasta(Folder folder, String tag) {
     setState(() {
       final currentTags = folder.tags ?? [];
@@ -143,6 +175,18 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     await _saveTags(folder.id, folder.tags ?? []);
     debugPrint('Tag "$tag" removida do folderId ${folder.id}');
   }
+
+
+  void _addTagToFolder(Folder folder, String tag) {
+    setState(() {
+      final currentTags = folder.tags ?? [];
+      if (!currentTags.contains(tag)) {
+        folder.tags = [...currentTags, tag];
+        _saveTags(folder.id, folder.tags!);
+      }
+    });
+  }
+
 
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
     if (!mounted) return;
@@ -1094,40 +1138,85 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     );
   }
 
-  // Add Tag Dialog
-  void _showAddTagDialog(Folder group) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+// O método para exibir o diálogo de adicionar tag
+void _showAddTagDialog(Folder group) {
+  // Obtenha o usuário. O método .user pode retornar null, então verificamos.
+  final user = UserHelper().user;
+
+  // Se o usuário ou o ID não existirem, mostre uma mensagem e retorne.
+  if (user == null || user.id == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nenhum usuário logado.')),
+    );
+    return;
+  }
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
         backgroundColor: Colors.white,
         title: const Text(
           'Categorias',
           style: TextStyle(color: Colors.black),
         ),
-        content: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: DropdownButton<String>(
-            hint: const Text('Selecione uma categoria'),
-            value: null,
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: _availableTags.map((tag) {
-              return DropdownMenuItem<String>(
-                value: tag,
-                child: Text(tag),
+        content: FutureBuilder<List<TagModel>>(
+          // A correção está aqui: passamos o id do usuário diretamente como int,
+          // usando a sintaxe `user.id!` para garantir que não seja nulo,
+          // pois já fizemos essa verificação acima.
+          future: _apiService.getTags(user.id!),
+          builder: (context, snapshot) {
+            // Estado de Carregamento: mostra um indicador circular enquanto espera
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 100,
+                width: 100,
+                child: Center(child: CircularProgressIndicator()),
               );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                _addTagToFolder(group, value);
-                Navigator.of(context).pop();
-              }
-            },
-          ),
+            }
+
+            // Estado de Erro ou Sem Dados: mostra uma mensagem clara para o usuário
+            if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
+              return const SizedBox(
+                height: 50,
+                child: Center(
+                  child: Text(
+                    'Nenhuma categoria disponível.',
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+
+            // Estado de Dados Prontos: O Future foi completado e temos os dados.
+            final List<TagModel> tags = snapshot.data!;
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: DropdownButton<TagModel>(
+                hint: const Text('Selecione uma categoria'),
+                value: null, // Valor inicial é nulo
+                isExpanded: true,
+                underline: const SizedBox(),
+                items: tags.map((tag) {
+                  return DropdownMenuItem<TagModel>(
+                    value: tag,
+                    child: Text(tag.nomeTag),
+                  );
+                }).toList(),
+                onChanged: (tag) {
+                  if (tag != null) {
+                    _addTagToFolder(group, tag.nomeTag);
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+            );
+          },
         ),
         actions: [
           TextButton(
@@ -1138,7 +1227,10 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
+      );
+    },
+  );
+}
+
+
 }

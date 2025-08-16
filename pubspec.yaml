@@ -49,6 +49,7 @@ dependencies:
   
 
   http_parser: any
+  firebase_auth: ^6.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,6 +1,6 @@
 {
-    "name": "application_progress",
-    "short_name": "application_progress",
+    "name": "Comppare",
+    "short_name": "Comppare",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

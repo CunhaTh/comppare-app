@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
@@ -36,9 +38,10 @@ class ImagemDetalhesPage extends StatefulWidget {
 }
 
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
-    with TickerProviderStateMixin {
+  with TickerProviderStateMixin {
   final GlobalKey shareRepaintKey = GlobalKey();
   late Future<List<ImageModel>> _imageItemsFuture;
+  final List<Folder> idPastaPai = [];
 
   // Method to capture card image
   Future<Uint8List?> captureCard(GlobalKey key) async {
@@ -636,6 +639,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
       },
     );
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -658,11 +662,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
             child: const Icon(Icons.arrow_back, color: Colors.black),
           ),
           onPressed: () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const PrincipalPage()),
-              (Route<dynamic> route) => false,
-            );
+            Navigator.pop(context);
           },
         ),
         title: Center(
@@ -2988,7 +2988,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                   size: isLargeScreen ? 18.0 : 16.0,
                                 ),
                                 label: Text(
-                                  'Baixar',
+                                  'Salvar',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: isLargeScreen ? 14.0 : 12.0,
