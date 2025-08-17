@@ -954,21 +954,30 @@ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
                       Row(
                         children: [
                           Row(children: [
-                              IconButton(
-                              icon: Container(
+                            
+                             IconButton(
+                                icon: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                                // ignore: deprecated_member_use
+                                color: Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                  ),
                                 child: Icon(
-                                  Icons.add,
-                                  color: Colors.black.withOpacity(0.7),
-                                  size: 20,
-                                ),
+                                        Icons.add,
+                                        // ignore: deprecated_member_use
+                                        color: Colors.black.withOpacity(0.7),
+                                        size: 20,
+                                        ),
+                                        ),
+                                onPressed: () {
+                                  // Aqui a gente cria uma função anônima que não retorna nada
+                                  // e passa ela para o showInsertNameTag.
+                                  // Desta forma, a chamada `loadTags()` não é executada imediatamente,
+                                  // mas sim passada como um callback.
+                                  _showInsertNameTag(context, _apiService, () => _loadTags);
+                                },
                               ),
-                              onPressed: _showInsertNameTag,
-                            ),
                       Text(
                       'categorias',
                       style: TextStyle(
@@ -1085,58 +1094,97 @@ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
     );
   }
 
-    // Função que exibe o diálogo para o usuário inserir a tag
-  void _showInsertNameTag() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
+// A função que se comunica com a API para criar a tag, baseada no seu exemplo
+Future<void> _createTagsOnApi(String nomeTag, ApiService _apiService, VoidCallback _loadTags) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) {
+    debugPrint('Erro: usuário não logado.');
+    return;
+  }
+  try {
+    // Use o seu método saveTags real aqui
+    await _apiService.saveTags(
+      nomeTag: nomeTag,
+      usuario: user.id!,
+    );
+    debugPrint('Tags sincronizadas com a API: Sucesso!');
+    // Recarrega as tags para atualizar o DropdownButton
+    _loadTags();
+  } catch (e) {
+    debugPrint('Erro ao sincronizar tags com a API: $e');
+  }
+}  
+
+// O método que abre o diálogo de criação de tag
+Future<void> _showInsertNameTag(BuildContext context, ApiService _apiService, VoidCallback _loadTags) async {
+  final _tagController = TextEditingController();
+
+  // Get the user. The .user method can return null, so we check.
+  final user = UserHelper().user;
+
+  // If the user or the ID don't exist, show a message and return.
+  if (user == null || user.id == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nenhum usuário logado.')),
+    );
+    return;
+  }
+
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text('Criar Categoria', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: _tagsController,
-            decoration: InputDecoration(
-              hintText: 'Ex: peso',
-              border: OutlineInputBorder(
+        title: const Text(
+          'Criar Nova Categoria',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: _tagController,
+          decoration: InputDecoration(
+            labelText: 'Nome da Categoria',
+            hintText: 'Ex: Treino',
+            border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _tagsController.clear();
-              },
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newTag = _tagsController.text.trim();
-                if (newTag.isNotEmpty) {
-                  // Chama a função para adicionar a tag ao subálbum
-                  _addTagToFolder(context as Folder,newTag);
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Categoria "$newTag" sendo adicionada...')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
+          style: const TextStyle(color: Colors.black),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _tagsController.clear();  
+            },
+             child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final String newTag = _tagController.text.trim();
+              if (newTag.isNotEmpty) {
+                // Chama a função para criar a tag na API
+                await _createTagsOnApi(newTag, _apiService, _loadTags);
+                Navigator.of(context).pop(); // Fecha o diálogo após a tentativa de criação
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('O nome da categoria não pode ser vazio.')),
+                );
+              }
+            }, style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.lightGreen,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text('Criar', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
+            child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      );
+    },
+  );
+}
 
 // O método para exibir o diálogo de adicionar tag
 void _showAddTagDialog(Folder group) {
