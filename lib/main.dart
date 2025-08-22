@@ -263,6 +263,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
   Widget _buildHeroSection() {
+    
     return Container(
       width: double.infinity,
       color: Colors.grey[50], // Cor de fundo suave
@@ -294,28 +295,47 @@ class _MyHomePageState extends State<MyHomePage> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // Lógica para criar conta
-                navigateToCadastro(PlanModel.empty());
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFaed513),
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            onPressed: () {
+              // 1. Define o PlanModel para o plano gratuito.
+              // Isso garante que mesmo que a lista de planos não esteja disponível,
+              // o botão ainda possa passar um plano válido.
+              final gratuito = PlanModel(
+                id: 1,
+                nome: 'Gratuito',
+                descricao: 'Plano gratuito com funcionalidades básicas',
+                valor: 0.0,
+                quantidadeTags: 0,
+                quantidadeFotos: 0,
+                quantidadeConvites: 1,
+                quantidadePastas: 1,
+                status: 1,
+                frequenciaCobranca: 1,
+                tempoGratuidade: 1,
+              );
+
+              // 2. Chama a função de navegação passando o modelo do plano gratuito.
+              navigateToCadastro(gratuito);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFaed513),
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Crie sua conta grátis',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+            ),
+            child: const Text(
+              'Crie sua conta grátis',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
           ),
+          ),
           const SizedBox(height: 16),
+          // ao clicar, rola suavemente para a seção de planos
+          // AJUSTAR
           /*SizedBox(
             width: double.infinity,
             child: OutlinedButton(
