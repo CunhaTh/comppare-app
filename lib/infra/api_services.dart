@@ -517,7 +517,7 @@ class ApiService {
             uploadedImages.add(ImageModel(
               id: 0, // ID temporário, pois a API não o retorna neste ponto
               url: path as String,
-              takenAt: DateTime.now().toIso8601String(),
+              //takenAt: DateTime.now().toIso8601String(),
               // Data atual como fallback
             ));
           }
@@ -601,31 +601,30 @@ class ApiService {
   }
   
 
-// Função de renovação de token (ajuste conforme necessário)
-  Future<void> refreshTokenIfNeeded() async {
-    final token = TokenHelper().token;
-    if (token != null) {
-      try {
-        final parts = token.split('.');
-        if (parts.length == 3) {
-          final payload = json.decode(
-              base64Url.decode(base64Url.normalize(parts[1])) as String);
-          final expiry = payload['exp'] as int? ?? 0;
-          final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-          if (expiry < now + 300) {
-            // Renova se faltar 5 minutos ou menos
-            final user = UserHelper().user;
-            if (user?.cpf != null && user?.senha != null) {
-              await authenticateUser(user!.cpf!, user.senha!); // Reautentica
-            }
-          }
+Future<String?> refreshTokenIfNeeded() async {
+  final tokenHelper = TokenHelper();
+  final token = tokenHelper.token;
+  if (token != null) {
+    try {
+      final parts = token.split('.');
+      if (parts.length == 3) {
+        final payload = json.decode(
+            base64Url.decode(base64Url.normalize(parts[1])).toString());
+        final expiry = payload['exp'] as int? ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        if (expiry < now + 300) { // Renova se faltar 5 minutos ou menos
+          // Tenta renovar o token usando o token atual
+          final response = await authenticateUser('', '', token: token);
+          return response['token'] as String?; // Retorna o novo token
         }
-      } catch (e) {
-        foundation
-            .debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
+        return token; // Retorna o token atual se não expirado
       }
+    } catch (e) {
+      foundation.debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
     }
   }
+  return null; // Retorna null se falhar
+}
 
   Future<Map<String, dynamic>?> _getParentFolderDetails(
       int parentFolderId) async {
@@ -711,7 +710,7 @@ class ApiService {
     required String nomeTag,
     required int usuario,
   }) async {
-    final url = Uri.parse(ApiEndpoints.saveTags);
+    final url = Uri.parse(ApiEndpoints.cadastraTags);
     foundation.debugPrint(
         '[_saveTags] Requisição para salvar tags em: $url, nomeTag: $nomeTag, usuario: $usuario');
 
@@ -762,5 +761,36 @@ class ApiService {
       return [];
     }
   }
+
+    Future<List<ImageModel>> getComparison(ImageModel idPhoto) async {
+    final User? user = UserHelper().user;
+    if (user == null || user.id == null) {
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/comparacao$idPhoto');
+    final body = {
+      'usuario': user.id,
+      "id_photo": idPhoto.id
+    };
+    final responseBody = await _sendRequest(
+      () => _httpClient.get(
+        url,
+        headers: _getHeaders(includeContentType: true),
+      ),
+      successMessage: 'Comparação carregadas com sucesso.',
+      errorMessage: 'Falha ao carregar Comparação.',
+    );
+
+    if (responseBody.containsKey('data') && responseBody['data'] is List) {
+      final List<dynamic> imageUser = responseBody['data'] as List<dynamic>;
+      foundation.debugPrint('Image do usuário: ${imageUser.map((e) => e['id_photo']?.toString() ?? '').toList()}');
+      // CORREÇÃO AQUI: Mapeia para objetos TagModel
+      return imageUser.map((json) => ImageModel.fromMap(json as Map<String, dynamic>)).toList();
+    } else {
+      foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
+      return [];
+    }
+  }
+
 
 }

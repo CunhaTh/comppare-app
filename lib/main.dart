@@ -593,48 +593,39 @@ class _MyHomePageState extends State<MyHomePage> {
     return planCards;
   }
 
-  Widget _buildPlanCard(
+// Refatoração sugerida para o widget _buildPlanCard
+Widget _buildPlanCard(
     PlanModel plan,
     bool isSelected,
     VoidCallback onSelect,
     VoidCallback onCadastrar,
     BuildContext context, {
-    bool isPopular = false,
-  }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = screenWidth * 0.7;
-
-    return Center(
-      child: Container(
-        width: cardWidth,
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.green[50] : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: isSelected ? const Color(0xFFaed513) : Colors.grey[300]!,
-            width: 2,
-          ),
+  bool isPopular = false,
+}) {
+  return GestureDetector(
+    onTap: onSelect, // Permite que o usuário toque em qualquer lugar do cartão para selecionar
+    child: Card(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFFaed513) : Colors.grey[300]!,
+          width: 2,
         ),
+      ),
+      elevation: 4,
+      child: Container(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (isPopular)
+            if (isPopular) // Destaque para o plano mais popular
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFaed513),
                   borderRadius: BorderRadius.circular(12),
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: const Text(
                   'Mais Popular',
                   style: TextStyle(
@@ -655,109 +646,48 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
-            Text(
-              plan.descricao,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[700],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'R\$ ${plan.valor.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFFaed513) : Colors.black,
-              ),
-              textAlign: TextAlign.center,
-            ),
             const SizedBox(height: 8),
             Text(
-              'Categorias: ${plan.quantidadeTags}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Fotos: ${plan.quantidadeFotos}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Convites: ${plan.quantidadeConvites}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Pastas: ${plan.quantidadePastas}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Status: ${plan.status == 1 ? 'Ativo' : 'Inativo'}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Frequência: ${plan.frequenciaCobranca} mês(es)',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Gratuidade: ${plan.tempoGratuidade} mês(es)',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
+              'R\$ ${plan.valor.toStringAsFixed(2)}/${plan.frequenciaCobranca == 1 ? 'mês' : 'ano'}',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFaed513),
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
+            // Utilize uma lista de widgets para os recursos
+            _buildFeatureRow('Álbuns', plan.quantidadePastas.toString()),
+            _buildFeatureRow('Subálbuns por álbum', plan.quantidadeTags.toString()),
+            _buildFeatureRow('Categorias', plan.quantidadeTags.toString()),
+            _buildFeatureRow('Sem anúncios', 'Sim'),
+            _buildFeatureRow('Compartilhamento em redes sociais', 'Sim'),
+            // Adicione os demais recursos
+            
+            const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: onSelect,
+              onPressed: onCadastrar,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isSelected ? const Color(0xFFaed513) : Colors.grey[300],
-                foregroundColor: isSelected ? Colors.black : Colors.black87,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: isSelected ? const Color(0xFFaed513) : Colors.grey[300],
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(isSelected ? 'Selecionado' : 'Selecionar'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: onCadastrar,
               child: const Text(
-                'Assinar',
-                style: TextStyle(color: Colors.blue, fontSize: 16),
+                'Assinar Agora',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildActionButton(
       BuildContext context, String label, Widget targetPage) {
@@ -777,6 +707,24 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Text(label),
     );
   }
+
+
+// Widget auxiliar para as linhas de recursos
+Widget _buildFeatureRow(String feature, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4.0),
+    child: Row(
+      children: [
+        Icon(Icons.check, color: const Color(0xFFaed513)),
+        const SizedBox(width: 8),
+        Text(
+          '$feature: $value',
+          style: const TextStyle(fontSize: 16),
+        ),
+      ],
+    ),
+  );
+}
 
   void showErrorDialog(String message) {
     showDialog(

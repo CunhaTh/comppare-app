@@ -66,7 +66,7 @@ class ApiEndpoints {
 
 
   // Salva as tags
-  static String get saveTags => '$baseUrl/tags/cadastrar';
+  static String get cadastraTags => '$baseUrl/tags/cadastrar';
 
   
   // exclui as tags
@@ -74,7 +74,12 @@ class ApiEndpoints {
   
   
   // salva valor de cada imagem
-  static String get criarComparacao => '$baseUrl/comparacao/salvar';
+  static String get salvaComparacao => '$baseUrl/comparacao/salvar';
+
+  // recupera as comparações
+    static String getComparacao(int idPhoto) {
+    return '$baseUrl/comparacao$idPhoto';
+  }
 
   // --- Endpoints de Pastas e Conteúdo ---
 

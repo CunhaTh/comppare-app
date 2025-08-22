@@ -2,13 +2,19 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:application_progress/albuns_criados.dart';
+import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/infra/token_helper.dart';
+import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as devtools;
+import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/rendering.dart';
+import 'package:http/http.dart' as _httpClient;
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
@@ -43,6 +49,13 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   late Future<List<ImageModel>> _imageItemsFuture;
   final List<Folder> idPastaPai = [];
 
+  
+    final Map<String, TextEditingController> controllers = {
+    'Data': TextEditingController(),
+    'id_tag': TextEditingController(),
+  };
+
+
   // Method to capture card image
   Future<Uint8List?> captureCard(GlobalKey key) async {
     try {
@@ -70,6 +83,27 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   late Animation<double> _scaleAnimation;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
+
+    Map<String, String> _getHeaders({bool includeContentType = true}) {
+    final String? authToken = TokenHelper().token;
+    foundation.debugPrint(
+        'ApiService: Token sendo acessado em _getHeaders: $authToken');
+    final Map<String, String> headers = {
+      'Accept': 'application/json',
+    };
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (authToken != null && authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $authToken';
+    } else {
+      foundation.debugPrint(
+          'Aviso: Token de autenticação não disponível no TokenHelper.');
+    }
+    return headers;
+  }
 
   // Função para deletar imagens selecionadas
   Future<void> deleteImageList() async {
@@ -366,6 +400,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
   @override
   void dispose() {
+    controllers.values.forEach((controller) => controller.dispose());
     _scrollController.dispose();
     _fadeController.dispose();
     _scaleController.dispose();
@@ -404,7 +439,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                   color: Colors.black.withOpacity(0.1),
                   blurRadius: 8.0,
                   offset: const Offset(0, 4),
-                ),
+                ), 
               ],
             ),
             child: Column(
@@ -1076,388 +1111,488 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     );
   }
 
-  void _showEditDialog(BuildContext context, ImageModel imageItem, int index) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+  
+  /// Salva as informações de comparação no endpoint fornecido.
+  /// Retorna true se a requisição for bem-sucedida, false caso contrário.
+  Future<bool> saveComparisonData({
+    required int userId,
+    required int photoId,
+    required String comparisonDate,
+    required List<Map<String, dynamic>> tags,
+  }) async {
+        final User? user = UserHelper().user;
+    if (user == null || user.id == null) {
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
+    try {
+      final url = Uri.parse('${ApiEndpoints.baseUrl}comparacao/salvar');
+      final body = {
+        'id_usuario': userId,
+        'id_photo': photoId,
+        'data_comparacao': comparisonDate,
+        'tags': tags,
+      };
 
-    final Map<String, TextEditingController> controllers = {
-      for (var categoria in categorias)
-        categoria: TextEditingController(
-          text: categoria == 'Data'
-              ? imageItem.date ?? ''
-              : categoria == 'Peso'
-                  ? imageItem.weight ?? ''
-                  : categoria == 'Série'
-                      ? imageItem.waist ?? ''
-                      : categoria == 'Obs'
-                          ? imageItem.observation ?? ''
-                          : imageItem.customCategorias[categoria] ?? '',
-        ),
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      // Verificação do status da resposta da API
+      if (response.statusCode == 200) {
+        // A requisição foi bem-sucedida
+        print('Dados de comparação salvos com sucesso!');
+        return true;
+      } else {
+        // A requisição falhou. Imprima o status e o corpo da resposta para depuração.
+        print('Falha ao salvar dados. Status: ${response.statusCode}');
+        print('Corpo da resposta: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      // Trata erros de conexão ou outros problemas
+      print('Ocorreu um erro na requisição: $e');
+      return false;
+    }
+  }
+
+    Map<String, String> getHeaders({bool includeContentType = true}) {
+    final String? authToken = TokenHelper().token;
+    foundation.debugPrint(
+        'ApiService: Token sendo acessado em _getHeaders: $authToken');
+    final Map<String, String> headers = {
+      'Accept': 'application/json',
     };
 
-    Future<void> saveChanges(ImageModel updatedItem) async {
-      final prefs = await SharedPreferences.getInstance();
-      final categoriaKey = 'image_tags_${updatedItem.id}';
-      final existingCategorias =
-          jsonDecode(prefs.getString(categoriaKey) ?? '{}')
-                  as Map<String, dynamic>? ??
-              {};
-      final updatedCategorias = {
-        'Data': controllers['Data']?.text ?? updatedItem.date ?? '',
-        'Peso': controllers['Peso']?.text ?? updatedItem.weight ?? '',
-        'Série': controllers['Série']?.text ?? updatedItem.waist ?? '',
-        'Obs': controllers['Obs']?.text ?? updatedItem.observation ?? '',
-        for (var categoria in categorias)
-          if (categoria != 'Data' &&
-              categoria != 'Peso' &&
-              categoria != 'Série' &&
-              categoria != 'Obs')
-            categoria: controllers[categoria]!.text,
-      };
-      await prefs.setString(categoriaKey, jsonEncode(updatedCategorias));
-
-      setState(() {
-        if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
-          _imageItems![index] = ImageModel(
-            id: updatedItem.id,
-            url: updatedItem.url,
-            imageData: updatedItem.imageData,
-            date: updatedCategorias['Data'],
-            weight: updatedCategorias['Peso'],
-            waist: updatedCategorias['Série'],
-            observation: updatedCategorias['Obs'],
-            customCategorias: {
-              for (var categoria in categorias)
-                if (categoria != 'Data' &&
-                    categoria != 'Peso' &&
-                    categoria != 'Série' &&
-                    categoria != 'Obs')
-                  categoria: updatedCategorias[categoria]!,
-            },
-            takenAt: updatedItem.toString(),
-            isSelected: updatedItem.isSelected,
-          );
-        }
-      });
-      Navigator.of(context).pop(updatedItem);
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
     }
 
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
-            ),
-            child: Container(
-              width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
-              constraints: BoxConstraints(
-                maxHeight: screenHeight * 0.8,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20.0),
-                color: Colors.white,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFaed513),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20.0),
-                        topRight: Radius.circular(20.0),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Editar Imagem',
-                            style: TextStyle(
-                              fontSize: isLargeScreen ? 20.0 : 18.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.black,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            height: isLargeScreen
-                                ? screenHeight * 0.3
-                                : screenHeight * 0.25,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16.0),
-                              border: Border.all(
-                                color: Colors.grey[300]!,
-                                width: 1,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16.0),
-                              child: imageItem.imageData!.isNotEmpty
-                                  ? Image.memory(
-                                      imageItem.imageData!,
-                                      fit: BoxFit.fitHeight,
-                                    )
-                                  : Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.image_not_supported,
-                                                color: Colors.grey, size: 48),
-                                            SizedBox(height: 8),
-                                            Text('Imagem não disponível',
-                                                style: TextStyle(
-                                                    color: Colors.grey)),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          SizedBox(height: isLargeScreen ? 24.0 : 20.0),
-                          if (categorias.isNotEmpty)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: categorias.map((categoria) {
-                                return Container(
-                                  margin: EdgeInsets.only(
-                                      bottom: isLargeScreen ? 16.0 : 12.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        categoria,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: isLargeScreen ? 16.0 : 14.0,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8.0),
-                                      TextField(
-                                        controller: controllers[categoria],
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              'Insira o valor para $categoria',
-                                          filled: true,
-                                          fillColor: Colors.grey[50],
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.0),
-                                            borderSide: BorderSide(
-                                                color: Colors.grey[300]!),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.0),
-                                            borderSide: BorderSide(
-                                                color: Colors.grey[300]!),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.0),
-                                            borderSide: const BorderSide(
-                                                color: Color(0xFFaed513),
-                                                width: 2),
-                                          ),
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 16.0,
-                                            vertical: 12.0,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            )
-                          else
-                            Container(
-                              padding:
-                                  EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.info_outline,
-                                      color: Colors.grey, size: 20),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Sem categorias disponíveis no momento.',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: isLargeScreen ? 14.0 : 12.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20.0),
-                        bottomRight: Radius.circular(20.0),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 8.0),
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey[200],
-                                foregroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 24.0,
-                                  vertical: isLargeScreen ? 16.0 : 14.0,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.0),
-                                ),
-                                elevation: 0,
-                              ),
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.cancel,
-                                      size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
-                                  Expanded(
-                                    child: Text(
-                                      'Cancelar',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: isLargeScreen ? 16.0 : 14.0,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 8.0),
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFaed513),
-                                foregroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 24.0,
-                                  vertical: isLargeScreen ? 16.0 : 14.0,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.0),
-                                ),
-                                elevation: 2,
-                              ),
-                              onPressed: () {
-                                final updatedItem = ImageModel(
-                                  id: imageItem.id,
-                                  url: imageItem.url,
-                                  imageData: imageItem.imageData,
-                                  date: controllers['Data']?.text ??
-                                      imageItem.date,
-                                  weight: controllers['Peso']?.text ??
-                                      imageItem.weight,
-                                  waist: controllers['Série']?.text ??
-                                      imageItem.waist,
-                                  observation: controllers['Obs']?.text ??
-                                      imageItem.observation,
-                                  customCategorias: {
-                                    ...imageItem.customCategorias,
-                                    for (var categoria in categorias)
-                                      if (categoria != 'Data' &&
-                                          categoria != 'Peso' &&
-                                          categoria != 'Série' &&
-                                          categoria != 'Obs')
-                                        categoria: controllers[categoria]!.text,
-                                  },
-                                  takenAt: '',
-                                );
-                                saveChanges(updatedItem);
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.save,
-                                      size: isLargeScreen ? 18.0 : 16.0),
-                                  SizedBox(width: 8.0),
-                                  Expanded(
-                                    child: Text(
-                                      'Salvar',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: isLargeScreen ? 16.0 : 14.0,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).then((updatedItem) {
-      // Feedback opcional
+    if (authToken != null && authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $authToken';
+    } else {
+      foundation.debugPrint(
+          'Aviso: Token de autenticação não disponível no TokenHelper.');
+    }
+    return headers;
+  }
+// A função principal de _showEditDialog, com a lógica de salvamento e API integrada.
+void _showEditDialog(BuildContext context, ImageModel imageItem, int index) async {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+  final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+
+  // Cria o mapa de controllers de forma segura e legível.
+  final Map<String, TextEditingController> controllers = {};
+  for (var categoria in categorias) {
+    final textValue = categoria == 'Data'
+        ? imageItem.date ?? ''
+        : categoria == 'Peso'
+            ? imageItem.weight ?? ''
+            : categoria == 'Série'
+                ? imageItem.waist ?? ''
+                : categoria == 'Obs'
+                    ? imageItem.observation ?? ''
+                    : imageItem.metadata[categoria] ?? '';
+
+    controllers[categoria] = TextEditingController(text: textValue);
+  }
+
+// Funções de salvamento e atualização
+Future<void> saveChangesAndNotify(BuildContext context, ImageModel updatedItem) async {
+  final User? user = UserHelper().user;
+  if (user == null || user.id == null || user.token == null) {
+    debugPrint('Erro: Usuário não autenticado ou token ausente. A requisição não será enviada.');
+    return;
+  }
+
+  // 1. Salva os dados localmente no SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  final categoriaKey = 'image_tags_${updatedItem.id}';
+  final updatedCategorias = {
+    for (var categoria in categorias)
+      categoria: controllers[categoria]?.text ?? '',
+  };
+  await prefs.setString(categoriaKey, jsonEncode(updatedCategorias));
+
+  // 2. Prepara os dados para a API
+  final List<Map<String, dynamic>> tagsParaAPI = [];
+  final Map<String, dynamic> updatedMetadata = {};
+  
+  for (var categoria in categorias) {
+    final valor = controllers[categoria]?.text ?? '';
+    updatedMetadata[categoria] = valor;
+    tagsParaAPI.add({
+      'id_tag': updatedCategorias,
+      'valor': valor,
     });
   }
+
+  // 3. Prepara a URL e o corpo da requisição para a API
+  final url = Uri.parse(ApiEndpoints.salvaComparacao);
+  final body = {
+    'id_usuario': user.id,
+    'id_photo': updatedItem.id,
+    'data_comparacao': updatedMetadata['Data'] ?? DateFormat('dd/MM/yyyy').format(DateTime.now()),
+    'tags': tagsParaAPI,
+  };
+  
+  // 4. Prepara os cabeçalhos da requisição
+  final headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ${TokenHelper().token}',
+  };
+
+  debugPrint('Iniciando requisição para salvar alterações...');
+  debugPrint('URL: $url');
+  debugPrint('Headers: $headers');
+  debugPrint('Corpo da requisição: ${jsonEncode(body)}');
+
+  try {
+    // 5. Faça a requisição com o cabeçalho de autenticação
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    // 6. Verifique a resposta
+    debugPrint('Status da resposta: ${response.statusCode}');
+    debugPrint('Corpo da resposta: ${response.body}');
+    
+    if (response.statusCode == 200) {
+      debugPrint('Alterações salvas e notificação enviada com sucesso.');
+    } else {
+      debugPrint('Falha ao salvar as alterações.');
+    }
+  } catch (e) {
+    debugPrint('Exceção capturada na requisição: $e');
+  }
+
+  // 7. Cria o novo ImageModel com os dados atualizados
+  final newItem = ImageModel(
+    id: updatedItem.id,
+    url: updatedItem.url,
+    imageData: updatedItem.imageData,
+    metadata: updatedItem.metadata,
+    isSelected: updatedItem.isSelected,
+  );
+
+  // 8. Navega de volta e passa o item atualizado
+  if (context.mounted) {
+    Navigator.of(context).pop(newItem);
+  }
+}
+
+
+  final updatedItem = await showDialog<ImageModel>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      // O restante da UI do Dialog
+      // ... (código que você já tinha) ...
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        child: Container(
+          width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
+          constraints: BoxConstraints(
+            maxHeight: screenHeight * 0.8,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20.0),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFaed513),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20.0),
+                    topRight: Radius.circular(20.0),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Editar Imagem',
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 20.0 : 18.0,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.black,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: isLargeScreen
+                            ? screenHeight * 0.3
+                            : screenHeight * 0.25,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16.0),
+                          border: Border.all(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16.0),
+                          child: imageItem.imageData != null && imageItem.imageData!.isNotEmpty
+                              ? Image.memory(
+                                  imageItem.imageData!,
+                                  fit: BoxFit.fitHeight,
+                                )
+                              : Container(
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.image_not_supported,
+                                            color: Colors.grey, size: 48),
+                                        SizedBox(height: 8),
+                                        Text('Imagem não disponível',
+                                            style: TextStyle(
+                                                color: Colors.grey)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                      SizedBox(height: isLargeScreen ? 24.0 : 20.0),
+                      if (categorias.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: categorias.map((categoria) {
+                            return Container(
+                              margin: EdgeInsets.only(
+                                  bottom: isLargeScreen ? 16.0 : 12.0),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    categoria,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize:
+                                          isLargeScreen ? 16.0 : 14.0,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8.0),
+                                  TextField(
+                                    controller: controllers[categoria],
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          'Insira o valor para $categoria',
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                      border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12.0),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[300]!),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12.0),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[300]!),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12.0),
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFFaed513),
+                                            width: 2),
+                                      ),
+                                      contentPadding:
+                                          EdgeInsets.symmetric(
+                                        horizontal: 16.0,
+                                        vertical: 12.0,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      else
+                        Container(
+                          padding:
+                              EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline,
+                                  color: Colors.grey, size: 20),
+                              SizedBox(width: 12),
+                              Text(
+                                'Sem categorias disponíveis no momento.',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: isLargeScreen ? 14.0 : 12.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(20.0),
+                    bottomRight: Radius.circular(20.0),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8.0),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[200],
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24.0,
+                              vertical: isLargeScreen ? 16.0 : 14.0,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cancel,
+                                  size: isLargeScreen ? 18.0 : 16.0),
+                              SizedBox(width: 8.0),
+                              Expanded(
+                                child: Text(
+                                  'Cancelar',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize:
+                                        isLargeScreen ? 16.0 : 14.0,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.only(left: 8.0),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFaed513),
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24.0,
+                              vertical: isLargeScreen ? 16.0 : 14.0,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            elevation: 2,
+                          ),
+                          onPressed: () async {
+                            saveChangesAndNotify(context, imageItem);
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.save,
+                                  size: isLargeScreen ? 18.0 : 16.0),
+                              SizedBox(width: 8.0),
+                              Expanded(
+                                child: Text(
+                                  'Salvar',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize:
+                                        isLargeScreen ? 16.0 : 14.0,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  // Lógica para atualizar a lista _imageItems se um item for retornado
+  if (updatedItem != null) {
+    setState(() {
+      if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
+        _imageItems![index] = updatedItem;
+      }
+    });
+  }
+}
+
 
   // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
   void _showComparisonDialog(
@@ -1607,7 +1742,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
               return TextEditingController(text: item.observation ?? '');
             default:
               return TextEditingController(
-                  text: item.customCategorias[categoria] ?? '');
+                  text: item.metadata[categoria] ?? '');
           }
         }).toList(),
     };
@@ -2163,7 +2298,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                           break;
                         default:
                           controllerList[0].text =
-                              displayedImages[0].customCategorias[categoria] ??
+                              displayedImages[0].metadata[categoria] ??
                                   '';
                           break;
                       }
@@ -2189,7 +2324,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                             break;
                           default:
                             controllerList[1].text = displayedImages[1]
-                                    .customCategorias[categoria] ??
+                                    .metadata[categoria] ??
                                 '';
                             break;
                         }
@@ -2691,236 +2826,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                       ),
                     ),
-                    // Botões de compartilhar e baixar
-                    // Container(
-                    //   padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                    //   decoration: const BoxDecoration(
-                    //     color: Colors.white,
-                    //     borderRadius: BorderRadius.only(
-                    //       bottomLeft: Radius.circular(20.0),
-                    //       bottomRight: Radius.circular(20.0),
-                    //     ),
-                    //   ),
-                    //   child: Row(
-                    //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    //     children: [
-                    //       Expanded(
-                    //         child: Container(
-                    //           margin: const EdgeInsets.only(right: 8.0),
-                    //           child: ElevatedButton.icon(
-                    //             style: ElevatedButton.styleFrom(
-                    //               backgroundColor: const Color(0xFFaed513),
-                    //               foregroundColor: Colors.black,
-                    //               padding: EdgeInsets.symmetric(
-                    //                 horizontal: 20.0,
-                    //                 vertical: isLargeScreen ? 16.0 : 14.0,
-                    //               ),
-                    //               shape: RoundedRectangleBorder(
-                    //                 borderRadius: BorderRadius.circular(12.0),
-                    //               ),
-                    //               elevation: 2,
-                    //             ),
-                    //             onPressed: shareImages,
-                    //             icon: Icon(
-                    //               Icons.share,
-                    //               size: isLargeScreen ? 18.0 : 16.0,
-                    //             ),
-                    //             label: Text(
-                    //               'Compartilhar',
-                    //               style: TextStyle(
-                    //                 fontWeight: FontWeight.bold,
-                    //                 fontSize: isLargeScreen ? 14.0 : 12.0,
-                    //               ),
-                    //             ),
-                    //           ),
-                    //         ),
-                    //       ),
-                    //       Expanded(
-                    //         child: Container(
-                    //           margin: const EdgeInsets.only(left: 8.0),
-                    //           child: ElevatedButton.icon(
-                    //             style: ElevatedButton.styleFrom(
-                    //               backgroundColor: const Color(0xFFaed513),
-                    //               foregroundColor: Colors.black,
-                    //               padding: EdgeInsets.symmetric(
-                    //                 horizontal: 20.0,
-                    //                 vertical: isLargeScreen ? 16.0 : 14.0,
-                    //               ),
-                    //               shape: RoundedRectangleBorder(
-                    //                 borderRadius: BorderRadius.circular(12.0),
-                    //               ),
-                    //               elevation: 2,
-                    //             ),
-                    //             onPressed: saveCard,
-                    //             icon: Icon(
-                    //               Icons.download,
-                    //               size: isLargeScreen ? 18.0 : 16.0,
-                    //             ),
-                    //             label: Text(
-                    //               'Baixar',
-                    //               style: TextStyle(
-                    //                 fontWeight: FontWeight.bold,
-                    //                 fontSize: isLargeScreen ? 14.0 : 12.0,
-                    //               ),
-                    //             ),
-                    //           ),
-                    //         ),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-
-                    // Miniaturas das imagens selecionadas
-                    // Container(
-                    //   height: isLargeScreen ? 120.0 : 100.0,
-                    //   margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                    //   child: Stack(
-                    //     children: [
-                    //       SingleChildScrollView(
-                    //         scrollDirection: Axis.horizontal,
-                    //         controller: localScrollController,
-                    //         padding: EdgeInsets.symmetric(
-                    //             horizontal: isLargeScreen ? 40.0 : 32.0),
-                    //         child: Row(
-                    //           children: allSelectedImages
-                    //               .asMap()
-                    //               .entries
-                    //               .map((entry) {
-                    //             final int index = entry.key;
-                    //             final ImageModel imageItem = entry.value;
-                    //             return GestureDetector(
-                    //               onTap: () {
-                    //                 onThumbnailTap(imageItem, index);
-                    //               },
-                    //               child: Container(
-                    //                 width: isLargeScreen ? 80.0 : 70.0,
-                    //                 height: isLargeScreen ? 80.0 : 70.0,
-                    //                 margin:
-                    //                     EdgeInsets.symmetric(horizontal: 8.0),
-                    //                 decoration: BoxDecoration(
-                    //                   borderRadius: BorderRadius.circular(12.0),
-                    //                   border: Border.all(
-                    //                     color: selectedIndex == index
-                    //                         ? const Color(0xFFaed513)
-                    //                         : Colors.grey.withOpacity(0.3),
-                    //                     width: selectedIndex == index ? 3 : 1,
-                    //                   ),
-                    //                   boxShadow: [
-                    //                     BoxShadow(
-                    //                       color: selectedIndex == index
-                    //                           ? const Color(0xFFaed513)
-                    //                               .withOpacity(0.3)
-                    //                           : Colors.black.withOpacity(0.1),
-                    //                       blurRadius: 4.0,
-                    //                       offset: const Offset(0, 2),
-                    //                     ),
-                    //                   ],
-                    //                 ),
-                    //                 child: ClipRRect(
-                    //                   borderRadius: BorderRadius.circular(11.0),
-                    //                   child: Image.memory(
-                    //                     imageItem.imageData!,
-                    //                     fit: BoxFit.cover,
-                    //                     errorBuilder:
-                    //                         (context, error, stackTrace) {
-                    //                       devtools.debugPrint(
-                    //                           'Erro ao carregar imagem da miniatura: $error');
-                    //                       return Container(
-                    //                         color: Colors.grey[200],
-                    //                         child: const Center(
-                    //                           child: Column(
-                    //                             mainAxisAlignment:
-                    //                                 MainAxisAlignment.center,
-                    //                             children: [
-                    //                               Icon(Icons.error,
-                    //                                   color: Colors.red,
-                    //                                   size: 16),
-                    //                               Text('Erro',
-                    //                                   style: TextStyle(
-                    //                                       color: Colors.red,
-                    //                                       fontSize: 8)),
-                    //                             ],
-                    //                           ),
-                    //                         ),
-                    //                       );
-                    //                     },
-                    //                   ),
-                    //                 ),
-                    //               ),
-                    //             );
-                    //           }).toList(),
-                    //         ),
-                    //       ),
-                    //       Positioned(
-                    //         left: 0,
-                    //         top: 0,
-                    //         bottom: 0,
-                    //         child: Container(
-                    //           decoration: BoxDecoration(
-                    //             gradient: LinearGradient(
-                    //               colors: [
-                    //                 Colors.white,
-                    //                 Colors.white.withOpacity(0.0)
-                    //               ],
-                    //               begin: Alignment.centerLeft,
-                    //               end: Alignment.centerRight,
-                    //             ),
-                    //           ),
-                    //           child: IconButton(
-                    //             icon: Container(
-                    //               padding: const EdgeInsets.all(8),
-                    //               decoration: BoxDecoration(
-                    //                 color: const Color(0xFFaed513),
-                    //                 borderRadius: BorderRadius.circular(20),
-                    //               ),
-                    //               child: const Icon(
-                    //                 Icons.arrow_back_ios,
-                    //                 color: Colors.black,
-                    //                 size: 16,
-                    //               ),
-                    //             ),
-                    //             onPressed: scrollLeft,
-                    //             tooltip: 'Rolar para a esquerda',
-                    //           ),
-                    //         ),
-                    //       ),
-                    //       Positioned(
-                    //         right: 0,
-                    //         top: 0,
-                    //         bottom: 0,
-                    //         child: Container(
-                    //           decoration: BoxDecoration(
-                    //             gradient: LinearGradient(
-                    //               colors: [
-                    //                 Colors.white.withOpacity(0.0),
-                    //                 Colors.white
-                    //               ],
-                    //               begin: Alignment.centerLeft,
-                    //               end: Alignment.centerRight,
-                    //             ),
-                    //           ),
-                    //           child: IconButton(
-                    //             icon: Container(
-                    //               padding: const EdgeInsets.all(8),
-                    //               decoration: BoxDecoration(
-                    //                 color: const Color(0xFFaed513),
-                    //                 borderRadius: BorderRadius.circular(20),
-                    //               ),
-                    //               child: const Icon(
-                    //                 Icons.arrow_forward_ios,
-                    //                 color: Colors.black,
-                    //                 size: 16,
-                    //               ),
-                    //             ),
-                    //             onPressed: scrollRight,
-                    //             tooltip: 'Rolar para a direita',
-                    //           ),
-                    //         ),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-
                     // Botões de compartilhar e baixar no rodapé do diálogo
                     Container(
                       padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
@@ -3055,36 +2960,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     }
   }
 
-  // // Nova função para compartilhar a imagem sem pacotes externos
-  // Future<void> shareImage(Uint8List imageBytes) async {
-  //   final directory = await getApplicationDocumentsDirectory();
-  //   final params = ShareParams(
-  //     text: 'Confira minha comparação de progresso no Comppare! 😊',
-  //     files: [XFile('${directory.path}/image.png')],
-  //   );
-
-  //   final result = await SharePlus.instance.share(params);
-
-  //   if (result.status == ShareResultStatus.success) {
-  //     print('Thank you for sharing the picture!');
-  //   }
-  //   // if (kIsWeb) {
-  //   //   // Para web, mostrar opções de compartilhamento com redes sociais
-  //   //   //   _showSocialShareOptionsWeb(imageBytes);
-
-  //   //   final shareData = <String, dynamic>{
-  //   //     'title': 'Minha Comparação - Comppare',
-  //   //     'text': 'Confira minha comparação de progresso no Comppare! 😊',
-  //   //     'url': ApiEndpoints.baseUrl,
-  //   //   };
-
-  //   //   await (html.window.navigator as dynamic).share(shareData);
-
-  //   // } else {
-  //   //   // Para mobile, usar o método existente
-  //   //   await shareToSocialMedia(imageBytes);
-  //   // }
-  // }
 
   // Método para mostrar opções de compartilhamento na web com redes sociais
   void _showSocialShareOptionsWeb(Uint8List imageBytes) {
@@ -3221,126 +3096,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                         ),
                       ),
                     ),
-
-                    // // Facebook
-                    // Container(
-                    //   width: double.infinity,
-                    //   margin: const EdgeInsets.only(bottom: 12),
-                    //   child: ElevatedButton.icon(
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Colors.blue,
-                    //       foregroundColor: Colors.white,
-                    //       padding: const EdgeInsets.symmetric(
-                    //           vertical: 16, horizontal: 20),
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(12),
-                    //       ),
-                    //       elevation: 2,
-                    //     ),
-                    //     onPressed: () {
-                    //       Navigator.of(context).pop();
-                    //       _shareToFacebookWeb();
-                    //     },
-                    //     icon: const Icon(Icons.facebook, size: 20),
-                    //     label: const Text(
-                    //       'Facebook',
-                    //       style: TextStyle(
-                    //         fontWeight: FontWeight.w600,
-                    //         fontSize: 16,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
-
-                    // // Instagram
-                    // Container(
-                    //   width: double.infinity,
-                    //   margin: const EdgeInsets.only(bottom: 12),
-                    //   child: ElevatedButton.icon(
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Colors.purple,
-                    //       foregroundColor: Colors.white,
-                    //       padding: const EdgeInsets.symmetric(
-                    //           vertical: 16, horizontal: 20),
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(12),
-                    //       ),
-                    //       elevation: 2,
-                    //     ),
-                    //     onPressed: () {
-                    //       Navigator.of(context).pop();
-                    //       _shareToInstagramWeb(imageBytes);
-                    //     },
-                    //     icon: const Icon(Icons.camera_alt, size: 20),
-                    //     label: const Text(
-                    //       'Instagram',
-                    //       style: TextStyle(
-                    //         fontWeight: FontWeight.w600,
-                    //         fontSize: 16,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
-
-                    // // Twitter/X
-                    // Container(
-                    //   width: double.infinity,
-                    //   margin: const EdgeInsets.only(bottom: 12),
-                    //   child: ElevatedButton.icon(
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Colors.lightBlue,
-                    //       foregroundColor: Colors.white,
-                    //       padding: const EdgeInsets.symmetric(
-                    //           vertical: 16, horizontal: 20),
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(12),
-                    //       ),
-                    //       elevation: 2,
-                    //     ),
-                    //     onPressed: () {
-                    //       Navigator.of(context).pop();
-                    //       _shareToTwitterWeb();
-                    //     },
-                    //     icon: const Icon(Icons.flutter_dash, size: 20),
-                    //     label: const Text(
-                    //       'Twitter/X',
-                    //       style: TextStyle(
-                    //         fontWeight: FontWeight.w600,
-                    //         fontSize: 16,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
-
-                    // // Email
-                    // Container(
-                    //   width: double.infinity,
-                    //   margin: const EdgeInsets.only(bottom: 20),
-                    //   child: ElevatedButton.icon(
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Color(0xFFaed513).withOpacity(0.3),
-                    //       foregroundColor: Colors.white,
-                    //       padding: const EdgeInsets.symmetric(
-                    //           vertical: 16, horizontal: 20),
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(12),
-                    //       ),
-                    //       elevation: 2,
-                    //     ),
-                    //     onPressed: () {
-                    //       Navigator.of(context).pop();
-                    //       _shareToEmailWeb();
-                    //     },
-                    //     icon: const Icon(Icons.email, size: 20),
-                    //     label: const Text(
-                    //       'Email',
-                    //       style: TextStyle(
-                    //         fontWeight: FontWeight.w600,
-                    //         fontSize: 16,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
                   ],
                 ),
 
