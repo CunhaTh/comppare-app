@@ -6,13 +6,16 @@ import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
+import 'package:application_progress/login.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
+import 'package:application_progress/models/tag_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as devtools;
 import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:http/http.dart' as _httpClient;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -83,27 +86,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   late Animation<double> _scaleAnimation;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
-
-    Map<String, String> _getHeaders({bool includeContentType = true}) {
-    final String? authToken = TokenHelper().token;
-    foundation.debugPrint(
-        'ApiService: Token sendo acessado em _getHeaders: $authToken');
-    final Map<String, String> headers = {
-      'Accept': 'application/json',
-    };
-
-    if (includeContentType) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    if (authToken != null && authToken.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $authToken';
-    } else {
-      foundation.debugPrint(
-          'Aviso: Token de autenticação não disponível no TokenHelper.');
-    }
-    return headers;
-  }
 
   // Função para deletar imagens selecionadas
   Future<void> deleteImageList() async {
@@ -998,169 +980,228 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     );
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 25,
-                  offset: const Offset(0, 12),
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ícone de erro com design aprimorado
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.error_outline_rounded,
-                    color: Colors.red,
-                    size: 36,
+Future<void> _showErrorDialog(BuildContext context, String message) async {
+  await showDialog(
+    context: context,
+    barrierDismissible: true, // Permite fechar tocando fora, opcional
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 25,
+                offset: const Offset(0, 12),
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.green.withOpacity(0.3),
+                    width: 2,
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Título com tipografia melhorada
-                const Text(
-                  'Ops! Algo deu errado',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                    letterSpacing: -0.5,
+                child: const Icon(
+                  Icons.verified_rounded,
+                  color: Colors.green,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Show, Deu tudo certo !',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                    height: 1.5,
+                    fontWeight: FontWeight.w400,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 18),
-
-                // Mensagem com melhor legibilidade
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                      height: 1.5,
-                      fontWeight: FontWeight.w400,
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    textAlign: TextAlign.center,
+                    elevation: 3,
+                    shadowColor: Colors.green.withOpacity(0.4),
                   ),
-                ),
-                const SizedBox(height: 28),
-
-                // Botão com design aprimorado
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.thumb_up_rounded,
+                        size: 18,
                       ),
-                      elevation: 3,
-                      shadowColor: Colors.red.withOpacity(0.4),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.thumb_up_rounded,
-                          size: 18,
+                      SizedBox(width: 8),
+                      Text(
+                        'ok, vlw',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Entendi',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
-
-  
-  /// Salva as informações de comparação no endpoint fornecido.
-  /// Retorna true se a requisição for bem-sucedida, false caso contrário.
-  Future<bool> saveComparisonData({
-    required int userId,
-    required int photoId,
-    required String comparisonDate,
-    required List<Map<String, dynamic>> tags,
-  }) async {
-        final User? user = UserHelper().user;
-    if (user == null || user.id == null) {
-      throw ApiException('Usuário não autenticado.', statusCode: 401);
-    }
-    try {
-      final url = Uri.parse('${ApiEndpoints.baseUrl}comparacao/salvar');
-      final body = {
-        'id_usuario': userId,
-        'id_photo': photoId,
-        'data_comparacao': comparisonDate,
-        'tags': tags,
-      };
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
+          /*Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.red,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Ops! Algo deu errado',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                    height: 1.5,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 3,
+                    shadowColor: Colors.red.withOpacity(0.4),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.thumb_up_rounded,
+                        size: 18,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Entendi',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),*/
+        ),
       );
+    },
+  );
+}
 
-      // Verificação do status da resposta da API
-      if (response.statusCode == 200) {
-        // A requisição foi bem-sucedida
-        print('Dados de comparação salvos com sucesso!');
-        return true;
-      } else {
-        // A requisição falhou. Imprima o status e o corpo da resposta para depuração.
-        print('Falha ao salvar dados. Status: ${response.statusCode}');
-        print('Corpo da resposta: ${response.body}');
-        return false;
-      }
-    } catch (e) {
-      // Trata erros de conexão ou outros problemas
-      print('Ocorreu um erro na requisição: $e');
-      return false;
-    }
+// A sua função de API para recuperar as tags
+Future<List<TagModel>> getTags(int usuario) async {
+  final User? user = UserHelper().user;
+  if (user == null || user.id == null) {
+    throw ApiException('Usuário não autenticado.', statusCode: 401);
   }
+  final url = Uri.parse(ApiEndpoints.listarTags);
+  final body = {
+    'usuario': user.id,
+  };
+  final responseBody = await ApiService().sendRequest(
+    () => http.post(
+      url,
+      headers: ApiService().getHeaders(includeContentType: true),
+      body: jsonEncode(body),
+    ),
+    successMessage: 'Tags carregadas com sucesso.',
+    errorMessage: 'Falha ao carregar tags.',
+  );
+
+  if (responseBody.containsKey('data') && responseBody['data'] is List) {
+    final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
+    foundation.debugPrint('Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
+    return tagsJson.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
+  } else {
+    foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
+    return [];
+  }
+}
+
 
     Map<String, String> getHeaders({bool includeContentType = true}) {
     final String? authToken = TokenHelper().token;
     foundation.debugPrint(
-        'ApiService: Token sendo acessado em _getHeaders: $authToken');
+        'ApiService: Token sendo acessado em getHeaders: $authToken');
     final Map<String, String> headers = {
       'Accept': 'application/json',
     };
@@ -1177,13 +1218,35 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     }
     return headers;
   }
-// A função principal de _showEditDialog, com a lógica de salvamento e API integrada.
+
+
+
 void _showEditDialog(BuildContext context, ImageModel imageItem, int index) async {
   final screenWidth = MediaQuery.of(context).size.width;
   final screenHeight = MediaQuery.of(context).size.height;
   final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
-  // Cria o mapa de controllers de forma segura e legível.
+  // 1. Inicia o carregamento das tags ANTES de mostrar o diálogo.
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => const Center(child: CircularProgressIndicator()),
+  );
+
+  Map<String, int> tagIds = {};
+  try {
+    final List<TagModel> tags = await ApiService().getTags(UserHelper().user!.id!);
+    tagIds = {for (var tag in tags) tag.nomeTag: tag.id};
+    Navigator.of(context).pop(); // Esconde o indicador de carregamento após o sucesso
+  } catch (e) {
+    Navigator.of(context).pop(); // Esconde o indicador de carregamento em caso de erro
+    if (context.mounted) {
+      await _showErrorDialog(context, 'Erro ao carregar as tags: $e');
+    }
+    return;
+  }
+
+  // 2. Cria os controllers de forma segura e legível.
   final Map<String, TextEditingController> controllers = {};
   for (var categoria in categorias) {
     final textValue = categoria == 'Data'
@@ -1199,401 +1262,409 @@ void _showEditDialog(BuildContext context, ImageModel imageItem, int index) asyn
     controllers[categoria] = TextEditingController(text: textValue);
   }
 
-// Funções de salvamento e atualização
-Future<void> saveChangesAndNotify(BuildContext context, ImageModel updatedItem) async {
-  final User? user = UserHelper().user;
-  if (user == null || user.id == null || user.token == null) {
-    debugPrint('Erro: Usuário não autenticado ou token ausente. A requisição não será enviada.');
-    return;
-  }
+  // Nova função para separar a lógica de salvamento e API, retornando response e newItem.
+  Future<Map<String, dynamic>> _saveChangesAndReturnItem(
+    ImageModel originalItem,
+    Map<String, String> updatedMetadata,
+    List<Map<String, dynamic>> tagsParaAPI,
+  ) async {
+    final User? user = UserHelper().user;
+    if (user == null || user.id == null || user.token == null) {
+      throw Exception('Usuário não autenticado.');
+    }
 
-  // 1. Salva os dados localmente no SharedPreferences
-  final prefs = await SharedPreferences.getInstance();
-  final categoriaKey = 'image_tags_${updatedItem.id}';
-  final updatedCategorias = {
-    for (var categoria in categorias)
-      categoria: controllers[categoria]?.text ?? '',
-  };
-  await prefs.setString(categoriaKey, jsonEncode(updatedCategorias));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('image_tags_${originalItem.id}', jsonEncode(updatedMetadata));
 
-  // 2. Prepara os dados para a API
-  final List<Map<String, dynamic>> tagsParaAPI = [];
-  final Map<String, dynamic> updatedMetadata = {};
-  
-  for (var categoria in categorias) {
-    final valor = controllers[categoria]?.text ?? '';
-    updatedMetadata[categoria] = valor;
-    tagsParaAPI.add({
-      'id_tag': updatedCategorias,
-      'valor': valor,
-    });
-  }
+    final body = {
+      'id_usuario': user.id,
+      'id_photo': originalItem.id,
+      'data_comparacao': updatedMetadata['Data']?.isNotEmpty == true
+          ? DateFormat('dd/MM/yyyy').format(DateFormat('dd/MM/yyyy').parse(updatedMetadata['Data']!))
+          : DateFormat('dd/MM/yyyy').format(DateTime.now()),
+      'tags': tagsParaAPI,
+    };
 
-  // 3. Prepara a URL e o corpo da requisição para a API
-  final url = Uri.parse(ApiEndpoints.salvaComparacao);
-  final body = {
-    'id_usuario': user.id,
-    'id_photo': updatedItem.id,
-    'data_comparacao': updatedMetadata['Data'] ?? DateFormat('dd/MM/yyyy').format(DateTime.now()),
-    'tags': tagsParaAPI,
-  };
-  
-  // 4. Prepara os cabeçalhos da requisição
-  final headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${TokenHelper().token}',
-  };
-
-  debugPrint('Iniciando requisição para salvar alterações...');
-  debugPrint('URL: $url');
-  debugPrint('Headers: $headers');
-  debugPrint('Corpo da requisição: ${jsonEncode(body)}');
-
-  try {
-    // 5. Faça a requisição com o cabeçalho de autenticação
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
+    final response = await ApiService().sendRequest(
+      () => http.post(
+        Uri.parse(ApiEndpoints.salvaComparacao),
+        headers: ApiService().getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Alterações salvas com sucesso.',
+      errorMessage: 'Falha ao salvar as alterações.',
     );
 
-    // 6. Verifique a resposta
-    debugPrint('Status da resposta: ${response.statusCode}');
-    debugPrint('Corpo da resposta: ${response.body}');
-    
-    if (response.statusCode == 200) {
-      debugPrint('Alterações salvas e notificação enviada com sucesso.');
+    if (response['statusCode'] == 200) {
+      final newItem = ImageModel(
+        id: originalItem.id,
+        url: originalItem.url,
+        imageData: originalItem.imageData,
+        isSelected: originalItem.isSelected,
+        metadata: updatedMetadata,
+      );
+      return {'newItem': newItem, 'response': response};
     } else {
-      debugPrint('Falha ao salvar as alterações.');
+      throw Exception(response['message'] ?? 'Erro desconhecido');
     }
-  } catch (e) {
-    debugPrint('Exceção capturada na requisição: $e');
   }
-
-  // 7. Cria o novo ImageModel com os dados atualizados
-  final newItem = ImageModel(
-    id: updatedItem.id,
-    url: updatedItem.url,
-    imageData: updatedItem.imageData,
-    metadata: updatedItem.metadata,
-    isSelected: updatedItem.isSelected,
-  );
-
-  // 8. Navega de volta e passa o item atualizado
-  if (context.mounted) {
-    Navigator.of(context).pop(newItem);
-  }
-}
-
 
   final updatedItem = await showDialog<ImageModel>(
     context: context,
     barrierDismissible: false,
-    builder: (context) {
-      // O restante da UI do Dialog
-      // ... (código que você já tinha) ...
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.0),
-        ),
-        child: Container(
-          width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
-          constraints: BoxConstraints(
-            maxHeight: screenHeight * 0.8,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20.0),
-            color: Colors.white,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFaed513),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20.0),
-                    topRight: Radius.circular(20.0),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Editar Imagem',
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 20.0 : 18.0,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.black,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (dialogContext, setState) {
+          bool isProcessing = false;
+
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            child: Container(
+              width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
+              constraints: BoxConstraints(
+                maxHeight: screenHeight * 0.8,
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                  child: Column(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20.0),
+                color: Colors.white,
+              ),
+              child: Stack(
+                children: [
+                  Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        height: isLargeScreen
-                            ? screenHeight * 0.3
-                            : screenHeight * 0.25,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16.0),
-                          border: Border.all(
-                            color: Colors.grey[300]!,
-                            width: 1,
+                        padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFaed513),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20.0),
+                            topRight: Radius.circular(20.0),
                           ),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16.0),
-                          child: imageItem.imageData != null && imageItem.imageData!.isNotEmpty
-                              ? Image.memory(
-                                  imageItem.imageData!,
-                                  fit: BoxFit.fitHeight,
-                                )
-                              : Container(
-                                  color: Colors.grey[200],
-                                  child: const Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.image_not_supported,
-                                            color: Colors.grey, size: 48),
-                                        SizedBox(height: 8),
-                                        Text('Imagem não disponível',
-                                            style: TextStyle(
-                                                color: Colors.grey)),
-                                      ],
-                                    ),
-                                  ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Editar Imagem',
+                                style: TextStyle(
+                                  fontSize: isLargeScreen ? 20.0 : 18.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
                                 ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.of(dialogContext).pop(),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.black,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: isLargeScreen ? 24.0 : 20.0),
-                      if (categorias.isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: categorias.map((categoria) {
-                            return Container(
-                              margin: EdgeInsets.only(
-                                  bottom: isLargeScreen ? 16.0 : 12.0),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    categoria,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize:
-                                          isLargeScreen ? 16.0 : 14.0,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8.0),
-                                  TextField(
-                                    controller: controllers[categoria],
-                                    decoration: InputDecoration(
-                                      hintText:
-                                          'Insira o valor para $categoria',
-                                      filled: true,
-                                      fillColor: Colors.grey[50],
-                                      border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12.0),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey[300]!),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12.0),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey[300]!),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12.0),
-                                        borderSide: const BorderSide(
-                                            color: Color(0xFFaed513),
-                                            width: 2),
-                                      ),
-                                      contentPadding:
-                                          EdgeInsets.symmetric(
-                                        horizontal: 16.0,
-                                        vertical: 12.0,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        )
-                      else
-                        Container(
-                          padding:
-                              EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          child: Row(
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.info_outline,
-                                  color: Colors.grey, size: 20),
-                              SizedBox(width: 12),
-                              Text(
-                                'Sem categorias disponíveis no momento.',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: isLargeScreen ? 14.0 : 12.0,
+                              Container(
+                                height: isLargeScreen ? screenHeight * 0.3 : screenHeight * 0.25,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  border: Border.all(
+                                    color: Colors.grey[300]!,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  child: imageItem.imageData != null && imageItem.imageData!.isNotEmpty
+                                      ? Image.memory(
+                                          imageItem.imageData!,
+                                          fit: BoxFit.fitHeight,
+                                        )
+                                      : Container(
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.image_not_supported,
+                                                    color: Colors.grey, size: 48),
+                                                SizedBox(height: 8),
+                                                Text('Imagem não disponível',
+                                                    style: TextStyle(color: Colors.grey)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                 ),
                               ),
+                              SizedBox(height: isLargeScreen ? 24.0 : 20.0),
+                              if (categorias.isNotEmpty)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: categorias.map((categoria) {
+                                    return Container(
+                                      margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 12.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            categoria,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: isLargeScreen ? 16.0 : 14.0,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          SizedBox(height: 8.0),
+                                          TextField(
+                                            controller: controllers[categoria],
+                                            decoration: InputDecoration(
+                                              hintText: 'Insira o valor para $categoria',
+                                              filled: true,
+                                              fillColor: Colors.grey[50],
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(12.0),
+                                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                              ),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(12.0),
+                                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(12.0),
+                                                borderSide: const BorderSide(
+                                                    color: Color(0xFFaed513), width: 2),
+                                              ),
+                                              contentPadding: EdgeInsets.symmetric(
+                                                horizontal: 16.0,
+                                                vertical: 12.0,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                )
+                              else
+                                Container(
+                                  padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.info_outline, color: Colors.grey, size: 20),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        'Sem categorias disponíveis no momento.',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: isLargeScreen ? 14.0 : 12.0,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(20.0),
+                            bottomRight: Radius.circular(20.0),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8.0),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey[200],
+                                    foregroundColor: Colors.black,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 24.0,
+                                      vertical: isLargeScreen ? 16.0 : 14.0,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12.0),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  onPressed: isProcessing ? null : () => Navigator.of(dialogContext).pop(),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.cancel, size: isLargeScreen ? 18.0 : 16.0),
+                                      SizedBox(width: 8.0),
+                                      Expanded(
+                                        child: Text(
+                                          'Cancelar',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: isLargeScreen ? 16.0 : 14.0,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.only(left: 8.0),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFaed513),
+                                    foregroundColor: Colors.black,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 24.0,
+                                      vertical: isLargeScreen ? 16.0 : 14.0,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12.0),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  onPressed: isProcessing
+                                      ? null
+                                      : () async {
+                                          final updatedMetadata = Map<String, String>.fromEntries(
+                                            controllers.entries.map((entry) => MapEntry(entry.key, entry.value.text.trim())),
+                                          );
+
+                                          final tagsParaAPI = updatedMetadata.entries
+                                              .map((entry) {
+                                                final tagId = tagIds[entry.key];
+                                                if (tagId != null) {
+                                                  return {'id_tag': tagId, 'valor': entry.value};
+                                                }
+                                                return null;
+                                              })
+                                              .whereType<Map<String, dynamic>>()
+                                              .toList();
+
+                                          setState(() {
+                                            isProcessing = true;
+                                          });
+
+                                          ImageModel? newItem;
+                                          try {
+                                            final result = await _saveChangesAndReturnItem(
+                                              imageItem,
+                                              updatedMetadata,
+                                              tagsParaAPI,
+                                            );
+                                            newItem = result['newItem'] as ImageModel;
+                                            final response = result['response'] as Map<String, dynamic>;
+                                            print("Sucesso na API: ${response['statusCode']} - ${response['body']}");
+                                            if (dialogContext.mounted) {
+                                              SchedulerBinding.instance.addPostFrameCallback((_) {
+                                                Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
+                                              });
+                                            }
+                                          } catch (e) {
+                                            newItem = ImageModel(
+                                              id: imageItem.id,
+                                              url: imageItem.url,
+                                              imageData: imageItem.imageData,
+                                              isSelected: imageItem.isSelected,
+                                              metadata: updatedMetadata,
+                                            );
+
+                                            String errorMessage = 'Falha ao salvar: $e';
+                                            if (e.toString().contains('401')) {
+                                              errorMessage = 'Não autorizado: Token inválido ou expirado. Por favor, faça login novamente.';
+                                            }
+
+                                            if (dialogContext.mounted) {
+                                              await _showErrorDialog(dialogContext, errorMessage);
+                                              Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
+                                            }
+                                          } finally {
+                                            if (dialogContext.mounted) {
+                                              setState(() {
+                                                isProcessing = false;
+                                              });
+                                            }
+                                          }
+                                        },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.save, size: isLargeScreen ? 18.0 : 16.0),
+                                      SizedBox(width: 8.0),
+                                      Expanded(
+                                        child: Text(
+                                          'Salvar',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: isLargeScreen ? 16.0 : 14.0,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20.0),
-                    bottomRight: Radius.circular(20.0),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 8.0),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[200],
-                            foregroundColor: Colors.black,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 24.0,
-                              vertical: isLargeScreen ? 16.0 : 14.0,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            elevation: 0,
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.cancel,
-                                  size: isLargeScreen ? 18.0 : 16.0),
-                              SizedBox(width: 8.0),
-                              Expanded(
-                                child: Text(
-                                  'Cancelar',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize:
-                                        isLargeScreen ? 16.0 : 14.0,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                  if (isProcessing)
+                    const Positioned.fill(
+                      child: Center(
+                        child: CircularProgressIndicator(color: Color(0xFFaed513)),
                       ),
                     ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 8.0),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFaed513),
-                            foregroundColor: Colors.black,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 24.0,
-                              vertical: isLargeScreen ? 16.0 : 14.0,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            elevation: 2,
-                          ),
-                          onPressed: () async {
-                            saveChangesAndNotify(context, imageItem);
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.save,
-                                  size: isLargeScreen ? 18.0 : 16.0),
-                              SizedBox(width: 8.0),
-                              Expanded(
-                                child: Text(
-                                  'Salvar',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize:
-                                        isLargeScreen ? 16.0 : 14.0,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
     },
   );
 
-  // Lógica para atualizar a lista _imageItems se um item for retornado
   if (updatedItem != null) {
-    setState(() {
-      if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
-        _imageItems![index] = updatedItem;
-      }
-    });
+    if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
+      _imageItems![index] = updatedItem;
+    }
   }
 }
-
-
   // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
   void _showComparisonDialog(
       BuildContext context,
@@ -2115,7 +2186,7 @@ Future<void> saveChangesAndNotify(BuildContext context, ImageModel updatedItem) 
                                 Navigator.of(context).pop();
 
                                 if (imageBytes == null) {
-                                  _showErrorDialog(
+                                  _showErrorDialog(context,
                                       'Erro ao capturar a imagem para compartilhamento.');
                                   return;
                                 }
@@ -2955,7 +3026,7 @@ Future<void> saveChangesAndNotify(BuildContext context, ImageModel updatedItem) 
         _showSuccessDialog('Compartilhamento realizado com sucesso!');
       } catch (e) {
         print('Erro ao compartilhar no mobile: $e');
-        _showErrorDialog('Erro ao compartilhar a imagem: $e');
+        _showErrorDialog(context,'Erro ao compartilhar a imagem: $e');
       }
     }
   }
@@ -3270,7 +3341,7 @@ Future<void> saveChangesAndNotify(BuildContext context, ImageModel updatedItem) 
       }
     } catch (e) {
       devtools.debugPrint('Erro no compartilhamento: $e');
-      _showErrorDialog('Erro ao compartilhar: $e');
+      _showErrorDialog(context,'Erro ao compartilhar: $e');
     }
   }
 
@@ -3570,4 +3641,9 @@ Future<void> saveChangesAndNotify(BuildContext context, ImageModel updatedItem) 
     html.window.open(url, '_blank');
     _showSuccessDialog('Redirecionando para o email...');
   }
+
+void _navigateToLogin(BuildContext context) {
+  Navigator.of(context).pushReplacementNamed('/login'); // Ajuste a rota '/login' conforme necessário
 }
+}
+
