@@ -11,6 +11,8 @@ class Plano {
   final int frequenciaCobranca;
   final int quantidadeConvites;
   final int status;
+  final int quantidadeSubPastas;
+
 
   var entries;
 
@@ -26,6 +28,7 @@ class Plano {
     required this.frequenciaCobranca,
     required this.quantidadeConvites,
     required this.status,
+    required this.quantidadeSubPastas,
   });
 
   factory Plano.fromJson(Map<String, dynamic> json) {
@@ -41,6 +44,7 @@ class Plano {
       frequenciaCobranca: json['frequenciaCobranca'],
       quantidadeConvites: json['quantidadeConvites'],
       status: json['status'],
+      quantidadeSubPastas: json['quantidadeSubPastas'],
     );
   }
 }
