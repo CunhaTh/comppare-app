@@ -353,19 +353,10 @@ class CadastroScreenState extends State<CadastroScreen> {
       _isLoading = true;
     });
 
-    ///TODO(Abimael): Verificar este fluxo com o Andrew
-    // if (widget.idPlano == null) {
-    //   setState(() {
-    //     _isLoading = false;
-    //   });
-
-    //   //_showNoPlanSelectedDialog();
-    //   return;
-    // }
-    print("PASSOU PELO mounted");
+    // Lê os valores dos controladores
     String nome = _nameController.text.trim();
     String sobrenome = _surnameController.text.trim();
-    String apelido = _nicknameController.text.trim();
+    String apelido = _nicknameController.text.trim(); // Apelido é opcional
     String cpf = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
     String email = _emailController.text.trim();
     String nascimento = _nasciController.text.trim();
@@ -373,10 +364,10 @@ class CadastroScreenState extends State<CadastroScreen> {
     String senha = _passwordController.text.trim();
     String confirmSenha = _confirmPasswordController.text.trim();
 
+    // Remove o apelido da lista de campos obrigatórios
     if ([
       nome,
       sobrenome,
-      apelido,
       cpf,
       email,
       nascimento,
@@ -384,11 +375,12 @@ class CadastroScreenState extends State<CadastroScreen> {
       senha,
       confirmSenha
     ].any((field) => field.isEmpty)) {
-      _showErrorDialog('Por favor, preencha todos os campos!');
+      _showErrorDialog('Por favor, preencha todos os campos obrigatórios!');
       setState(() => _isLoading = false);
       return;
     }
 
+    // O restante da validação continua o mesmo...
     if (!_isValidCpf(cpf)) {
       _showErrorDialog('CPF inválido!');
       setState(() => _isLoading = false);
@@ -430,15 +422,6 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
 
     try {
-      ///TODO(Abimael): Conversando com o Luiz ele falou que o endpoint de validação de usuário não está mais em uso
-      // final cpfExiste = await _checarExistenciaCpf(cpf);
-      // if (cpfExiste) {
-      //   _showErrorDialog('Usuário já cadastrado com este CPF!');
-      //   setState(() => _isLoading = false);
-      // } else {
-
-      // }
-
       await _cadastrarUsuario(
           nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
     } catch (e) {

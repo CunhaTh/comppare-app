@@ -1,88 +1,141 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart' as devtools;
-import 'package:http/http.dart' as http; // Para PlatformFile
+import 'package:http/http.dart' as http;
 
+/// Representa um modelo de imagem com metadados associados.
+///
+/// Esta classe foi refatorada para centralizar todos os metadados
+/// em um único mapa `metadata`, tornando o modelo mais flexível e
+/// escalável.
 class ImageModel {
-  final int
-      id; // Identificador único (opcional, pode ser nulo para novos arquivos)
-  String url; // URL ou caminho da imagem (pode ser vazio para arquivos locais)
-  Uint8List? imageData; // Dados binários, carregados ou de arquivo local
-  bool isSelected; // Estado de seleção na UI
-  String? date; // Data personalizada (derivado de takenAt ou editável)
-  String? weight; // Peso associado
-  String? waist; // Cintura associada
-  String? observation; // Observação
-  Map<String, String> customCategorias; // Tags personalizadas
+  final int id;
+  String url;
+  Uint8List? imageData;
+  bool isSelected;
+  // Mapa centralizado para todos os metadados da imagem.
+  Map<String, String> metadata;
 
+  /// Construtor principal para o modelo de imagem.
   ImageModel({
-    this.id = 0, // 0 como padrão para novos itens
+    this.id = 0,
     this.url = '',
     this.imageData,
     this.isSelected = false,
-    this.date,
-    this.weight,
-    this.waist,
-    this.observation,
-    this.customCategorias = const {},
-    required String takenAt,
-  });
+    Map<String, String>? metadata,
+  }) : this.metadata = metadata ?? {};
 
-  // Construtor a partir de um mapa (ex.: API)
+  // Propriedades convenientes para acesso aos metadados, mantendo
+  // a compatibilidade e a clareza.
+  String? get date => metadata['date'];
+  set date(String? value) =>
+      value != null ? metadata['date'] = value : metadata.remove('date');
+
+  String? get weight => metadata['weight'];
+  set weight(String? value) =>
+      value != null ? metadata['weight'] = value : metadata.remove('weight');
+
+  String? get waist => metadata['waist'];
+  set waist(String? value) =>
+      value != null ? metadata['waist'] = value : metadata.remove('waist');
+
+  String? get observation => metadata['observation'];
+  set observation(String? value) => value != null
+      ? metadata['observation'] = value
+      : metadata.remove('observation');
+
+  /// Construtor a partir de um mapa (ex.: API).
+  ///
+  /// Esta versão foi simplificada para mapear dinamicamente os metadados,
+  /// garantindo que qualquer campo adicional da API seja capturado
+  /// no mapa de metadados.
   factory ImageModel.fromMap(Map<String, dynamic> map) {
+    // Mapeamento explícito das chaves da API para as chaves internas do app.
+    final Map<String, String> apiToInternalKeys = {
+      'takenAt': 'date',
+      'weight': 'weight',
+      'waist': 'waist',
+      'observation': 'observation',
+    };
+
+    final Map<String, String> newMetadata = {};
+    map.forEach((key, value) {
+      final internalKey = apiToInternalKeys[key] ?? key;
+      if (value != null) {
+        newMetadata[internalKey] = value.toString();
+      }
+    });
+
+    // Se 'customTags' vier da API, mesclamos com os metadados existentes.
+    final Map<String, dynamic>? customTags = map['customTags'] as Map<String, dynamic>?;
+    if (customTags != null) {
+      customTags.forEach((key, value) {
+        if (value != null) {
+          newMetadata[key.toString()] = value.toString();
+        }
+      });
+    }
+
     return ImageModel(
       id: map['id'] as int? ?? 0,
-      url: map['url'] as String? ?? map['path'] ?? '',
-      date: (map['takenAt'] as String?)?.split(' ')[0],
-      customCategorias: (map['customTags'] as Map<String, dynamic>?)?.map(
-            (key, value) => MapEntry(key.toString(), value.toString()),
-          ) ??
-          {},
-      takenAt: '',
+      url: map['url'] as String? ?? map['path'] as String? ?? '',
+      metadata: newMetadata,
     );
   }
 
-  // Construtor a partir de MyImage (compatibilidade)
+  /// Construtor a partir de MyImage (compatibilidade).
+  /// Mantém a lógica original, criando uma nova instância a partir de outra.
   factory ImageModel.fromMyImage(ImageModel myImage, {Uint8List? imageData}) {
     return ImageModel(
       id: myImage.id,
       url: myImage.url,
       imageData: imageData,
-      date: myImage.date,
-      weight: 'N/A',
-      waist: 'N/A',
-      observation: 'N/A',
-      customCategorias: {},
-      takenAt: '',
+      metadata: Map.from(myImage.metadata), // Cria uma cópia do mapa
     );
   }
 
-  // Construtor a partir de PickedFileItem (arquivos locais)
+  /// Construtor a partir de PickedFileItem (arquivos locais).
+  /// Mantém a lógica original.
   factory ImageModel.fromPickedFile(PlatformFile platformFile) {
     return ImageModel(
-      id: 0, // Novo item, sem ID ainda
-      url: '', // Sem URL inicial
+      id: 0,
+      url: '',
       imageData: platformFile.bytes,
-      date: null,
-      weight: null,
-      waist: null,
-      observation: null,
-      customCategorias: {},
-      takenAt: '',
+      metadata: {},
     );
   }
 
-  // Converte para mapa (ex.: envio à API)
+  /// Converte o modelo para um mapa (ex.: envio à API).
+  ///
+  /// Esta versão usa um mapeamento explícito para converter chaves internas
+  /// para as chaves esperadas pela API, garantindo consistência.
   Map<String, dynamic> toMap() {
-    return {
+    final Map<String, String> internalToApiKeys = {
+      'date': 'takenAt',
+      'weight': 'weight',
+      'waist': 'waist',
+      'observation': 'observation',
+    };
+
+    final Map<String, dynamic> outputMap = {
       'id': id,
       'url': url,
-      'takenAt': date, // Usa date como substituto para takenAt
-      'customTags': customCategorias,
     };
+
+    metadata.forEach((key, value) {
+      final apiFieldKey = internalToApiKeys[key] ?? key;
+      outputMap[apiFieldKey] = value;
+    });
+
+    // Se a API espera um campo 'customTags' separado para tags dinâmicas.
+    // Isso depende do formato da sua API. Mantive a lógica para ilustrar.
+    // outputMap['customTags'] = metadata;
+
+    return outputMap;
   }
 
-  // Método para carregar imageData a partir da URL (se não estiver presente)
+  /// Carrega os dados de imagem a partir de uma URL.
+  /// A lógica de carregamento de dados da imagem não precisa ser alterada.
   Future<void> loadImageData() async {
     if (imageData != null && imageData!.isNotEmpty) {
       devtools.debugPrint(
@@ -118,8 +171,7 @@ Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
   // Implementação existente (ex.: usando http.get)
   // Retorna Uint8List ou null em caso de erro
   return null; // Placeholder, substitua pela lógica real
-}
-
+}// Funções e classes auxiliares
 class PickedFileItem {
   final PlatformFile platformFile;
   final Uint8List? bytes;

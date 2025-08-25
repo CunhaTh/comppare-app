@@ -14,6 +14,7 @@ class User {
   final int? idPlano;
   final String? email;
   final String? token;
+  final String? refreshToken;
   List<Folder>? pastas;
 
   User({
@@ -25,6 +26,7 @@ class User {
     this.idPlano,
     this.email,
     this.token,
+    this.refreshToken,
     this.pastas,
   });
 
@@ -37,6 +39,7 @@ class User {
       'idPlano': idPlano,
       'email': email,
       'token': token,
+      'refreshToken': refreshToken,
       'pastas': pastas?.map((pasta) => pasta.toMap()).toList(),
     };
   }
@@ -50,13 +53,14 @@ class User {
     }
 
     return User(
-      id: map['id'] as int?,
+      id: map['id'] is String ? int.tryParse(map['id']) : map['id'] as int?,
       nome: map['nome'] as String?,
       cpf: map['cpf'] as String?,
       telefone: map['telefone'] as String?,
-      idPlano: map['idPlano'] as int?,
+      idPlano: map['idPlano'] is String ? int.tryParse(map['idPlano']) : map['idPlano'] as int?,
       email: map['email'] as String?,
       token: map['token'] as String?,
+      refreshToken: map['refreshToken'] as String?,
       pastas: parsedPastas,
     );
   }

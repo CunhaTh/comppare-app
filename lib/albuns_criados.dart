@@ -1,14 +1,17 @@
 import 'dart:convert';
+import 'dart:js_interop';
 
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
+import 'package:application_progress/models/tag_model.dart';
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/comppareimg.dart'
     hide FilePickerHelper;
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as foundation;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Meus imports
@@ -18,6 +21,7 @@ import 'package:application_progress/login.dart';
 import 'package:application_progress/file_picker_helper.dart';
 import 'package:flutter/material.dart' as devtools;
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart' hide User; 
 
 // Função auxiliar para copiar Folder
 Folder copyFolder(Folder folder, {List<String>? tags}) {
@@ -55,9 +59,14 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   final String _searchQuery = '';
   List<Folder> _subfolders = [];
   List<String> _availableTags = [];
+  List<TagModel> _tags = [];
+
+  late Future<List<TagModel>> _tagsFuture;
+  String? _selectedTag;
   bool _isLoading = true;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
+  
 
   @override
   void initState() {
@@ -73,7 +82,36 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     super.dispose();
   }
 
-  
+  // 1. Crie uma função unificada para carregar as tags
+// Esta função irá carregar as tags do cache ou da API, garantindo que
+// os dados estejam prontos antes de serem usados.
+Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
+  final prefs = await SharedPreferences.getInstance();
+  final tagsKey = 'user_${userId}_tags';
+
+  try {
+    // Tenta carregar as tags da API
+    final tagsFromApi = await apiService.getTags(userId as int);
+    
+    // Serializa e salva no cache
+    final tagsJsonList = tagsFromApi.map((tag) => tag.toMap()).toList();
+    await prefs.setString(tagsKey, jsonEncode(tagsJsonList));
+    
+    return tagsFromApi;
+  } catch (e) {
+    // Se a API falhar, tenta carregar do cache
+    final tagsString = prefs.getString(tagsKey);
+    if (tagsString != null) {
+      final List<dynamic> decodedJson = jsonDecode(tagsString);
+      return decodedJson.map((e) => TagModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    
+    // Se o cache também estiver vazio, retorna uma lista vazia
+    debugPrint('Erro: Falha ao carregar tags da API e do cache local.');
+    return [];
+  }
+}
+
 
 
   Future<void> _loadAvailableTags() async {
@@ -88,13 +126,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     }
   }
 
-  // Método para salvar tags no shared_preferences
-  Future<void> _saveTags(int folderId, List<String> tags) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('tags_$folderId', jsonEncode(tags));
-    debugPrint(
-        'Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
-  }
+
 
   // Método para recuperar tags do shared_preferences
   Future<List<String>> _loadTags(int folderId) async {
@@ -107,16 +139,16 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         : [];
   }
 
-  void _addTagToFolder(Folder folder, String tag) {
-    setState(() {
-      final currentTags = folder.tags ?? [];
-      if (!currentTags.contains(tag)) {
-        folder.tags = [...currentTags, tag];
-        _saveTags(folder.id, folder.tags!);
-      }
-    });
+
+    // Método para salvar tags no shared_preferences
+  Future<void> _saveTags(int folderId, List<String> tags) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('tags_$folderId', jsonEncode(tags));
+    debugPrint(
+        'Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
   }
 
+  
   void _removeTagDaPasta(Folder folder, String tag) {
     setState(() {
       final currentTags = folder.tags ?? [];
@@ -144,13 +176,25 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     debugPrint('Tag "$tag" removida do folderId ${folder.id}');
   }
 
+
+  void _addTagToFolder(Folder folder, String tag) {
+    setState(() {
+      final currentTags = folder.tags ?? [];
+      if (!currentTags.contains(tag)) {
+        folder.tags = [...currentTags, tag];
+        _saveTags(folder.id, folder.tags!);
+      }
+    });
+  }
+
+
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
     debugPrint(
         'AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
     debugPrint(
-        'AlbunsCriados: Buscando subpastas para initialFolderId: ${widget.initialFolderId}');
+        'AlbunsCriados: Buscando subálbum para initialFolderId: ${widget.initialFolderId}');
 
     try {
       final user = UserHelper().user;
@@ -164,7 +208,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
       final List<Folder> subfolders =
           await _apiService.fetchSubfolders(widget.initialFolderId);
       debugPrint(
-          'Subpastas recebidas da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}, tags=${f.tags?.join(",") ?? "nenhuma"}').join(', ')}');
+          'subálbum recebidos da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}, tags=${f.tags?.join(",") ?? "nenhuma"}').join(', ')}');
 
       if (mounted) {
         final updatedSubfolders = await Future.wait(subfolders.map((f) async {
@@ -174,14 +218,14 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         }).toList());
         setState(() {
           _subfolders = updatedSubfolders;
-          debugPrint('Subpastas atualizadas: ${_subfolders.length}');
+          debugPrint('subálbum atualizados: ${_subfolders.length}');
         });
       }
     } on ApiException catch (e) {
-      debugPrint('Erro ao atualizar subpastas da API: ${e.message}');
+      debugPrint('Erro ao atualizar subálbum da API: ${e.message}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar subpastas: ${e.message}')),
+          SnackBar(content: Text('Erro ao carregar subálbum: ${e.message}')),
         );
         if (e.statusCode == 401) {
           _navigateToLogin();
@@ -193,7 +237,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content:
-                  Text('Ocorreu um erro inesperado ao carregar subpastas.')),
+                  Text('Ocorreu um erro inesperado ao carregar subálbum.')),
         );
       }
     } finally {
@@ -203,7 +247,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     }
   }
 
-  Future<void> _addSubfolder(String subfolderName, List<String> tags) async {
+  Future<void> _addSubfolder(String subfolderName) async {
     final user = UserHelper().user;
     if (user == null || user.id == null) {
       debugPrint(
@@ -216,17 +260,16 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     try {
       final String subfolderNameForApi = subfolderName.trim();
       debugPrint(
-          '[_addSubfolder] Tentando criar subpasta com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}, tags: ${tags.join(",")}');
+          '[_addSubfolder] Tentando criar subálbum com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}}');
 
       final response = await _apiService.createSubFolder(
         parentFolderId: widget.initialFolderId,
         idUsuario: user.id!,
         folderName: subfolderNameForApi,
         parentFolderPath: widget.folderApiPath,
-        tags: tags,
       );
       debugPrint(
-          '[_addSubfolder] Subpasta criada com sucesso, resposta: ${json.encode(response)}');
+          '[_addSubfolder] Subalbum criada com sucesso, resposta: ${json.encode(response)}');
 
       if (mounted) {
         final newSubfolder = Folder.fromMap({
@@ -237,17 +280,13 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
           'idPastaPai': widget.initialFolderId,
           'imagens': [],
           'subpastas': [],
-          'tags': (response['tags'] as List<dynamic>?)
-                  ?.map((t) => t.toString())
-                  .toList() ??
-              tags,
+              
         });
-        await _saveTags(newSubfolder.id, tags); // Salvar tags localmente
         setState(() {
           _subfolders.add(newSubfolder);
         });
         debugPrint(
-            '[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai}, tags=${newSubfolder.tags?.join(",") ?? "nenhuma"}');
+            '[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai} ?? "nenhuma"}');
       }
     } catch (e) {
       debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
@@ -390,7 +429,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
 
                             setDialogState(() => isDialogLoading = true);
                             try {
-                              await _addSubfolder(subalbumName, tags);
+                              await _addSubfolder(subalbumName);
                               if (context.mounted) {
                                 Navigator.of(dialogContext).pop();
                               }
@@ -514,7 +553,7 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
           content: Text(
-              'Tem certeza que deseja excluir a subpasta "${subfolder.albunsCriadosPageDisplayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
+              'Tem certeza que deseja excluir o subálbum "${subfolder.albunsCriadosPageDisplayName}"? Esta ação removerá todas as imagens e informações inseridas e não poderá ser desfeita.'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -915,21 +954,30 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
                       Row(
                         children: [
                           Row(children: [
-                              IconButton(
-                              icon: Container(
+                            
+                             IconButton(
+                                icon: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                                // ignore: deprecated_member_use
+                                color: Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                  ),
                                 child: Icon(
-                                  Icons.add,
-                                  color: Colors.black.withOpacity(0.7),
-                                  size: 20,
-                                ),
+                                        Icons.add,
+                                        // ignore: deprecated_member_use
+                                        color: Colors.black.withOpacity(0.7),
+                                        size: 20,
+                                        ),
+                                        ),
+                                onPressed: () {
+                                  // Aqui a gente cria uma função anônima que não retorna nada
+                                  // e passa ela para o showInsertNameTag.
+                                  // Desta forma, a chamada `loadTags()` não é executada imediatamente,
+                                  // mas sim passada como um callback.
+                                  _showInsertNameTag(context, _apiService, () => _loadTags);
+                                },
                               ),
-                              onPressed: _showInsertNameTag,
-                            ),
                       Text(
                       'categorias',
                       style: TextStyle(
@@ -1046,93 +1094,177 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     );
   }
 
-    // Função que exibe o diálogo para o usuário inserir a tag
-  void _showInsertNameTag() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
+// A função que se comunica com a API para criar a tag, baseada no seu exemplo
+Future<void> _createTagsOnApi(String nomeTag, ApiService _apiService, VoidCallback _loadTags) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) {
+    debugPrint('Erro: usuário não logado.');
+    return;
+  }
+  try {
+    // Use o seu método saveTags real aqui
+    await _apiService.saveTags(
+      nomeTag: nomeTag,
+      usuario: user.id!,
+    );
+    debugPrint('Tags sincronizadas com a API: Sucesso!');
+    // Recarrega as tags para atualizar o DropdownButton
+    _loadTags();
+  } catch (e) {
+    debugPrint('Erro ao sincronizar tags com a API: $e');
+  }
+}  
+
+// O método que abre o diálogo de criação de tag
+Future<void> _showInsertNameTag(BuildContext context, ApiService _apiService, VoidCallback _loadTags) async {
+  final _tagController = TextEditingController();
+
+  // Get the user. The .user method can return null, so we check.
+  final user = UserHelper().user;
+
+  // If the user or the ID don't exist, show a message and return.
+  if (user == null || user.id == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nenhum usuário logado.')),
+    );
+    return;
+  }
+
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text('Criar Nova Tag', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: _tagsController,
-            decoration: InputDecoration(
-              hintText: 'Ex: Treino de pernas',
-              border: OutlineInputBorder(
+        title: const Text(
+          'Criar Nova Categoria',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: _tagController,
+          decoration: InputDecoration(
+            labelText: 'Nome da Categoria',
+            hintText: 'Ex: Treino',
+            border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _tagsController.clear();
-              },
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newTag = _tagsController.text.trim();
-                if (newTag.isNotEmpty) {
-                  // Chama a função para adicionar a tag ao subálbum
-                  _addTagToFolder(context as Folder,newTag);
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Tag "$newTag" sendo adicionada...')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
+          style: const TextStyle(color: Colors.black),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _tagsController.clear();  
+            },
+             child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final String newTag = _tagController.text.trim();
+              if (newTag.isNotEmpty) {
+                // Chama a função para criar a tag na API
+                await _createTagsOnApi(newTag, _apiService, _loadTags);
+                Navigator.of(context).pop(); // Fecha o diálogo após a tentativa de criação
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('O nome da categoria não pode ser vazio.')),
+                );
+              }
+            }, style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.lightGreen,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text('Criar Tag', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
+            child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+// O método para exibir o diálogo de adicionar tag
+void _showAddTagDialog(Folder group) {
+  // Obtenha o usuário. O método .user pode retornar null, então verificamos.
+  final user = UserHelper().user;
+
+  // Se o usuário ou o ID não existirem, mostre uma mensagem e retorne.
+  if (user == null || user.id == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nenhum usuário logado.')),
     );
+    return;
   }
 
-  // Add Tag Dialog
-  void _showAddTagDialog(Folder group) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
         backgroundColor: Colors.white,
         title: const Text(
           'Categorias',
           style: TextStyle(color: Colors.black),
         ),
-        content: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: DropdownButton<String>(
-            hint: const Text('Selecione uma categoria'),
-            value: null,
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: _availableTags.map((tag) {
-              return DropdownMenuItem<String>(
-                value: tag,
-                child: Text(tag),
+        content: FutureBuilder<List<TagModel>>(
+          // A correção está aqui: passamos o id do usuário diretamente como int,
+          // usando a sintaxe `user.id!` para garantir que não seja nulo,
+          // pois já fizemos essa verificação acima.
+          future: _apiService.getTags(user.id!),
+          builder: (context, snapshot) {
+            // Estado de Carregamento: mostra um indicador circular enquanto espera
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 100,
+                width: 100,
+                child: Center(child: CircularProgressIndicator()),
               );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                _addTagToFolder(group, value);
-                Navigator.of(context).pop();
-              }
-            },
-          ),
+            }
+
+            // Estado de Erro ou Sem Dados: mostra uma mensagem clara para o usuário
+            if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
+              return const SizedBox(
+                height: 50,
+                child: Center(
+                  child: Text(
+                    'Nenhuma categoria disponível.',
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+
+            // Estado de Dados Prontos: O Future foi completado e temos os dados.
+            final List<TagModel> tags = snapshot.data!;
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: DropdownButton<TagModel>(
+                hint: const Text('Selecione uma categoria'),
+                value: null, // Valor inicial é nulo
+                isExpanded: true,
+                underline: const SizedBox(),
+                items: tags.map((tag) {
+                  return DropdownMenuItem<TagModel>(
+                    value: tag,
+                    child: Text(tag.nomeTag),
+                  );
+                }).toList(),
+                onChanged: (tag) {
+                  if (tag != null) {
+                    _addTagToFolder(group, tag.nomeTag);
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+            );
+          },
         ),
         actions: [
           TextButton(
@@ -1143,7 +1275,10 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
+      );
+    },
+  );
+}
+
+
 }

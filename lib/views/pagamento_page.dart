@@ -19,17 +19,21 @@ class ExpiryDateFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Remove todos os caracteres não numéricos
-    String text = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    // Mantém apenas números
+    String digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // Limita a 4 dígitos
-    if (text.length > 4) {
-      text = text.substring(0, 4);
+    // Limita a 6 dígitos: MM + AAAA
+    if (digits.length > 6) {
+      digits = digits.substring(0, 6);
     }
 
-    // Aplica a máscara MM/AAAA
-    if (text.length >= 2) {
-      text = '${text.substring(0, 2)}/${text.substring(2)}';
+    String text;
+    if (digits.length <= 2) {
+      // Ainda digitando o mês
+      text = digits;
+    } else {
+      // Formata como MM/AAAA
+      text = '${digits.substring(0, 2)}/${digits.substring(2)}';
     }
 
     return TextEditingValue(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:application_progress/infra/api_exception.dart';
+import 'package:application_progress/models/tag_model.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -36,6 +37,74 @@ class ApiService {
     }
     return headers;
   }
+
+  /// lib/infra/api_services.dart
+  /// Função para atualizar uma pasta existente (renomear ou alterar tags).
+  ///
+  /// Requer o ID da pasta a ser atualizada, o ID do usuário,
+  /// o novo nome da pasta (opcional) e uma lista de tags (opcional).
+  ///
+  /// O novo endpoint para esta requisição deve ser definido em `ApiEndpoints`
+  /// como, por exemplo: `static const String updateFolder = '/pastas/atualizar';`
+  Future<Map<String, dynamic>> updateFolder({
+    required int folderId,
+    required int idUsuario,
+    String? folderName,
+    List<String>? tags,
+  }) async {
+    // Verifica se pelo menos o nome ou as tags foram fornecidos para a atualização.
+    if (folderName == null && (tags == null || tags.isEmpty)) {
+      throw ApiException('É necessário fornecer um novo nome de pasta ou tags para a atualização.', statusCode: 400);
+    }
+
+    final url = Uri.parse(ApiEndpoints.authenticateUser);
+    foundation.debugPrint(
+        '[updateFolder] Requisição para atualizar pasta em: $url com ID: $folderId, nome: $folderName, tags: $tags');
+
+    // Constrói o corpo da requisição com os dados a serem atualizados.
+    final body = {
+      'idUsuario': idUsuario,
+      'idPasta': folderId,
+      if (folderName != null) 'nomePasta': folderName,
+      if (tags != null) 'tags': tags,
+    };
+
+    return _sendRequest(
+      () => _httpClient.put( // Usando o método PUT para atualizar a pasta.
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Pasta atualizada com sucesso.',
+      errorMessage: 'Falha ao atualizar a pasta.',
+    );
+  }
+
+  /// lib/infra/api_services.dart
+  /// Função para carregar tags de uma pasta específica.
+  Future<List<TagModel>> loadTags(int folderId) async {
+    // Código da sua chamada de API aqui
+    // Exemplo de resposta (substitua pela sua chamada real)
+    final responseBody = {
+      "codRetorno": 200,
+      "message": "OK",
+      "totalTags": 3,
+      "data": [
+        {"id": 28, "nomeTag": "NewtAgs"},
+        {"id": 31, "nomeTag": "Perna"},
+        {"id": 32, "nomeTag": "treino"}
+      ]
+    };
+
+    if (responseBody['codRetorno'] == 200) {
+      final List data = responseBody['data'] as List;
+      // O mapeamento crucial para criar objetos TagModel
+      return data.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
+    } else {
+      throw ApiException('Falha ao carregar tags.');
+    }
+  }
+
 
   Future<Map<String, dynamic>> _sendRequest(
     Future<http.Response> Function() requestFunction, {
@@ -111,6 +180,44 @@ class ApiService {
       throw ApiException('Erro inesperado: ${e.toString()}',
           statusCode: 0, body: '');
     }
+  }
+
+    // lib/infra/api_services.dart
+  // CORREÇÃO: Método revisado para usar _sendRequest e incluir o ID do usuário.
+  /// Função para excluir uma tag existente pelo seu ID.
+  /// O endpoint para esta requisição deve ser definido em `ApiEndpoints`
+  /// como `excluiTags`. Certifique-se de que o backend espera o `idTag` no corpo
+  /// da requisição DELETE.
+  Future<Map<String, dynamic>> deleteTag(int idTag, String nomeTag) async {
+    // Acessa o ID do usuário do TokenHelper
+    final int? idUsuario = TokenHelper().userId;
+    
+    // Verifica se o ID do usuário é válido antes de prosseguir
+    if (idUsuario == 0) {
+      throw ApiException('ID do usuário não disponível. Por favor, faça login novamente.', statusCode: 401);
+    }
+    
+    final url = Uri.parse(ApiEndpoints.excluiTags);
+    
+    // O token será verificado automaticamente em _getHeaders e _sendRequest.
+    // Inclui agora o idUsuario no corpo da requisição
+    final body = {
+      'idTag': idTag,
+      'usuario': idUsuario, // Adicionado o ID do usuário
+    };
+
+    foundation.debugPrint('Requisição para excluir tag em: $url, ID: $idTag, Usuário: $idUsuario');
+
+    return _sendRequest(
+      // Usando o método DELETE e enviando o corpo com o ID da tag e do usuário.
+      () => _httpClient.delete(
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Tag excluída com sucesso.',
+      errorMessage: 'Falha ao excluir tag.',
+    );
   }
 
   /// Função para autenticar o usuário.
@@ -252,27 +359,30 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> deleteTag(int userId, String tag) async {
-    final url = Uri.parse('${ApiEndpoints.excluiTags}?usuario=$userId&nomeTag=$tag');
-    final token = TokenHelper().token;
-    if (token == null || token.isEmpty) {
-      throw ApiException('Token de autenticação ausente', statusCode: 401);
-    }
+  /// lib/infra/api_services.dart
+  /// **CORREÇÃO:** Método revisado para usar _sendRequest.
+  /// Função para excluir uma tag existente pelo seu ID.
+  /// O endpoint para esta requisição deve ser definido em `ApiEndpoints`
+  /// como `excluiTags`. Certifique-se de que o backend espera o `idTag` no corpo
+  /// da requisição DELETE.
+  Future<Map<String, dynamic>> _deleteTag(int idTag) async {
+    final url = Uri.parse(ApiEndpoints.excluiTags);
+    
+    // O token será verificado automaticamente em _getHeaders e _sendRequest.
+    final body = {'idTag': idTag};
 
-    final response = await http.delete(
-      Uri.parse(ApiEndpoints.excluiTags),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'usuario': userId, 'nomeTag': tag}),
+    foundation.debugPrint('Requisição para excluir tag em: $url, ID: $idTag');
+
+    return _sendRequest(
+      // Usando o método DELETE e enviando o corpo com o ID da tag.
+      () => _httpClient.delete(
+        url,
+        headers: _getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Tag excluída com sucesso.',
+      errorMessage: 'Falha ao excluir tag.',
     );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw ApiException('Falha ao excluir tag: ${response.body}', statusCode: response.statusCode);
-    }
   }
 
   Future<Map<String, dynamic>> deleteImage(int idUsuario, int idImagem) async {
@@ -294,7 +404,6 @@ class ApiService {
     );
   }
 
-  
 
   /// Função para listar TODAS as pastas principais do usuário logado.
   /// Este método agora obtém as pastas do UserHelper, que foram salvas durante o login.
@@ -408,7 +517,7 @@ class ApiService {
             uploadedImages.add(ImageModel(
               id: 0, // ID temporário, pois a API não o retorna neste ponto
               url: path as String,
-              takenAt: DateTime.now().toIso8601String(),
+              //takenAt: DateTime.now().toIso8601String(),
               // Data atual como fallback
             ));
           }
@@ -492,31 +601,30 @@ class ApiService {
   }
   
 
-// Função de renovação de token (ajuste conforme necessário)
-  Future<void> refreshTokenIfNeeded() async {
-    final token = TokenHelper().token;
-    if (token != null) {
-      try {
-        final parts = token.split('.');
-        if (parts.length == 3) {
-          final payload = json.decode(
-              base64Url.decode(base64Url.normalize(parts[1])) as String);
-          final expiry = payload['exp'] as int? ?? 0;
-          final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-          if (expiry < now + 300) {
-            // Renova se faltar 5 minutos ou menos
-            final user = UserHelper().user;
-            if (user?.cpf != null && user?.senha != null) {
-              await authenticateUser(user!.cpf!, user.senha!); // Reautentica
-            }
-          }
+Future<String?> refreshTokenIfNeeded() async {
+  final tokenHelper = TokenHelper();
+  final token = tokenHelper.token;
+  if (token != null) {
+    try {
+      final parts = token.split('.');
+      if (parts.length == 3) {
+        final payload = json.decode(
+            base64Url.decode(base64Url.normalize(parts[1])).toString());
+        final expiry = payload['exp'] as int? ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        if (expiry < now + 300) { // Renova se faltar 5 minutos ou menos
+          // Tenta renovar o token usando o token atual
+          final response = await authenticateUser('', '', token: token);
+          return response['token'] as String?; // Retorna o novo token
         }
-      } catch (e) {
-        foundation
-            .debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
+        return token; // Retorna o token atual se não expirado
       }
+    } catch (e) {
+      foundation.debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
     }
   }
+  return null; // Retorna null se falhar
+}
 
   Future<Map<String, dynamic>?> _getParentFolderDetails(
       int parentFolderId) async {
@@ -602,7 +710,7 @@ class ApiService {
     required String nomeTag,
     required int usuario,
   }) async {
-    final url = Uri.parse(ApiEndpoints.saveTags);
+    final url = Uri.parse(ApiEndpoints.cadastraTags);
     foundation.debugPrint(
         '[_saveTags] Requisição para salvar tags em: $url, nomeTag: $nomeTag, usuario: $usuario');
 
@@ -622,7 +730,9 @@ class ApiService {
     );
   }
 
-Future<List<String>> getTags(int usuario) async {
+  // lib/infra/api_services.dart
+  // CORREÇÃO: Função getTags que retorna a lista de objetos TagModel.
+  Future<List<TagModel>> getTags(int usuario) async {
     final User? user = UserHelper().user;
     if (user == null || user.id == null) {
       throw ApiException('Usuário não autenticado.', statusCode: 401);
@@ -643,12 +753,44 @@ Future<List<String>> getTags(int usuario) async {
 
     if (responseBody.containsKey('data') && responseBody['data'] is List) {
       final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
-      foundation.debugPrint('Tags do usuário: ${tagsJson.map((e) => e['nomeTag'].toString()).toList()}');
-      return tagsJson.map((e) => e['nomeTag'].toString()).toList();
+      foundation.debugPrint('Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
+      // CORREÇÃO AQUI: Mapeia para objetos TagModel
+      return tagsJson.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
     } else {
       foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
       return [];
     }
   }
-}
 
+    Future<List<ImageModel>> getComparison(ImageModel idPhoto) async {
+    final User? user = UserHelper().user;
+    if (user == null || user.id == null) {
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/comparacao$idPhoto');
+    final body = {
+      'usuario': user.id,
+      "id_photo": idPhoto.id
+    };
+    final responseBody = await _sendRequest(
+      () => _httpClient.get(
+        url,
+        headers: _getHeaders(includeContentType: true),
+      ),
+      successMessage: 'Comparação carregadas com sucesso.',
+      errorMessage: 'Falha ao carregar Comparação.',
+    );
+
+    if (responseBody.containsKey('data') && responseBody['data'] is List) {
+      final List<dynamic> imageUser = responseBody['data'] as List<dynamic>;
+      foundation.debugPrint('Image do usuário: ${imageUser.map((e) => e['id_photo']?.toString() ?? '').toList()}');
+      // CORREÇÃO AQUI: Mapeia para objetos TagModel
+      return imageUser.map((json) => ImageModel.fromMap(json as Map<String, dynamic>)).toList();
+    } else {
+      foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
+      return [];
+    }
+  }
+
+
+}

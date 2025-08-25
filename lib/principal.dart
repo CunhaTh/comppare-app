@@ -300,7 +300,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
           content: Text(
-              'Tem certeza que deseja excluir a pasta "${folder.principalPageDisplayName}"? Esta ação removerá todas as imagens dentro dela e não poderá ser desfeita.'),
+              'Tem certeza que deseja excluir o álbum "${folder.principalPageDisplayName}"? Esta ação removerá todas as imagens e informações inseridas e não poderá ser desfeita.'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -1181,8 +1181,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 child: Column(
                   children: [
                     _buildDrawerItem(
-                      icon: Icons.home,
-                      title: 'Início',
+                      icon: Icons.person,
+                      title: 'Perfil',
                       onTap: () {
                         Navigator.pop(context);
                         showDialog(

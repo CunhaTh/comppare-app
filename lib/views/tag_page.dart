@@ -1,10 +1,15 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
+import 'package:application_progress/models/tag_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as foundation;
+import 'package:http/http.dart' as _httpClient;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateTagsPage extends StatefulWidget {
@@ -17,7 +22,7 @@ class CreateTagsPage extends StatefulWidget {
 class _CreateTagsPageState extends State<CreateTagsPage> {
   final _tagsController = TextEditingController();
   bool _isLoading = false;
-  List<String> _tags = [];
+  List<TagModel> _tags = [];
   final ApiService _apiService = ApiService();
 
   @override
@@ -26,6 +31,7 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
     _loadTags();
   }
 
+  
   Future<void> _loadTags() async {
     final user = UserHelper().user;
     if (user == null || user.id == null) {
@@ -33,46 +39,42 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
+      // getTags agora deve retornar uma List<TagModel>
       final tagsFromApi = await _apiService.getTags(user.id!);
-      if (tagsFromApi.isNotEmpty) {
-        final tagsSet = LinkedHashSet<String>.from(tagsFromApi).toList();
-        await _saveTagsLocally('user_${user.id}_tags', tagsSet);
-        await _saveGlobalTags(tagsSet); // Salva tags globais
-        await UserHelper().setUserTags(tagsSet);
-        if (mounted) {
-          setState(() {
-            _tags = tagsSet;
-            debugPrint('Tags carregadas do servidor: $_tags');
-          });
-        }
-      } else {
-        final prefs = await SharedPreferences.getInstance();
-        final tagsKey = 'user_${user.id}_tags';
-        final tagsString = prefs.getString(tagsKey);
-        if (tagsString != null) {
-          final localTags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
-          await _saveGlobalTags(localTags);
-          await UserHelper().setUserTags(localTags);
-          if (mounted) {
-            setState(() {
-              _tags = localTags;
-              debugPrint('Tags carregadas do cache local: $_tags');
-            });
-          }
-        }
+      
+      // Armazena a lista de TagModel no estado
+      if (mounted) {
+        setState(() {
+          _tags = tagsFromApi.cast<TagModel>();
+          debugPrint('Tags carregadas do servidor: ${_tags.map((t) => t.nomeTag).toList()}');
+        });
       }
+      
+      // Salva a lista de objetos TagModel, convertendo para JSON antes de salvar.
+      final tagsJsonList = tagsFromApi.map((tag) => jsonEncode({'id': tag, 'nomeTag': tag})).toList();
+      await _saveTagsLocally('user_${user.id}_tags', tagsJsonList);
+      await _saveGlobalTags(tagsJsonList);
+      await UserHelper().setUserTags(tagsFromApi.map((t) => t).cast<String>().toList());
+
     } catch (e) {
       debugPrint('Erro ao carregar tags: $e');
+      // Tentativa de carregar do cache local em caso de falha na API
       final prefs = await SharedPreferences.getInstance();
       final tagsKey = 'user_${user.id}_tags';
       final tagsString = prefs.getString(tagsKey);
       if (tagsString != null && mounted) {
-        setState(() {
-          _tags = (jsonDecode(tagsString) as List<dynamic>).map((e) => e.toString()).toList();
-          debugPrint('Tags carregadas do cache local (fallback): $_tags');
-        });
+        try {
+          final localTags = (jsonDecode(tagsString) as List<dynamic>).map((e) => TagModel.fromJson(jsonDecode(e))).toList();
+          setState(() {
+            _tags = localTags;
+            debugPrint('Tags carregadas do cache local (fallback): ${_tags.map((t) => t.nomeTag).toList()}');
+          });
+        } catch (e) {
+           debugPrint('Erro ao parsear tags do cache local: $e');
+        }
       }
     } finally {
       if (mounted) {
@@ -81,19 +83,19 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
     }
   }
 
-  Future<void> _saveTagsLocally(String key, List<String> tags) async {
+  Future<void> _saveTagsLocally(String key, List<String> tagsJson) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(key, jsonEncode(tags));
-    debugPrint('Tags salvas localmente para chave $key: ${tags.join(",")}');
+    await prefs.setString(key, jsonEncode(tagsJson));
+    debugPrint('Tags salvas localmente para chave $key: ${tagsJson.join(",")}');
+  }
+  
+  Future<void> _saveGlobalTags(List<String> tagsJson) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('global_tags', jsonEncode(tagsJson));
+    debugPrint('Tags globais salvas: ${tagsJson.join(",")}');
   }
 
-  Future<void> _saveGlobalTags(List<String> tags) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('global_tags', jsonEncode(tags)); // Corrigido para 'global_tags'
-    debugPrint('Tags globais salvas: ${tags.join(",")}');
-  }
-
-  Future<void> _syncTagsWithApi(String nomeTag) async {
+  Future<void> _createTagsOnApi(String nomeTag) async {
     final user = UserHelper().user;
     if (user == null || user.id == null) {
       _navigateToLogin();
@@ -119,6 +121,8 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
     }
   }
 
+
+
   Future<void> _createTags() async {
     final tagsString = _tagsController.text.trim();
     if (tagsString.isEmpty) {
@@ -126,6 +130,7 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final tags = tagsString.split(',').map((tag) => tag.trim()).where((tag) {
@@ -147,20 +152,20 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
       }
 
       final uniqueTags = tags.join(',');
-      await _syncTagsWithApi(uniqueTags);
+      await _createTagsOnApi(uniqueTags);
 
       if (mounted) {
         setState(() {
           _tagsController.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Tags criadas com sucesso: $uniqueTags')),
+          SnackBar(content: Text('Categorias criadas com sucesso: $uniqueTags')),
         );
       }
     } catch (e) {
-      debugPrint('Erro ao criar tags: $e');
+      debugPrint('Erro ao criar Categoria: $e');
       if (mounted) {
-        _showErrorDialog('Falha ao criar tags: $e');
+        _showErrorDialog('Falha ao criar categoria: $e');
       }
     } finally {
       if (mounted) {
@@ -168,6 +173,33 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
       }
     }
   }
+
+    Future<void> _handleDeleteTag(TagModel tag) async {
+    try {
+      // Chama a função da classe ApiService, passando o ID da tag.
+      await _apiService.deleteTag(tag.id, tag.nomeTag);
+      
+      // Se a chamada for bem-sucedida, você pode recarregar a lista de tags
+      // ou remover a tag da lista local.
+      // Por exemplo:
+      setState(() {
+        // Remove a tag da lista local
+        _tags.removeWhere((t) => t.id == tag.id);
+      });
+
+      // Exibe uma mensagem de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tag "${tag.nomeTag}" excluída com sucesso!'))
+      );
+
+    } catch (e) {
+      // Exibe uma mensagem de erro
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao excluir tag: $e'))
+      );
+    }
+  }
+
 
   void _showErrorDialog(String message) {
     if (!mounted) return;
@@ -267,8 +299,9 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
                   final tag = _tags[index];
                   return ListTile(
                     title: Text(
-                      tag,
+                      tag.nomeTag,
                       style: TextStyle(
+                        // ignore: deprecated_member_use
                         fontSize: 16 * MediaQuery.of(context).textScaleFactor,
                         color: Colors.black87,
                       ),
@@ -276,20 +309,8 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
-                        setState(() {
-                          _tags.removeAt(index);
-                        });
-                        final user = UserHelper().user;
-                        if (user != null && user.id != null) {
-                          await _saveTagsLocally('user_${user.id}_tags', _tags);
-                          await _syncTagsWithApi(_tags.join(','));
-                          await _loadTags(); // Recarrega após remoção
-                        }
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Tag "$tag" removida com sucesso')),
-                          );
-                        }
+                        // Passando o ID e o nome da tag para a nova função
+                        await _handleDeleteTag(tag);
                       },
                     ),
                   );
