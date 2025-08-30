@@ -55,7 +55,9 @@ class ApiService {
   }) async {
     // Verifica se pelo menos o nome ou as tags foram fornecidos para a atualização.
     if (folderName == null && (tags == null || tags.isEmpty)) {
-      throw ApiException('É necessário fornecer um novo nome de pasta ou tags para a atualização.', statusCode: 400);
+      throw ApiException(
+          'É necessário fornecer um novo nome de pasta ou tags para a atualização.',
+          statusCode: 400);
     }
 
     final url = Uri.parse(ApiEndpoints.authenticateUser);
@@ -100,7 +102,9 @@ class ApiService {
     if (responseBody['codRetorno'] == 200) {
       final List data = responseBody['data'] as List;
       // O mapeamento crucial para criar objetos TagModel
-      return data.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
+      return data
+          .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     } else {
       throw ApiException('Falha ao carregar tags.');
     }
@@ -189,12 +193,14 @@ Future<dynamic> sendRequest(
   Future<Future> deleteTag(int idTag, String nomeTag) async {
     // Acessa o ID do usuário do TokenHelper
     final int? idUsuario = TokenHelper().userId;
-    
+
     // Verifica se o ID do usuário é válido antes de prosseguir
     if (idUsuario == 0) {
-      throw ApiException('ID do usuário não disponível. Por favor, faça login novamente.', statusCode: 401);
+      throw ApiException(
+          'ID do usuário não disponível. Por favor, faça login novamente.',
+          statusCode: 401);
     }
-    
+
     final url = Uri.parse(ApiEndpoints.excluiTags);
     
     // O token será verificado automaticamente em getHeaders( e sendRequest.
@@ -204,7 +210,8 @@ Future<dynamic> sendRequest(
       'usuario': idUsuario, // Adicionado o ID do usuário
     };
 
-    foundation.debugPrint('Requisição para excluir tag em: $url, ID: $idTag, Usuário: $idUsuario');
+    foundation.debugPrint(
+        'Requisição para excluir tag em: $url, ID: $idTag, Usuário: $idUsuario');
 
     return sendRequest(
       // Usando o método DELETE e enviando o corpo com o ID da tag e do usuário.
@@ -246,7 +253,8 @@ Future<dynamic> sendRequest(
       () => _httpClient.post(
         url,
         headers: headers,
-        body: jsonEncode(body.isNotEmpty ? body : null), // Envia corpo apenas se necessário
+        body: jsonEncode(
+            body.isNotEmpty ? body : null), // Envia corpo apenas se necessário
       ),
       successMessage: 'Autenticação bem-sucedida.',
       errorMessage: 'Falha na autenticação. Verifique suas credenciais.',
@@ -401,7 +409,6 @@ Future<dynamic> sendRequest(
       errorMessage: 'Falha ao excluir imagem.',
     );
   }
-
 
   /// Função para listar TODAS as pastas principais do usuário logado.
   /// Este método agora obtém as pastas do UserHelper, que foram salvas durante o login.
@@ -597,32 +604,33 @@ Future<dynamic> sendRequest(
       errorMessage: 'Você atingiu o limite de subálbuns criadas.',
     );
   }
-  
 
-Future<String?> refreshTokenIfNeeded() async {
-  final tokenHelper = TokenHelper();
-  final token = tokenHelper.token;
-  if (token != null) {
-    try {
-      final parts = token.split('.');
-      if (parts.length == 3) {
-        final payload = json.decode(
-            base64Url.decode(base64Url.normalize(parts[1])).toString());
-        final expiry = payload['exp'] as int? ?? 0;
-        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        if (expiry < now + 300) { // Renova se faltar 5 minutos ou menos
-          // Tenta renovar o token usando o token atual
-          final response = await authenticateUser('', '', token: token);
-          return response['token'] as String?; // Retorna o novo token
+  Future<String?> refreshTokenIfNeeded() async {
+    final tokenHelper = TokenHelper();
+    final token = tokenHelper.token;
+    if (token != null) {
+      try {
+        final parts = token.split('.');
+        if (parts.length == 3) {
+          final payload = json.decode(
+              base64Url.decode(base64Url.normalize(parts[1])).toString());
+          final expiry = payload['exp'] as int? ?? 0;
+          final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          if (expiry < now + 300) {
+            // Renova se faltar 5 minutos ou menos
+            // Tenta renovar o token usando o token atual
+            final response = await authenticateUser('', '', token: token);
+            return response['token'] as String?; // Retorna o novo token
+          }
+          return token; // Retorna o token atual se não expirado
         }
-        return token; // Retorna o token atual se não expirado
+      } catch (e) {
+        foundation
+            .debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
       }
-    } catch (e) {
-      foundation.debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
     }
+    return null; // Retorna null se falhar
   }
-  return null; // Retorna null se falhar
-}
 
   Future<Map<String, dynamic>?> _getParentFolderDetails(
       int parentFolderId) async {
@@ -702,7 +710,6 @@ Future<String?> refreshTokenIfNeeded() async {
     return PaymentPixReturnModel.fromMap(response);
   }
 
-  
   /// Função para salvar tags no servidor.
   Future<Future> saveTags({
     required String nomeTag,
@@ -751,9 +758,12 @@ Future<String?> refreshTokenIfNeeded() async {
 
     if (responseBody.containsKey('data') && responseBody['data'] is List) {
       final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
-      foundation.debugPrint('Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
+      foundation.debugPrint(
+          'Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
       // CORREÇÃO AQUI: Mapeia para objetos TagModel
-      return tagsJson.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
+      return tagsJson
+          .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     } else {
       foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
       return [];

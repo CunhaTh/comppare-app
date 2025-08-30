@@ -57,13 +57,28 @@ class User {
       nome: map['nome'] as String?,
       cpf: map['cpf'] as String?,
       telefone: map['telefone'] as String?,
-      idPlano: map['idPlano'] is String ? int.tryParse(map['idPlano']) : map['idPlano'] as int?,
+      idPlano: map['idPlano'] is String
+          ? int.tryParse(map['idPlano'])
+          : map['idPlano'] as int?,
       email: map['email'] as String?,
       token: map['token'] as String?,
       refreshToken: map['refreshToken'] as String?,
       pastas: parsedPastas,
     );
   }
+
+  factory User.empty() => User(
+        id: 0,
+        nome: "",
+        cpf: "",
+        senha: "",
+        telefone: "",
+        idPlano: 0,
+        email: "",
+        token: "",
+        refreshToken: "",
+        pastas: [],
+      );
 }
 
 class UserHelper {
@@ -80,8 +95,6 @@ class UserHelper {
 
   List<String>? get tags => _tags;
 
- 
-
   Future<void> init() async {
     if (_isInitialized) return;
 
@@ -89,17 +102,19 @@ class UserHelper {
       final userData = _box.read(_userKey);
       if (userData != null) {
         _user = User.fromMap(json.decode(userData));
-        foundation.debugPrint('UserHelper: Usuário carregado do storage: ${_user?.nome}');
+        foundation.debugPrint(
+            'UserHelper: Usuário carregado do storage: ${_user?.nome}');
       }
     } catch (e) {
-      foundation.debugPrint('UserHelper: Erro ao carregar usuário do storage: $e');
+      foundation
+          .debugPrint('UserHelper: Erro ao carregar usuário do storage: $e');
       _user = null;
       await _box.remove(_userKey);
     }
     _isInitialized = true;
   }
 
- Future<void> setUserTags(List<String> tags) async {
+  Future<void> setUserTags(List<String> tags) async {
     _tags = tags;
   }
 
@@ -117,9 +132,11 @@ class UserHelper {
     if (_user != null) {
       _user!.pastas = folders;
       await _box.write(_userKey, json.encode(_user!.toMap()));
-      foundation.debugPrint('UserHelper: Pastas do usuário atualizadas no storage e cache.');
+      foundation.debugPrint(
+          'UserHelper: Pastas do usuário atualizadas no storage e cache.');
     } else {
-      foundation.debugPrint('UserHelper: Não foi possível atualizar pastas, usuário não está no cache.');
+      foundation.debugPrint(
+          'UserHelper: Não foi possível atualizar pastas, usuário não está no cache.');
     }
   }
 
@@ -132,10 +149,13 @@ class UserHelper {
     if (userId != null && userId > 0 && token != null && token.isNotEmpty) {
       try {
         // Chama authenticateUser com o token existente para refresh
-        final response = await apiService.authenticateUser('', '', token: token);
-        foundation.debugPrint('[_refreshUser] Resposta da API: ${json.encode(response)}');
+        final response =
+            await apiService.authenticateUser('', '', token: token);
+        foundation.debugPrint(
+            '[_refreshUser] Resposta da API: ${json.encode(response)}');
 
-        if (response.containsKey('dados') && response['dados'] is Map<String, dynamic>) {
+        if (response.containsKey('dados') &&
+            response['dados'] is Map<String, dynamic>) {
           final userData = response['dados'] as Map<String, dynamic>;
           final User updatedUser = User(
             id: userData['id'] as int?,
@@ -147,22 +167,29 @@ class UserHelper {
             token: token,
           );
           if (response.containsKey('pastas') && response['pastas'] is List) {
-            final List<dynamic> pastasJson = response['pastas'] as List<dynamic>;
-            updatedUser.pastas = pastasJson.map((item) => Folder.fromMap(item as Map<String, dynamic>)).toList();
-            foundation.debugPrint('[_refreshUser] Pastas atualizadas: ${updatedUser.pastas?.length}');
+            final List<dynamic> pastasJson =
+                response['pastas'] as List<dynamic>;
+            updatedUser.pastas = pastasJson
+                .map((item) => Folder.fromMap(item as Map<String, dynamic>))
+                .toList();
+            foundation.debugPrint(
+                '[_refreshUser] Pastas atualizadas: ${updatedUser.pastas?.length}');
           } else {
             updatedUser.pastas = [];
-            foundation.debugPrint('[_refreshUser] Nenhuma pasta encontrada na resposta.');
+            foundation.debugPrint(
+                '[_refreshUser] Nenhuma pasta encontrada na resposta.');
           }
           await setUser(updatedUser);
         } else {
-          foundation.debugPrint('[_refreshUser] Resposta inválida: dados ou pastas ausentes.');
+          foundation.debugPrint(
+              '[_refreshUser] Resposta inválida: dados ou pastas ausentes.');
         }
       } catch (e) {
         foundation.debugPrint('[_refreshUser] Erro ao atualizar usuário: $e');
       }
     } else {
-      foundation.debugPrint('[_refreshUser] Usuário não autenticado ou token inválido.');
+      foundation.debugPrint(
+          '[_refreshUser] Usuário não autenticado ou token inválido.');
     }
   }
 

@@ -1378,6 +1378,7 @@ Future<List<TagModel>> getTags(int usuario) async {
   if (user == null || user.id == null) {
     throw ApiException('Usuário não autenticado.', statusCode: 401);
   }
+
   final url = Uri.parse(ApiEndpoints.listarTags);
   final body = {
     'usuario': user.id,
