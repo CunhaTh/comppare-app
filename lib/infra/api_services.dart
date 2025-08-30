@@ -54,7 +54,9 @@ class ApiService {
   }) async {
     // Verifica se pelo menos o nome ou as tags foram fornecidos para a atualização.
     if (folderName == null && (tags == null || tags.isEmpty)) {
-      throw ApiException('É necessário fornecer um novo nome de pasta ou tags para a atualização.', statusCode: 400);
+      throw ApiException(
+          'É necessário fornecer um novo nome de pasta ou tags para a atualização.',
+          statusCode: 400);
     }
 
     final url = Uri.parse(ApiEndpoints.authenticateUser);
@@ -70,7 +72,8 @@ class ApiService {
     };
 
     return _sendRequest(
-      () => _httpClient.put( // Usando o método PUT para atualizar a pasta.
+      () => _httpClient.put(
+        // Usando o método PUT para atualizar a pasta.
         url,
         headers: _getHeaders(includeContentType: true),
         body: jsonEncode(body),
@@ -99,12 +102,13 @@ class ApiService {
     if (responseBody['codRetorno'] == 200) {
       final List data = responseBody['data'] as List;
       // O mapeamento crucial para criar objetos TagModel
-      return data.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
+      return data
+          .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     } else {
       throw ApiException('Falha ao carregar tags.');
     }
   }
-
 
   Future<Map<String, dynamic>> _sendRequest(
     Future<http.Response> Function() requestFunction, {
@@ -182,7 +186,7 @@ class ApiService {
     }
   }
 
-    // lib/infra/api_services.dart
+  // lib/infra/api_services.dart
   // CORREÇÃO: Método revisado para usar _sendRequest e incluir o ID do usuário.
   /// Função para excluir uma tag existente pelo seu ID.
   /// O endpoint para esta requisição deve ser definido em `ApiEndpoints`
@@ -191,14 +195,16 @@ class ApiService {
   Future<Map<String, dynamic>> deleteTag(int idTag, String nomeTag) async {
     // Acessa o ID do usuário do TokenHelper
     final int? idUsuario = TokenHelper().userId;
-    
+
     // Verifica se o ID do usuário é válido antes de prosseguir
     if (idUsuario == 0) {
-      throw ApiException('ID do usuário não disponível. Por favor, faça login novamente.', statusCode: 401);
+      throw ApiException(
+          'ID do usuário não disponível. Por favor, faça login novamente.',
+          statusCode: 401);
     }
-    
+
     final url = Uri.parse(ApiEndpoints.excluiTags);
-    
+
     // O token será verificado automaticamente em _getHeaders e _sendRequest.
     // Inclui agora o idUsuario no corpo da requisição
     final body = {
@@ -206,7 +212,8 @@ class ApiService {
       'usuario': idUsuario, // Adicionado o ID do usuário
     };
 
-    foundation.debugPrint('Requisição para excluir tag em: $url, ID: $idTag, Usuário: $idUsuario');
+    foundation.debugPrint(
+        'Requisição para excluir tag em: $url, ID: $idTag, Usuário: $idUsuario');
 
     return _sendRequest(
       // Usando o método DELETE e enviando o corpo com o ID da tag e do usuário.
@@ -248,7 +255,8 @@ class ApiService {
       () => _httpClient.post(
         url,
         headers: headers,
-        body: jsonEncode(body.isNotEmpty ? body : null), // Envia corpo apenas se necessário
+        body: jsonEncode(
+            body.isNotEmpty ? body : null), // Envia corpo apenas se necessário
       ),
       successMessage: 'Autenticação bem-sucedida.',
       errorMessage: 'Falha na autenticação. Verifique suas credenciais.',
@@ -367,7 +375,7 @@ class ApiService {
   /// da requisição DELETE.
   Future<Map<String, dynamic>> _deleteTag(int idTag) async {
     final url = Uri.parse(ApiEndpoints.excluiTags);
-    
+
     // O token será verificado automaticamente em _getHeaders e _sendRequest.
     final body = {'idTag': idTag};
 
@@ -403,7 +411,6 @@ class ApiService {
       errorMessage: 'Falha ao excluir imagem.',
     );
   }
-
 
   /// Função para listar TODAS as pastas principais do usuário logado.
   /// Este método agora obtém as pastas do UserHelper, que foram salvas durante o login.
@@ -549,7 +556,6 @@ class ApiService {
     }
   }
 
-
   Future<Map<String, dynamic>> createSubFolder({
     required int parentFolderId,
     required int idUsuario,
@@ -599,32 +605,33 @@ class ApiService {
       errorMessage: 'Você atingiu o limite de subálbuns criadas.',
     );
   }
-  
 
-Future<String?> refreshTokenIfNeeded() async {
-  final tokenHelper = TokenHelper();
-  final token = tokenHelper.token;
-  if (token != null) {
-    try {
-      final parts = token.split('.');
-      if (parts.length == 3) {
-        final payload = json.decode(
-            base64Url.decode(base64Url.normalize(parts[1])).toString());
-        final expiry = payload['exp'] as int? ?? 0;
-        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        if (expiry < now + 300) { // Renova se faltar 5 minutos ou menos
-          // Tenta renovar o token usando o token atual
-          final response = await authenticateUser('', '', token: token);
-          return response['token'] as String?; // Retorna o novo token
+  Future<String?> refreshTokenIfNeeded() async {
+    final tokenHelper = TokenHelper();
+    final token = tokenHelper.token;
+    if (token != null) {
+      try {
+        final parts = token.split('.');
+        if (parts.length == 3) {
+          final payload = json.decode(
+              base64Url.decode(base64Url.normalize(parts[1])).toString());
+          final expiry = payload['exp'] as int? ?? 0;
+          final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          if (expiry < now + 300) {
+            // Renova se faltar 5 minutos ou menos
+            // Tenta renovar o token usando o token atual
+            final response = await authenticateUser('', '', token: token);
+            return response['token'] as String?; // Retorna o novo token
+          }
+          return token; // Retorna o token atual se não expirado
         }
-        return token; // Retorna o token atual se não expirado
+      } catch (e) {
+        foundation
+            .debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
       }
-    } catch (e) {
-      foundation.debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
     }
+    return null; // Retorna null se falhar
   }
-  return null; // Retorna null se falhar
-}
 
   Future<Map<String, dynamic>?> _getParentFolderDetails(
       int parentFolderId) async {
@@ -704,7 +711,6 @@ Future<String?> refreshTokenIfNeeded() async {
     return PaymentPixReturnModel.fromMap(response);
   }
 
-  
   /// Função para salvar tags no servidor.
   Future<Map<String, dynamic>> saveTags({
     required String nomeTag,
@@ -737,7 +743,8 @@ Future<String?> refreshTokenIfNeeded() async {
     if (user == null || user.id == null) {
       throw ApiException('Usuário não autenticado.', statusCode: 401);
     }
-    final url = Uri.parse('${ApiEndpoints.baseUrl}/tags/recuperar-tags-usuario');
+    final url =
+        Uri.parse('${ApiEndpoints.baseUrl}/tags/recuperar-tags-usuario');
     final body = {
       'usuario': user.id,
     };
@@ -753,25 +760,25 @@ Future<String?> refreshTokenIfNeeded() async {
 
     if (responseBody.containsKey('data') && responseBody['data'] is List) {
       final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
-      foundation.debugPrint('Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
+      foundation.debugPrint(
+          'Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
       // CORREÇÃO AQUI: Mapeia para objetos TagModel
-      return tagsJson.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
+      return tagsJson
+          .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     } else {
       foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
       return [];
     }
   }
 
-    Future<List<ImageModel>> getComparison(ImageModel idPhoto) async {
+  Future<List<ImageModel>> getComparison(ImageModel idPhoto) async {
     final User? user = UserHelper().user;
     if (user == null || user.id == null) {
       throw ApiException('Usuário não autenticado.', statusCode: 401);
     }
     final url = Uri.parse('${ApiEndpoints.baseUrl}/comparacao$idPhoto');
-    final body = {
-      'usuario': user.id,
-      "id_photo": idPhoto.id
-    };
+    final body = {'usuario': user.id, "id_photo": idPhoto.id};
     final responseBody = await _sendRequest(
       () => _httpClient.get(
         url,
@@ -783,14 +790,70 @@ Future<String?> refreshTokenIfNeeded() async {
 
     if (responseBody.containsKey('data') && responseBody['data'] is List) {
       final List<dynamic> imageUser = responseBody['data'] as List<dynamic>;
-      foundation.debugPrint('Image do usuário: ${imageUser.map((e) => e['id_photo']?.toString() ?? '').toList()}');
+      foundation.debugPrint(
+          'Image do usuário: ${imageUser.map((e) => e['id_photo']?.toString() ?? '').toList()}');
       // CORREÇÃO AQUI: Mapeia para objetos TagModel
-      return imageUser.map((json) => ImageModel.fromMap(json as Map<String, dynamic>)).toList();
+      return imageUser
+          .map((json) => ImageModel.fromMap(json as Map<String, dynamic>))
+          .toList();
     } else {
       foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
       return [];
     }
   }
 
+  Future<PlanModel> getPlanById(int planId) async {
+    try {
+      final url = Uri.parse('${ApiEndpoints.getPlanById}/$planId');
+      log("URL DE BUSCA DE PLANO POR ID: $url");
 
+      final response = await _sendRequest(
+        () => _httpClient.get(
+          url,
+          headers: _getHeaders(includeContentType: true),
+        ),
+        successMessage: 'Plano recuperado com sucesso.',
+        errorMessage: 'Falha ao recuperar plano.',
+      );
+
+      log("RESPOSTA DA API - GET PLAN BY ID: ${jsonEncode(response)}");
+
+      if (response['codRetorno'] == 200) {
+        return PlanModel.fromJson(response['data']);
+      } else {
+        throw ApiException(response['message'],
+            statusCode: response['codRetorno']);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> cancelPlan(int idUser) async {
+    try {
+      final url = Uri.parse(ApiEndpoints.cancelPlan);
+      log("URL DE BUSCA DE PLANO POR ID: $url");
+
+      final response = await _sendRequest(
+        () => _httpClient.post(
+          url,
+          headers: _getHeaders(includeContentType: true),
+          body: jsonEncode({'usuario': idUser}),
+        ),
+        successMessage: 'Plano recuperado com sucesso.',
+        errorMessage: 'Falha ao recuperar plano.',
+      );
+
+      log("RESPOSTA DA API - CANCELAR PLANO: ${jsonEncode(response)}");
+
+      if (response['codRetorno'] == 200) {
+        return true;
+      } else {
+        throw ApiException(response['message'],
+            statusCode: response['codRetorno']);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

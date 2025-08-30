@@ -14,7 +14,7 @@ part 'plans_state.dart';
 class PlansController extends Cubit<PlansState> {
   PlansController({
     required this.apiService,
-  }) : super(const PlansState.initial());
+  }) : super(PlansState.initial());
 
   final ApiService apiService;
 
@@ -47,48 +47,18 @@ class PlansController extends Cubit<PlansState> {
     }
   }
 
-  //   Future<void> subscribePlan({required void Function() pop}) async {
-  //     try {
-  //       // await loadAthletesFromJson();
+  Future<void> getPlanById(int planId) async {
+    emit(state.copyWith(status: AppStateStatus.loading));
 
-  //       // Loader().show();
-  //       // final result = await athletesRepository.saveAthlete(state.athlete);
-  //       // result.fold(
-  //       //   (success) {
-  //       //     log('success');
-  //       //     // emit(
-  //       //     //   state.copyWith(
-  //       //     //     athlete: success,
-  //       //     //   ),
-  //       //     // );
+    try {
+      final response = await apiService.getPlanById(planId);
+      emit(state.copyWith(plan: response));
 
-  //       //     // AppSnackbar().success(
-  //       //     //   state.athlete.id.isEmpty
-  //       //     //       ? navigatorKey.currentContext!.tr.athlete.sucessCreatedAthlete
-  //       //     //       : navigatorKey.currentContext!.tr.athlete.sucessUpdatedAthlete,
-  //       //     // );
-  //       //   },
-  //       //   (failure) {
-  //       //     // customMessageError(
-  //       //     //   messageDefault: state.athlete.id.isEmpty
-  //       //     //       ? navigatorKey.currentContext!.tr.erros.registerAthlete
-  //       //     //       : navigatorKey.currentContext!.tr.erros.updateAthlete,
-  //       //     //   failure: failure,
-  //       //     // );
-  //       //   },
-  //       // );
-  //     } catch (e) {
-  //       // AppSnackbar().error(
-  //       //   state.athlete.id.isEmpty
-  //       //       ? navigatorKey.currentContext!.tr.erros.registerAthlete
-  //       //       : navigatorKey.currentContext!.tr.erros.updateAthlete,
-  //       // );
-  //       //
-  //     } finally {
-  //       //    Loader().hide();
-  //     }
-  //   }
-  // }
+      emit(state.copyWith(status: AppStateStatus.success));
+    } catch (e) {
+      emit(state.copyWith(status: AppStateStatus.failure, error: e.toString()));
+    }
+  }
 }
 
 void _showErrorDialog(String message) {

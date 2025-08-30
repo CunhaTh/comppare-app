@@ -3,6 +3,9 @@ import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:flutter/material.dart';
 
+import '../controllers/plans/plans_controller.dart';
+import '../infra/api_services.dart';
+
 class UserDashboardScreen extends StatefulWidget {
   final List<Folder> folders;
 
@@ -13,9 +16,20 @@ class UserDashboardScreen extends StatefulWidget {
 }
 
 class _UserDashboardScreenState extends State<UserDashboardScreen> {
+  late User user;
+
+  late PlansController plansController;
+
+  @override
+  void initState() {
+    super.initState();
+    user = UserHelper().user ?? User.empty();
+    plansController = PlansController(apiService: ApiService());
+    plansController.getPlanById(user.idPlano ?? 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userName = UserHelper().user?.nome ?? 'Convidado';
     final foldersCount = widget.folders.length;
 
     return Scaffold(
@@ -43,7 +57,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           child: Column(
             children: [
               // Header Section
-              _buildHeaderSection(userName),
+              _buildHeaderSection(user.nome ?? ""),
               const SizedBox(height: 24),
 
               // Stats Section

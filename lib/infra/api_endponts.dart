@@ -44,7 +44,7 @@ class ApiEndpoints {
   /// Endpoint para criar uma nova pasta.
   // POST: { "idUsuario": ..., "nomePasta": ..., "parentFolderId": ..., "tags": [...] }
   static String get createFolder => '$baseUrl/pasta/create';
- 
+
   //Endpoint para criar subalbuns
   static String get createSubFolder => '$baseUrl/pasta/create';
 
@@ -64,20 +64,23 @@ class ApiEndpoints {
   /// Formato esperado: POST /api/imagens/salvar (com idUsuario e idPasta como campos no multipart)
   static String get uploadImages => '$baseUrl/imagens/salvar';
 
-
   // Salva as tags
   static String get cadastraTags => '$baseUrl/tags/cadastrar';
 
-  
   // exclui as tags
   static String get excluiTags => '$baseUrl/tags/excluir';
-  
-  
+
   // salva valor de cada imagem
   static String get salvaComparacao => '$baseUrl/comparacao/salvar';
 
+  // Buscar plano por id
+  static String get getPlanById => '$baseUrl/admin/planos/recuperar';
+
+  // cancelar plano
+  static String get cancelPlan => '$baseUrl/admin/vendas/cancelar-assinatura';
+
   // recupera as comparações
-    static String getComparacao(int idPhoto) {
+  static String getComparacao(int idPhoto) {
     return '$baseUrl/comparacao$idPhoto';
   }
 

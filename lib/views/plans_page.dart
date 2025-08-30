@@ -546,21 +546,22 @@ class PlanCard extends StatelessWidget {
                     spacing: 12,
                     runSpacing: 8,
                     children: [
-                     // _buildFeatureChip('📸 ${plan.quantidadeFotos} Fotos'),
+                      // _buildFeatureChip('📸 ${plan.quantidadeFotos} Fotos'),
                       _buildFeatureChip(
                           '🏷️ ${plan.quantidadeTags} Categorias'),
                       _buildFeatureChip('📁 ${plan.quantidadePastas} Álbuns'),
-                      _buildFeatureChip(
-                          '📂 ${plan.quantidadeSubPastas} Subálbuns'),
+
+                      ///Todo(Thiago): Verificar plan.quantidadeConvites que está dando erro
+                      // _buildFeatureChip(
+                      //     '📂 ${plan.quantidadeSubPastas} Subálbuns'),
                       //_buildFeatureChip(
-                        //  '👥 ${plan.quantidadeConvites} Convites'),
-                      if (plan.frequenciaCobranca > 0) {
+                      //  '👥 ${plan.quantidadeConvites} Convites'),
+                      if (plan.frequenciaCobranca > 0) ...[
                         _buildFeatureChip('🏆 Ranking'),
                         _buildFeatureChip('🚫 Sem anúncios'),
-                      } else {
+                      ],
+                      if (plan.frequenciaCobranca == 0)
                         _buildFeatureChip('📢 Com anúncios'),
-                      }
-                     
                     ],
                   ),
                   const SizedBox(height: 32),
