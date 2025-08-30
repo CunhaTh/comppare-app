@@ -72,11 +72,11 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
                 // Quick Actions Section
                 _buildQuickActionsSection(),
-
-                const Spacer(),
+                const SizedBox(height: 32),
 
                 // Back Button
                 _buildBackButton(),
+                const SizedBox(height: 16),
               ],
             ),
           ),
