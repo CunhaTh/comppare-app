@@ -41,6 +41,7 @@ class MyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'comppare',
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
@@ -59,14 +60,13 @@ class MyApp extends StatelessWidget {
                   ),
                 );
               default:
-                return MaterialPageRoute(
-                  builder: (_) => const SplashScreen()
-                        //PrincipalPage()
-                      // const AuthWrapper(),
-                      //Urlimg()
-                     // const MyHomePage(title: ''),
-                  //const Pagemconstrucao()
-                );
+                return MaterialPageRoute(builder: (_) => const SplashScreen()
+                    //PrincipalPage()
+                    // const AuthWrapper(),
+                    //Urlimg()
+                    // const MyHomePage(title: ''),
+                    //const Pagemconstrucao()
+                    );
             }
           },
           debugShowCheckedModeBanner: false,
@@ -262,8 +262,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
   Widget _buildHeroSection() {
-    
     return Container(
       width: double.infinity,
       color: Colors.grey[50], // Cor de fundo suave
@@ -295,43 +295,43 @@ class _MyHomePageState extends State<MyHomePage> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-            onPressed: () {
-              // 1. Define o PlanModel para o plano gratuito.
-              // Isso garante que mesmo que a lista de planos não esteja disponível,
-              // o botão ainda possa passar um plano válido.
-              final gratuito = PlanModel(
-                id: 1,
-                nome: 'Gratuito',
-                descricao: 'Plano gratuito com funcionalidades básicas',
-                valor: 0.0,
-                quantidadeTags: 0,
-                quantidadeFotos: 0,
-                quantidadeConvites: 1,
-                quantidadePastas: 1,
-                status: 1,
-                frequenciaCobranca: 1,
-                tempoGratuidade: 1,
-              );
+              onPressed: () {
+                // 1. Define o PlanModel para o plano gratuito.
+                // Isso garante que mesmo que a lista de planos não esteja disponível,
+                // o botão ainda possa passar um plano válido.
+                final gratuito = PlanModel(
+                  id: 1,
+                  nome: 'Gratuito',
+                  descricao: 'Plano gratuito com funcionalidades básicas',
+                  valor: 0.0,
+                  quantidadeTags: 0,
+                  quantidadeFotos: 0,
+                  quantidadeConvites: 1,
+                  quantidadePastas: 1,
+                  status: 1,
+                  frequenciaCobranca: 1,
+                  tempoGratuidade: 1,
+                );
 
-              // 2. Chama a função de navegação passando o modelo do plano gratuito.
-              navigateToCadastro(gratuito);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFaed513),
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                // 2. Chama a função de navegação passando o modelo do plano gratuito.
+                navigateToCadastro(gratuito);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFaed513),
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Crie sua conta grátis',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
-            child: const Text(
-              'Crie sua conta grátis',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
           ),
           const SizedBox(height: 16),
           // ao clicar, rola suavemente para a seção de planos
@@ -378,7 +378,8 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Row(
             children: [
-              Image.asset('assets/logo_cortada.png', height: 40), // Adicione sua logo aqui
+              Image.asset('assets/logo_cortada.png',
+                  height: 40), // Adicione sua logo aqui
               const SizedBox(width: 8),
             ],
           ),
@@ -614,100 +615,103 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
 // Refatoração sugerida para o widget _buildPlanCard
-Widget _buildPlanCard(
+  Widget _buildPlanCard(
     PlanModel plan,
     bool isSelected,
     VoidCallback onSelect,
     VoidCallback onCadastrar,
     BuildContext context, {
-  bool isPopular = false,
-}) {
-  return GestureDetector(
-    onTap: onSelect, // Permite que o usuário toque em qualquer lugar do cartão para selecionar
-    child: Card(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected ? const Color(0xFFaed513) : Colors.grey[300]!,
-          width: 2,
+    bool isPopular = false,
+  }) {
+    return GestureDetector(
+      onTap:
+          onSelect, // Permite que o usuário toque em qualquer lugar do cartão para selecionar
+      child: Card(
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isSelected ? const Color(0xFFaed513) : Colors.grey[300]!,
+            width: 2,
+          ),
         ),
-      ),
-      elevation: 4,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (isPopular) // Destaque para o plano mais popular
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFaed513),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: const Text(
-                  'Mais Popular',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+        elevation: 4,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (isPopular) // Destaque para o plano mais popular
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFaed513),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  textAlign: TextAlign.center,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: const Text(
+                    'Mais Popular',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              if (isPopular) const SizedBox(height: 12),
+              Text(
+                plan.nome,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? const Color(0xFFaed513) : Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'R\$ ${plan.valor.toStringAsFixed(2)}/${plan.frequenciaCobranca == 1 ? 'mês' : 'ano'}',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFaed513),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              // Utilize uma lista de widgets para os recursos
+              _buildFeatureRow('Álbuns', plan.quantidadePastas.toString()),
+              _buildFeatureRow(
+                  'Subálbuns por álbum', plan.quantidadeTags.toString()),
+              _buildFeatureRow('Categorias', plan.quantidadeTags.toString()),
+              _buildFeatureRow('Sem anúncios', 'Sim'),
+              _buildFeatureRow('Compartilhamento em redes sociais', 'Sim'),
+              // Adicione os demais recursos
+
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: onCadastrar,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      isSelected ? const Color(0xFFaed513) : Colors.grey[300],
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Assinar Agora',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-            if (isPopular) const SizedBox(height: 12),
-            Text(
-              plan.nome,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFFaed513) : Colors.black87,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'R\$ ${plan.valor.toStringAsFixed(2)}/${plan.frequenciaCobranca == 1 ? 'mês' : 'ano'}',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFaed513),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            // Utilize uma lista de widgets para os recursos
-            _buildFeatureRow('Álbuns', plan.quantidadePastas.toString()),
-            _buildFeatureRow('Subálbuns por álbum', plan.quantidadeTags.toString()),
-            _buildFeatureRow('Categorias', plan.quantidadeTags.toString()),
-            _buildFeatureRow('Sem anúncios', 'Sim'),
-            _buildFeatureRow('Compartilhamento em redes sociais', 'Sim'),
-            // Adicione os demais recursos
-            
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: onCadastrar,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isSelected ? const Color(0xFFaed513) : Colors.grey[300],
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Assinar Agora',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildActionButton(
       BuildContext context, String label, Widget targetPage) {
@@ -728,23 +732,22 @@ Widget _buildPlanCard(
     );
   }
 
-
 // Widget auxiliar para as linhas de recursos
-Widget _buildFeatureRow(String feature, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: Row(
-      children: [
-        Icon(Icons.check, color: const Color(0xFFaed513)),
-        const SizedBox(width: 8),
-        Text(
-          '$feature: $value',
-          style: const TextStyle(fontSize: 16),
-        ),
-      ],
-    ),
-  );
-}
+  Widget _buildFeatureRow(String feature, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(Icons.check, color: const Color(0xFFaed513)),
+          const SizedBox(width: 8),
+          Text(
+            '$feature: $value',
+            style: const TextStyle(fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
 
   void showErrorDialog(String message) {
     showDialog(
