@@ -59,6 +59,33 @@ class PlansController extends Cubit<PlansState> {
       emit(state.copyWith(status: AppStateStatus.failure, error: e.toString()));
     }
   }
+
+  Future<void> cancelPlan(int userId) async {
+    emit(state.copyWith(status: AppStateStatus.loading));
+
+    try {
+      if (userId == 0) {
+        emit(state.copyWith(
+            status: AppStateStatus.failure, error: 'Usuário não autenticado'));
+        _showErrorDialog('Usuário não autenticado.');
+        return;
+      }
+      final response = await apiService.cancelPlan(userId);
+
+      emit(state.copyWith(status: AppStateStatus.success));
+
+      if (response) {
+        emit(state.copyWith(status: AppStateStatus.success));
+      } else {
+        emit(state.copyWith(
+            status: AppStateStatus.failure, error: 'Falha ao cancelar plano'));
+
+        _showErrorDialog('Falha ao cancelar plano.');
+      }
+    } catch (e) {
+      emit(state.copyWith(status: AppStateStatus.failure, error: e.toString()));
+    }
+  }
 }
 
 void _showErrorDialog(String message) {
