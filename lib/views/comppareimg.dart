@@ -969,6 +969,58 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth, double scree
 }
   
 
+  
+/// Cria o widget da moldura de comparação para ser salvo ou compartilhado.
+Widget _buildShareableFrame({
+  required GlobalKey key,
+  required List<ImageModel> displayedImages,
+  required bool isLargeScreen,
+}) {
+  return RepaintBoundary(
+    key: key,
+    child: Container(
+      color: Colors.white, // Fundo branco para a imagem final
+      padding: const EdgeInsets.all(8.0), // Pequena margem interna
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Container principal das imagens
+          Container(
+            height: 150, // Altura fixa para a moldura
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: displayedImages.map((imageItem) {
+                final index = displayedImages.indexOf(imageItem);
+                return Expanded(
+                  child: Align(
+                    alignment: index == 0
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: Image.memory(
+                      imageItem.imageData!,
+                      fit: BoxFit.fitWidth,
+                      height: double.infinity,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          // Logo sobreposta
+          Positioned(
+            bottom: 10,
+            child: Image.asset(
+              "assets/logo_all_green.png",
+              width: isLargeScreen ? 50.0 : 50.0,
+              height: isLargeScreen ? 35.0 : 25.0,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}  
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1379,6 +1431,7 @@ Future<List<TagModel>> getTags(int usuario) async {
     throw ApiException('Usuário não autenticado.', statusCode: 401);
   }
 
+  
   final url = Uri.parse(ApiEndpoints.listarTags);
   final body = {
     'usuario': user.id,
@@ -2134,6 +2187,212 @@ final Map<String, List<TextEditingController>> controllers = {
       }
     }
 
+
+  Future<void> shareSaveImages() async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
+          constraints: BoxConstraints(
+            maxHeight: screenHeight * 0.85,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header do dialog
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24.0),
+                    topRight: Radius.circular(24.0),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFaed513).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Compartilhar Comparação',
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 20.0 : 18.0,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                          letterSpacing: -0.5,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.black.withOpacity(0.2),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.black,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Conteúdo com a pré-visualização
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Usando a nova função reutilizável para criar a moldura
+                      _buildShareableFrame(
+                        key: shareRepaintKey,
+                        displayedImages: displayedImages,
+                        isLargeScreen: isLargeScreen,
+                      ),
+                      const SizedBox(height: 8),
+                      // Texto informativo
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16.0),
+                          border: Border.all(
+                            color: Colors.grey[200]!,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFaed513).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.info_outline_rounded,
+                                color: const Color(0xFFaed513),
+                                size: isLargeScreen ? 22.0 : 20.0,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
+                                style: TextStyle(
+                                  fontSize: isLargeScreen ? 15.0 : 13.0,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.justify,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Botões de ação
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[100],
+                          foregroundColor: Colors.black87,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: isLargeScreen ? 18.0 : 16.0,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                            side: BorderSide(
+                              color: Colors.grey[300]!,
+                              width: 1.5,
+                            ),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFaed513),
+                          foregroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: isLargeScreen ? 18.0 : 16.0,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                        ),
+                        onPressed: () async {
+                          // Lógica de captura e compartilhamento
+                          final Uint8List? imageBytes = await captureCard(shareRepaintKey);
+                          Navigator.of(context).pop(); // Fecha o dialog de preview
+
+                          if (imageBytes == null) {
+                            _showErrorDialog(context, 'Erro ao capturar a imagem para compartilhamento.');
+                            return;
+                          }
+                          await shareImage(imageBytes);
+                        },
+                        child: const Text('Compartilhar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
     Future<void> shareImages() async {
       showDialog(
         context: context,
@@ -2213,6 +2472,11 @@ final Map<String, List<TextEditingController>> controllers = {
                       ],
                     ),
                   ),
+                  _buildShareableFrame(
+                      key: shareRepaintKey, // A chave que você já usava
+                      displayedImages: displayedImages,
+                      isLargeScreen: isLargeScreen,
+                    ),
                   // Content com design aprimorado
                   Expanded(
                     child: SingleChildScrollView(
@@ -2531,45 +2795,158 @@ final Map<String, List<TextEditingController>> controllers = {
         },
       );
     }
+Future<void> saveCard() async {
+  // Cria uma chave local para a RepaintBoundary deste dialog específico
+  final GlobalKey savePreviewKey = GlobalKey();
 
-    Future<void> saveCard() async {
-      final Uint8List? imageBytes = await captureCard(repaintKey);
-      if (imageBytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Erro ao capturar o card para salvamento.')),
-        );
-        return;
-      }
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
+          constraints: BoxConstraints(
+            maxHeight: screenHeight * 0.85,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header (similar ao de compartilhar, mas com texto diferente)
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24.0),
+                    topRight: Radius.circular(24.0),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Salvar Pré-visualização',
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 20.0 : 18.0,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.close_rounded, color: Colors.black, size: 22),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Conteúdo com a pré-visualização da moldura
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
+                  child: _buildShareableFrame(
+                    key: savePreviewKey, // Usa a chave local para este dialog
+                    displayedImages: displayedImages,
+                    isLargeScreen: isLargeScreen,
+                  ),
+                ),
+              ),
+              // Botões de ação "Cancelar" e "Salvar"
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[200],
+                          padding: EdgeInsets.symmetric(vertical: isLargeScreen ? 18.0 : 16.0),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancelar', style: TextStyle(color: Colors.black87)),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFaed513),
+                          padding: EdgeInsets.symmetric(vertical: isLargeScreen ? 18.0 : 16.0),
+                        ),
+                        onPressed: () async {
+                          // Lógica para capturar e salvar a imagem
+                          final Uint8List? imageBytes = await captureCard(savePreviewKey);
+                          Navigator.of(context).pop(); // Fecha o dialog de preview
 
-      if (kIsWeb) {
-        final blob = html.Blob([imageBytes], 'image/png');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download',
-              'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Imagem baixada com sucesso!')),
-        );
-      } else {
-        final result = await ImageGallerySaver.saveImage(
-          imageBytes,
-          quality: 100,
-          name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
-        );
-        if (result['isSuccess']) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
-          );
-        }
-      }
-    }
+                          if (imageBytes == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Erro ao capturar o card para salvamento.')),
+                            );
+                            return;
+                          }
+
+                          // Lógica de salvamento que você já tinha
+                          if (kIsWeb) {
+                            final blob = html.Blob([imageBytes], 'image/png');
+                            final url = html.Url.createObjectUrlFromBlob(blob);
+                            final anchor = html.AnchorElement(href: url)
+                              ..setAttribute('download', 'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
+                              ..click();
+                            html.Url.revokeObjectUrl(url);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Imagem baixada com sucesso!')),
+                            );
+                          } else {
+                            final result = await ImageGallerySaver.saveImage(
+                              imageBytes,
+                              quality: 100,
+                              name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
+                            );
+                            if (result['isSuccess']) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Salvar na Galeria', style: TextStyle(color: Colors.black)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
     final ScrollController localScrollController =
         ScrollController(); // Usar um controller local para o diálogo
@@ -2791,6 +3168,64 @@ final Map<String, List<TextEditingController>> controllers = {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                     Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            isLargeScreen ? 16.0 : 12.0,
+                            8.0,
+                            isLargeScreen ? 16.0 : 12.0,
+                            8.0,
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFaed513).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: Text(
+                                  'Data',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12.0),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      // Lê a data diretamente da propriedade .date
+                                      displayedImages[0].date ?? 'N/A',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      // Lê a data diretamente da propriedade .date
+                                      displayedImages[1].date ?? 'N/A',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: isLargeScreen ? 16.0 : 14.0,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 24, thickness: 1),
+                            ],
+                          ),
+                        ),
+
                                     // Medidas/Categorias
                                     categorias.isNotEmpty
                                         ? Container(
