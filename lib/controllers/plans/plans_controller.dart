@@ -60,7 +60,8 @@ class PlansController extends Cubit<PlansState> {
     }
   }
 
-  Future<void> cancelPlan(int userId) async {
+  Future<void> cancelPlan(
+      {required int userId, required BuildContext context}) async {
     emit(state.copyWith(status: AppStateStatus.loading));
 
     try {
@@ -72,10 +73,17 @@ class PlansController extends Cubit<PlansState> {
       }
       final response = await apiService.cancelPlan(userId);
 
-      emit(state.copyWith(status: AppStateStatus.success));
-
       if (response) {
         emit(state.copyWith(status: AppStateStatus.success));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const MyHomePage(
+              title: '',
+            ),
+          ),
+        );
       } else {
         emit(state.copyWith(
             status: AppStateStatus.failure, error: 'Falha ao cancelar plano'));
