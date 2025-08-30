@@ -43,38 +43,41 @@ class ImageService {
   ///
   /// Retorna o `idPasta` da pasta criada.
   /// Lança [ApiException] em caso de falha.
-  Future<int> createFolder({
-    required String folderName,
-    required List<String> tags, // Tags são passadas, mas a implementação do ApiService pode ignorá-las se o backend não suportar para pastas
-  }) async {
-    final int? currentUserId = TokenHelper().userId;
-    if (!TokenHelper().hasToken() || currentUserId == 0) {
-      throw ApiException('Usuário não autenticado ou ID de usuário inválido para criar pasta.', statusCode: 401);
-    }
-
-    try {
-      // ⭐ Delega para o ApiService, que deve lidar com o endpoint e a lógica de criação de pasta.
-      // Assumindo que ApiService.createFolder recebe userId e folderName e retorna um Map.
-      final response = await _apiService.createFolder(parentFolderId: currentUserId, idUsuario: currentUserId!, folderName: folderName, );
-      
-      // O ApiService já deve ter tratado a resposta HTTP e lançado ApiException para erros.
-      // Aqui, esperamos que 'response' seja o corpo decodificado da resposta,
-      // e que ele contenha 'idPasta'.
-      if (response.containsKey('idPasta') && response['idPasta'] is int) {
-        return response['idPasta'] as int;
-      } else {
-        throw ApiException(
-          'API retornou sucesso na criação da pasta, mas sem ID de pasta válido.',
-          statusCode: 200, // Assumimos 200 OK se chegou aqui, mas sem o ID esperado
-          body: json.encode(response),
-        );
-      }
-    } on ApiException {
-      rethrow; // Re-lança a exceção já tratada pelo ApiService
-    } catch (e) {
-      throw ApiException('Erro inesperado ao criar pasta: ${e.toString()}', statusCode: 0);
-    }
+Future<int> createFolder({
+  required String folderName,
+  required List<String> tags, // Tags são passadas, mas a implementação do ApiService pode ignorá-las se o backend não suportar para pastas
+}) async {
+  final int? currentUserId = TokenHelper().userId;
+  if (!TokenHelper().hasToken() || currentUserId == 0) {
+    throw ApiException('Usuário não autenticado ou ID de usuário inválido para criar pasta.', statusCode: 401);
   }
+
+  try {
+    // Delega para o ApiService, que deve lidar com o endpoint e a lógica de criação de pasta.
+    final Map<String, dynamic> response = (await _apiService.createFolder(
+      parentFolderId: currentUserId,
+      idUsuario: currentUserId!,
+      folderName: folderName,
+    )) as Map<String, dynamic>;
+    
+    // Depuração para verificar a resposta
+    foundation.debugPrint('Resposta da criação de pasta: $response');
+
+    if (response.containsKey('idPasta') && response['idPasta'] is int) {
+      return response['idPasta'] as int;
+    } else {
+      throw ApiException(
+        'API retornou sucesso na criação da pasta, mas sem ID de pasta válido.',
+        statusCode: 200,
+        body: json.encode(response),
+      );
+    }
+  } on ApiException {
+    rethrow; // Re-lança a exceção já tratada pelo ApiService
+  } catch (e) {
+    throw ApiException('Erro inesperado ao criar pasta: ${e.toString()}', statusCode: 0);
+  }
+}
 
   /// Recupera os detalhes de uma pasta específica (incluindo suas imagens).
   /// Este método é para a "Tela de Subpastas" para carregar o conteúdo da pasta selecionada.

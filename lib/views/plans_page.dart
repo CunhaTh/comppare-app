@@ -552,6 +552,15 @@ class PlanCard extends StatelessWidget {
                       _buildFeatureChip('📁 ${plan.quantidadePastas} pastas'),
                       _buildFeatureChip(
                           '👥 ${plan.quantidadeConvites} convites'),
+                   /* ... (plan.frequenciaCobranca > 0)
+                        ? [
+                            _buildFeatureChip('🏆 Ranking'),
+                            _buildFeatureChip('🚫 Sem anúncios'),
+                          ]
+                        : [
+                            _buildFeatureChip('📢 Com anúncios'),
+                          ]*/
+                     
                     ],
                   ),
                   const SizedBox(height: 32),

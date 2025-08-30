@@ -76,9 +76,9 @@ class ApiEndpoints {
   // salva valor de cada imagem
   static String get salvaComparacao => '$baseUrl/comparacao/salvar';
 
-  // recupera as
+  // recupera as comparações
     static String getComparacao(int idPhoto) {
-    return '$baseUrl/comparacao$idPhoto';
+    return '$baseUrl/comparacao/$idPhoto';
   }
 
   // --- Endpoints de Pastas e Conteúdo ---
