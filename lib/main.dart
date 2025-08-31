@@ -80,6 +80,7 @@ class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
   final String title;
+  
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -187,6 +188,12 @@ class _MyHomePageState extends State<MyHomePage> {
             _buildHeroSection(),
             const SizedBox(height: 20),
             _buildPlansSection(),
+            const SizedBox(height: 20),
+            // Imagem no topo
+           // _buildImageAsset(),
+            const SizedBox(height: 40),
+            // Texto e Botão abaixo
+            _buildTextContent(context, isMobile: true),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -333,37 +340,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          // ao clicar, rola suavemente para a seção de planos
-          // AJUSTAR
-          /*SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                // Rola para a seção de planos
-                Scrollable.ensureVisible(
-                  context,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeInOut,
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                side: const BorderSide(color: Color(0xFFaed513)),
-              ),
-              child: const Text(
-                'Conheça os planos',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFaed513),
-                ),
-              ),
-            ),
-          ),*/
           const SizedBox(height: 80),
         ],
       ),
@@ -748,6 +724,295 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
+  /// Constrói o conteúdo de texto (título, parágrafo).
+  /// É reutilizável para ambos os layouts.
+  Widget _buildTextContent(BuildContext context, {required bool isMobile}) {
+    final headlineStyle = TextStyle(
+      // O `Theme.of(context)` permite que você use fontes definidas no seu app.
+      fontFamily: Theme.of(context).textTheme.headlineMedium!.fontFamily,
+      fontSize: isMobile ? 28 : 38, // Fonte menor no mobile
+      fontWeight: FontWeight.bold,
+      color: Colors.black87,
+      height: 1.2,
+    );
+
+    final paragraphStyle = TextStyle(
+      fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
+      fontSize: isMobile ? 16 : 18,
+      color: Colors.black54,
+      height: 1.5,
+    );
+
+    return Column(
+      crossAxisAlignment:
+          isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(height: 30),
+         //box Texto principal
+        Container(
+        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+        decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+            SizedBox(height: 33,),
+                    Text(
+                '''Principais
+Funcionalidades''',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: TextStyle(
+                  fontSize: 30,fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  height: 1.2,),
+              ),
+              SizedBox(height: 10),
+                        // Linha Decorativa com Gradiente
+          Container(
+            height: 4,
+            width: 80,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color.fromARGB(255, 108, 127, 1),Color(0xFFaed513), Color(0xFF9bc412)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+              const SizedBox(height: 24),
+              Text(
+                'Nossa plataforma reúne recursos tecnológicos projetados para maximizar sua produtividade e encantar seus clientes.',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: paragraphStyle,
+              ),
+            ],
+          )
+        ),
+        const SizedBox(height: 30),
+        //box 1
+        Container(
+        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+        decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+              Icon(
+              // Este ícone é visualmente similar ao do print
+              Icons.photo_library_outlined,
+              size: 80, // Tamanho grande para destaque
+              color: const Color(0xFFaed513), // Cor da marca
+            ),
+            SizedBox(height: 20,),
+                    Text(
+                'Comparação de Imagens',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: headlineStyle,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Controle, compare e visualize sua evolução de forma inteligente. A ferramenta definitiva para acompanhar seu progresso com precisão e alcançar seus objetivos.',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: paragraphStyle,
+              ),
+            ],
+          )
+        ),
+        const SizedBox(height: 30),
+        //box 2
+        Container(
+        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+        decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+              Icon(
+              // Este ícone é visualmente similar ao do print
+              Icons.local_offer_outlined,
+              size: 80, // Tamanho grande para destaque
+              color: const Color(0xFFaed513), // Cor da marca
+            ),
+            SizedBox(height: 20,),
+                    Text(
+                'Tags Personalizadas',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: headlineStyle,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Crie  marcações especificas e anotações nas imagens para mostrar detalhes importantes.',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: paragraphStyle,
+              ),
+            ],
+          )
+        ),
+        const SizedBox(height: 30),
+         //box 3
+        Container(
+        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+        decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+              Icon(
+              // Este ícone é visualmente similar ao do print
+              Icons.emoji_events_outlined,
+              size: 80, // Tamanho grande para destaque
+              color: const Color(0xFFaed513), // Cor da marca
+            ),
+            SizedBox(height: 20,),
+                    Text(
+                'Gamificação',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: headlineStyle,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Engaje seus clientes com elementos de gamificação que o acompanhamento continuo',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: paragraphStyle,
+              ),
+            ],
+          )
+        ),
+        const SizedBox(height: 30),
+        
+      ],
+    );
+  }
+    // texto depois dos planos
+    Widget  _featuresTitle ( bool isMobile ) {
+      final paragraphStyle = TextStyle(
+      fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
+      fontSize: isMobile ? 16 : 18,
+      color: Colors.black54,
+      height: 1.5,
+    );
+    return Container(
+              decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        
+        children: [
+          // Título Principal
+          const Text(
+            '''Principais
+    Funcionalidades''',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Linha Decorativa com Gradiente
+          Container(
+            height: 4,
+            width: 80,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Subtítulo/Parágrafo
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child:               Text(
+                  'Nossa plataforma reúne recursos tecnológicos projetados para maximizar sua produtividade e encantar seus clientes.',
+                  textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                  style: paragraphStyle,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Constrói o ícone de destaque.
+  Widget _buildImageAsset() {
+    // Container estilizado para replicar o design do print
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Icon(
+        // Este ícone é visualmente similar ao do print
+        Icons.photo_library_outlined,
+        size: 80, // Tamanho grande para destaque
+        color: const Color(0xFFaed513), // Cor da marca
+      ),
+    );
+  }
+
+
 
   void showErrorDialog(String message) {
     showDialog(

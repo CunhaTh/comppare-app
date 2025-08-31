@@ -1317,7 +1317,7 @@ Widget _buildShareableFrame({
     );
   }
 
-Future<void> _showErrorDialog(BuildContext context, String message, {int? statusCode}) async {
+Future<void> _showErrorDialog(BuildContext context, String message) async {
   await showDialog(
     context: context,
     barrierDismissible: true, // Permite fechar tocando fora, opcional
@@ -1874,7 +1874,7 @@ Future<ImageModel?> _openEditDialog(
                                                   });
                                                 }
                                               } catch (e) {
-                                                print("Erro na API: $e, usando updatedMetadata como fallback");
+                                              //  print("Erro na API: $e, usando updatedMetadata como fallback");
                                                 newItem = ImageModel(
                                                   id: imageItem.id,
                                                   url: imageItem.url,
@@ -1883,7 +1883,7 @@ Future<ImageModel?> _openEditDialog(
                                                   metadata: Map.from(updatedMetadata), // Usa uma cópia para evitar referências
                                                 );
                                                 if (dialogContext.mounted) {
-                                                  await _showErrorDialog(dialogContext, 'Falha ao salvar: $e');
+                                                  await _showErrorDialog(dialogContext, '');
                                                   Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
                                                 }
                                               }
