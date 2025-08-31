@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:application_progress/infra/api_exception.dart';
+import 'package:application_progress/models/comppare_model.dart';
 import 'package:application_progress/models/tag_model.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/material.dart';
@@ -17,10 +18,10 @@ class ApiService {
   ApiService({http.Client? httpClient})
       : _httpClient = httpClient ?? http.Client();
 
-  Map<String, String> _getHeaders({bool includeContentType = true}) {
+  Map<String, String> getHeaders({bool includeContentType = true, String? token}) {
     final String? authToken = TokenHelper().token;
     foundation.debugPrint(
-        'ApiService: Token sendo acessado em _getHeaders: $authToken');
+        'ApiService: Token sendo acessado em getHeaders(: $authToken');
     final Map<String, String> headers = {
       'Accept': 'application/json',
     };
@@ -46,7 +47,7 @@ class ApiService {
   ///
   /// O novo endpoint para esta requisição deve ser definido em `ApiEndpoints`
   /// como, por exemplo: `static const String updateFolder = '/pastas/atualizar';`
-  Future<Map<String, dynamic>> updateFolder({
+  Future<Future> updateFolder({
     required int folderId,
     required int idUsuario,
     String? folderName,
@@ -71,11 +72,10 @@ class ApiService {
       if (tags != null) 'tags': tags,
     };
 
-    return _sendRequest(
-      () => _httpClient.put(
-        // Usando o método PUT para atualizar a pasta.
+    return sendRequest(
+      () => _httpClient.put( // Usando o método PUT para atualizar a pasta.
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Pasta atualizada com sucesso.',
@@ -110,89 +110,87 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> _sendRequest(
+
+Future<dynamic> sendRequest(
     Future<http.Response> Function() requestFunction, {
     String? successMessage,
     String? errorMessage,
     bool decodeJson = true,
   }) async {
-    try {
-      final response =
-          await requestFunction().timeout(const Duration(seconds: 20));
+  try {
+    final response = await requestFunction().timeout(const Duration(seconds: 20));
+    foundation.debugPrint('[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
 
-      foundation.debugPrint(
-          '[_sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (decodeJson) {
-          final Map<String, dynamic> responseBody =
-              json.decode(response.body) as Map<String, dynamic>;
-          if (responseBody.containsKey('codRetorno') &&
-              (responseBody['codRetorno'] == 200 ||
-                  responseBody['codRetorno'] == 201)) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (decodeJson) {
+        final dynamic responseBody = json.decode(response.body);
+        foundation.debugPrint('[sendRequest] Decoded responseBody type: ${responseBody.runtimeType}');
+        if (responseBody is Map<String, dynamic>) {
+          if (responseBody.containsKey('codRetorno') && (responseBody['codRetorno'] == 200 || responseBody['codRetorno'] == 201)) {
             return responseBody;
           } else {
             throw ApiException(
-              responseBody['message'] ??
-                  (successMessage ?? 'Erro desconhecido na API.'),
+              responseBody['message'] ?? (successMessage ?? 'Erro desconhecido na API.'),
               statusCode: response.statusCode,
               body: response.body,
             );
           }
+        } else if (responseBody is List<dynamic> && responseBody.isNotEmpty) {
+          // Assume que uma lista não vazia é uma resposta válida para comparações
+          return responseBody;
         } else {
-          return {
-            'status': 'success',
-            'statusCode': response.statusCode,
-            'body': response.body
-          };
+          throw ApiException(
+            'Resposta inválida do servidor: formato inesperado.',
+            statusCode: response.statusCode,
+            body: response.body,
+          );
         }
-      } else if (response.statusCode == 401) {
-        throw ApiException(
-          'Não autorizado: Token inválido ou expirado.',
-          statusCode: 401,
-          body: response.body,
-        );
       } else {
-        String serverMessage = 'Falha na requisição.';
-        try {
-          final errorBody = json.decode(response.body) as Map<String, dynamic>;
-          serverMessage = errorBody['message'] ??
-              errorBody['errors']?.toString() ??
-              serverMessage;
-        } catch (_) {
-          serverMessage =
-              response.body.isNotEmpty ? response.body : serverMessage;
-        }
-
-        throw ApiException(
-          errorMessage ??
-              'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
-          statusCode: response.statusCode,
-          body: response.body,
-        );
+        return {
+          'status': 'success',
+          'statusCode': response.statusCode,
+          'body': response.body
+        };
       }
-    } on http.ClientException catch (e) {
-      throw ApiException('Erro de conexão: ${e.message}',
-          statusCode: 0, body: '');
-    } on FormatException {
-      throw ApiException('Resposta inválida do servidor.',
-          statusCode: 0, body: '');
-    } catch (e) {
-      if (e is ApiException) {
-        rethrow;
+    } else if (response.statusCode == 401) {
+      throw ApiException(
+        'Não autorizado: Token inválido ou expirado.',
+        statusCode: 401,
+        body: response.body,
+      );
+    } else {
+      String serverMessage = 'Falha na requisição.';
+      try {
+        final errorBody = json.decode(response.body) as Map<String, dynamic>;
+        serverMessage = errorBody['message'] ?? errorBody['errors']?.toString() ?? serverMessage;
+      } catch (_) {
+        serverMessage = response.body.isNotEmpty ? response.body : serverMessage;
       }
-      throw ApiException('Erro inesperado: ${e.toString()}',
-          statusCode: 0, body: '');
+      throw ApiException(
+        errorMessage ?? 'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
+        statusCode: response.statusCode,
+        body: response.body,
+      );
     }
+  } on http.ClientException catch (e) {
+    throw ApiException('Erro de conexão: ${e.message}', statusCode: 0, body: '');
+  } on FormatException {
+    throw ApiException('Resposta inválida do servidor.', statusCode: 0, body: '');
+  } catch (e) {
+    if (e is ApiException) {
+      rethrow;
+    }
+    throw ApiException('Erro inesperado: ${e.toString()}', statusCode: 0, body: '');
   }
+}
 
-  // lib/infra/api_services.dart
-  // CORREÇÃO: Método revisado para usar _sendRequest e incluir o ID do usuário.
+    // lib/infra/api_services.dart
+  // CORREÇÃO: Método revisado para usar sendRequest e incluir o ID do usuário.
   /// Função para excluir uma tag existente pelo seu ID.
   /// O endpoint para esta requisição deve ser definido em `ApiEndpoints`
   /// como `excluiTags`. Certifique-se de que o backend espera o `idTag` no corpo
   /// da requisição DELETE.
-  Future<Map<String, dynamic>> deleteTag(int idTag, String nomeTag) async {
+  Future<Future> deleteTag(int idTag, String nomeTag) async {
     // Acessa o ID do usuário do TokenHelper
     final int? idUsuario = TokenHelper().userId;
 
@@ -204,8 +202,8 @@ class ApiService {
     }
 
     final url = Uri.parse(ApiEndpoints.excluiTags);
-
-    // O token será verificado automaticamente em _getHeaders e _sendRequest.
+    
+    // O token será verificado automaticamente em getHeaders( e sendRequest.
     // Inclui agora o idUsuario no corpo da requisição
     final body = {
       'idTag': idTag,
@@ -215,11 +213,11 @@ class ApiService {
     foundation.debugPrint(
         'Requisição para excluir tag em: $url, ID: $idTag, Usuário: $idUsuario');
 
-    return _sendRequest(
+    return sendRequest(
       // Usando o método DELETE e enviando o corpo com o ID da tag e do usuário.
       () => _httpClient.delete(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Tag excluída com sucesso.',
@@ -237,7 +235,7 @@ class ApiService {
     final url = Uri.parse(ApiEndpoints.authenticateUser);
     foundation.debugPrint('Tentando autenticar usuário: $cpf');
 
-    Map<String, String> headers = _getHeaders(includeContentType: true);
+    Map<String, String> headers = getHeaders(includeContentType: true);
     final body = <String, dynamic>{};
 
     if (token != null && token.isNotEmpty) {
@@ -251,7 +249,7 @@ class ApiService {
       foundation.debugPrint('Autenticando com CPF e senha.');
     }
 
-    final responseBody = await _sendRequest(
+    final responseBody = await sendRequest(
       () => _httpClient.post(
         url,
         headers: headers,
@@ -310,17 +308,17 @@ class ApiService {
   }
 
   // lib/infra/api_services.dart
-  Future<Map<String, dynamic>> getFolderById(int folderId) async {
+  Future<Future> getFolderById(int folderId) async {
     final url = Uri.parse('${ApiEndpoints.baseUrl}/folders/$folderId');
-    return _sendRequest(
-      () => _httpClient.get(url, headers: _getHeaders()),
+    return sendRequest(
+      () => _httpClient.get(url, headers: getHeaders()),
       successMessage: 'Pasta carregada com sucesso.',
       errorMessage: 'Falha ao carregar pasta.',
     );
   }
 
   // lib/infra/api_services.dart
-  Future<Map<String, dynamic>> createFolder({
+  Future<Future> createFolder({
     int? parentFolderId,
     required int idUsuario,
     required String folderName,
@@ -337,10 +335,10 @@ class ApiService {
       if (tags != null && tags.isNotEmpty) 'tags': tags,
     };
 
-    return _sendRequest(
+    return sendRequest(
       () => _httpClient.post(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Pasta/subpasta criada com sucesso.',
@@ -348,15 +346,15 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> deleteFolder(int idUsuario, int idPasta) async {
+  Future<Future> deleteFolder(int idUsuario, int idPasta) async {
     final url = Uri.parse(ApiEndpoints.deleteFolder);
     foundation
         .debugPrint('Requisição para excluir pasta em: $url, ID: $idPasta');
 
-    return _sendRequest(
+    return sendRequest(
       () => _httpClient.delete(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode({
           'idUsuario': idUsuario,
           'idPasta': idPasta,
@@ -368,24 +366,24 @@ class ApiService {
   }
 
   /// lib/infra/api_services.dart
-  /// **CORREÇÃO:** Método revisado para usar _sendRequest.
+  /// **CORREÇÃO:** Método revisado para usar sendRequest.
   /// Função para excluir uma tag existente pelo seu ID.
   /// O endpoint para esta requisição deve ser definido em `ApiEndpoints`
   /// como `excluiTags`. Certifique-se de que o backend espera o `idTag` no corpo
   /// da requisição DELETE.
-  Future<Map<String, dynamic>> _deleteTag(int idTag) async {
+  Future<Future> _deleteTag(int idTag) async {
     final url = Uri.parse(ApiEndpoints.excluiTags);
-
-    // O token será verificado automaticamente em _getHeaders e _sendRequest.
+    
+    // O token será verificado automaticamente em getHeaders( e sendRequest.
     final body = {'idTag': idTag};
 
     foundation.debugPrint('Requisição para excluir tag em: $url, ID: $idTag');
 
-    return _sendRequest(
+    return sendRequest(
       // Usando o método DELETE e enviando o corpo com o ID da tag.
       () => _httpClient.delete(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Tag excluída com sucesso.',
@@ -393,15 +391,15 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> deleteImage(int idUsuario, int idImagem) async {
+  Future<Future> deleteImage(int idUsuario, int idImagem) async {
     final url = Uri.parse(ApiEndpoints.deleteImage);
     foundation
         .debugPrint('Requisição para excluir imagem em: $url, ID: $idImagem');
 
-    return _sendRequest(
+    return sendRequest(
       () => _httpClient.delete(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode({
           'idUsuario': idUsuario,
           'idImagem': idImagem,
@@ -430,8 +428,8 @@ class ApiService {
     final url = Uri.parse(
         '${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
     log("URL DA SUBPASTA em fetchSubfolders: $url");
-    final response = await _sendRequest(
-      () => _httpClient.get(url, headers: _getHeaders()),
+    final response = await sendRequest(
+      () => _httpClient.get(url, headers: getHeaders()),
       successMessage: 'Subpastas carregadas com sucesso.',
       errorMessage: 'Falha ao carregar subpastas.',
     );
@@ -556,7 +554,8 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createSubFolder({
+
+  Future<Future> createSubFolder({
     required int parentFolderId,
     required int idUsuario,
     required String folderName,
@@ -595,10 +594,10 @@ class ApiService {
       if (tags != null && tags.isNotEmpty) 'tags': tags,
     };
 
-    return _sendRequest(
+    return sendRequest(
       () => _httpClient.post(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Subálbum criado com sucesso.',
@@ -638,8 +637,8 @@ class ApiService {
     final url = Uri.parse(
         '${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$parentFolderId');
     try {
-      final response = await _sendRequest(
-        () => _httpClient.get(url, headers: _getHeaders()),
+      final response = await sendRequest(
+        () => _httpClient.get(url, headers: getHeaders()),
         successMessage: 'Detalhes da pasta pai carregados.',
         errorMessage: 'Falha ao carregar detalhes da pasta pai.',
       );
@@ -657,27 +656,27 @@ class ApiService {
   }
 
 // lib/infra/api_services.dart
-  Future<Map<String, dynamic>> fetchFolderDetails(int folderId) async {
+  Future<Future> fetchFolderDetails(int folderId) async {
     final url =
         Uri.parse('${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$folderId');
-    return _sendRequest(
+    return sendRequest(
       () => _httpClient.get(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
       ),
       errorMessage: 'Falha ao recuperar detalhes da pasta.',
     );
   }
 
-  Future<Map<String, dynamic>> createPaymentWithCard(
+  Future<Future> createPaymentWithCard(
       PaymentModel payment) async {
     final url = Uri.parse('${ApiEndpoints.baseUrl}/vendas/criar-assinatura');
     log("URL DA ASSINATURA: $url || BODY ENVIADO: ${jsonEncode(payment.toMap())}");
-    log("CABEÇALHOS: ${_getHeaders(includeContentType: true)}");
-    return _sendRequest(
+    log("CABEÇALHOS: ${getHeaders(includeContentType: true)}");
+    return sendRequest(
       () => _httpClient.post(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(payment.toMap()),
       ),
       successMessage: 'Assinatura criada com sucesso.',
@@ -695,10 +694,10 @@ class ApiService {
           'plano': planId,
         })}");
 
-    final response = await _sendRequest(
+    final response = await sendRequest(
       () => _httpClient.post(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode({
           'usuario': userId,
           'plano': planId,
@@ -712,7 +711,7 @@ class ApiService {
   }
 
   /// Função para salvar tags no servidor.
-  Future<Map<String, dynamic>> saveTags({
+  Future<Future> saveTags({
     required String nomeTag,
     required int usuario,
   }) async {
@@ -725,10 +724,10 @@ class ApiService {
       'usuario': usuario,
     };
 
-    return _sendRequest(
+    return sendRequest(
       () => _httpClient.post(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Tags salvas com sucesso.',
@@ -743,15 +742,14 @@ class ApiService {
     if (user == null || user.id == null) {
       throw ApiException('Usuário não autenticado.', statusCode: 401);
     }
-    final url =
-        Uri.parse('${ApiEndpoints.baseUrl}/tags/recuperar-tags-usuario');
+    final url = Uri.parse(ApiEndpoints.listarTags);
     final body = {
       'usuario': user.id,
     };
-    final responseBody = await _sendRequest(
+    final responseBody = await sendRequest(
       () => _httpClient.post(
         url,
-        headers: _getHeaders(includeContentType: true),
+        headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Tags carregadas com sucesso.',
@@ -772,88 +770,41 @@ class ApiService {
     }
   }
 
-  Future<List<ImageModel>> getComparison(ImageModel idPhoto) async {
-    final User? user = UserHelper().user;
-    if (user == null || user.id == null) {
-      throw ApiException('Usuário não autenticado.', statusCode: 401);
-    }
-    final url = Uri.parse('${ApiEndpoints.baseUrl}/comparacao$idPhoto');
-    final body = {'usuario': user.id, "id_photo": idPhoto.id};
-    final responseBody = await _sendRequest(
-      () => _httpClient.get(
-        url,
-        headers: _getHeaders(includeContentType: true),
-      ),
-      successMessage: 'Comparação carregadas com sucesso.',
-      errorMessage: 'Falha ao carregar Comparação.',
-    );
-
-    if (responseBody.containsKey('data') && responseBody['data'] is List) {
-      final List<dynamic> imageUser = responseBody['data'] as List<dynamic>;
-      foundation.debugPrint(
-          'Image do usuário: ${imageUser.map((e) => e['id_photo']?.toString() ?? '').toList()}');
-      // CORREÇÃO AQUI: Mapeia para objetos TagModel
-      return imageUser
-          .map((json) => ImageModel.fromMap(json as Map<String, dynamic>))
-          .toList();
-    } else {
-      foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
-      return [];
-    }
+  
+Future<ComparacaoModel> getComparacaoSave(int idPhoto) async {
+  final User? user = UserHelper().user;
+  if (user == null || user.id == null || user.token == null) {
+    throw ApiException('Usuário não autenticado.', statusCode: 401);
   }
 
-  Future<PlanModel> getPlanById(int planId) async {
-    try {
-      final url = Uri.parse('${ApiEndpoints.getPlanById}/$planId');
-      log("URL DE BUSCA DE PLANO POR ID: $url");
+  final url = Uri.parse(ApiEndpoints.getComparacao(idPhoto));
+  foundation.debugPrint('Requesting URL: $url');
+  final responseBody = await sendRequest(
+    () => _httpClient.get(
+      url,
+      headers: {
+        ...getHeaders(includeContentType: true),
+        'Authorization': 'Bearer ${user.token}',
+      },
+    ),
+    successMessage: 'Comparação carregada com sucesso.',
+    errorMessage: 'Falha ao carregar a comparação.',
+  );
+  foundation.debugPrint('Raw responseBody: $responseBody');
 
-      final response = await _sendRequest(
-        () => _httpClient.get(
-          url,
-          headers: _getHeaders(includeContentType: true),
-        ),
-        successMessage: 'Plano recuperado com sucesso.',
-        errorMessage: 'Falha ao recuperar plano.',
-      );
-
-      log("RESPOSTA DA API - GET PLAN BY ID: ${jsonEncode(response)}");
-
-      if (response['codRetorno'] == 200) {
-        return PlanModel.fromJson(response['data']);
-      } else {
-        throw ApiException(response['message'],
-            statusCode: response['codRetorno']);
-      }
-    } catch (e) {
-      rethrow;
+  if (responseBody is List && responseBody.isNotEmpty) {
+    final Map<String, dynamic> comparacaoJson = responseBody.first as Map<String, dynamic>;
+    foundation.debugPrint('Comparação recuperada: $comparacaoJson');
+    return ComparacaoModel.fromJson(comparacaoJson);
+  } else if (responseBody is Map<String, dynamic>) {
+    if (responseBody.containsKey('data') && responseBody['data'] is Map) {
+      final Map<String, dynamic> comparacaoJson = responseBody['data'] as Map<String, dynamic>;
+      foundation.debugPrint('Comparação recuperada: $comparacaoJson');
+      return ComparacaoModel.fromJson(comparacaoJson);
     }
   }
+  foundation.debugPrint('Nenhuma comparação encontrada para o idPhoto: $idPhoto. ResponseBody: $responseBody');
+  throw ApiException('Nenhuma comparação encontrada.', statusCode: 404);
+}
 
-  Future<bool> cancelPlan(int idUser) async {
-    try {
-      final url = Uri.parse(ApiEndpoints.cancelPlan);
-      log("URL DE BUSCA DE PLANO POR ID: $url");
-
-      final response = await _sendRequest(
-        () => _httpClient.post(
-          url,
-          headers: _getHeaders(includeContentType: true),
-          body: jsonEncode({'usuario': idUser}),
-        ),
-        successMessage: 'Plano recuperado com sucesso.',
-        errorMessage: 'Falha ao recuperar plano.',
-      );
-
-      log("RESPOSTA DA API - CANCELAR PLANO: ${jsonEncode(response)}");
-
-      if (response['codRetorno'] == 200) {
-        return true;
-      } else {
-        throw ApiException(response['message'],
-            statusCode: response['codRetorno']);
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
 }

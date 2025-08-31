@@ -163,77 +163,70 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  Future<void> _addFolder(String folderName) async {
-    final user = UserHelper().user;
-    if (user == null || user.id == null || user.nome == null) {
-      foundation.debugPrint(
-          '[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
-      _showErrorDialog(
-          'Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
-      _navigateToLogin();
-      return;
-    }
+Future<void> _addFolder(String folderName) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null || user.nome == null) {
+    foundation.debugPrint('[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
+    _showErrorDialog('Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
+    _navigateToLogin();
+    return;
+  }
 
-    try {
-      final String folderNameForApi = folderName.trim();
-      foundation.debugPrint(
-          '[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
+  try {
+    final String folderNameForApi = folderName.trim();
+    foundation.debugPrint('[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
 
-      final response = await _apiService.createFolder(
-        idUsuario: user.id!,
-        folderName: folderNameForApi,
-        parentFolderId: null,
+    final Map<String, dynamic> response = (await _apiService.createFolder(
+      idUsuario: user.id!,
+      folderName: folderNameForApi,
+      parentFolderId: null,
+    )) as Map<String, dynamic>;
+    foundation.debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
+
+    if (mounted) {
+      final folderId = response['pasta_id'] as int? ?? 0;
+      final folderNameFromApi = response['pasta_nome'] as String? ?? folderNameForApi;
+      final folderPath = response['pasta_caminho'] as String?;
+      final folderStructure = response['estrutura_completa'] as String? ?? folderNameFromApi;
+
+      final folderToAdd = Folder(
+        id: folderId,
+        nome: folderNameFromApi,
+        caminho: folderPath!,
+        principalPageDisplayName: folderStructure,
+        idPastaPai: null,
+        imagens: [],
+        tags: [],
+        subpastas: [],
       );
-      foundation.debugPrint(
-          '[_addFolder] Resposta bruta da API: ${json.encode(response)}');
 
-      if (mounted) {
-        final folderId = response['pasta_id'] as int? ?? 0;
-        final folderNameFromApi =
-            response['pasta_nome'] as String? ?? folderNameForApi;
-        final folderPath = response['pasta_caminho'] as String?;
-        final folderStructure =
-            response['estrutura_completa'] as String? ?? folderNameFromApi;
+      setState(() {
+        _folders.add(folderToAdd);
+      });
 
-        final folderToAdd = Folder(
-          id: folderId,
-          nome: folderNameFromApi,
-          caminho: folderPath!,
-          principalPageDisplayName: folderStructure,
-          idPastaPai: null,
-          imagens: [],
-          tags: [],
-          subpastas: [],
+      try {
+        await _fetchFoldersFromApiAndRefreshState();
+        folderNameController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
         );
-
-        setState(() {
-          _folders.add(folderToAdd);
-        });
-
-        try {
-          await _fetchFoldersFromApiAndRefreshState();
-          folderNameController.clear();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
-          );
-        } catch (e) {
-          foundation
-              .debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
-          if (mounted) {
-            _showErrorDialog('Erro ao atualizar a lista de álbuns.');
-          }
+      } catch (e) {
+        foundation.debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
+        if (mounted) {
+          _showErrorDialog('Erro ao atualizar a lista de álbuns.');
         }
       }
-    } catch (e) {
-      foundation.debugPrint('[_addFolder] Erro ao criar álbum: $e');
-      if (e is ApiException && mounted) {
-        _showErrorDialog('Falha ao criar o álbum: ${e.message}');
-        if (e.statusCode == 401) {
-          _navigateToLogin();
-        }
+    }
+  } catch (e) {
+    foundation.debugPrint('[_addFolder] Erro ao criar álbum: $e');
+    if (e is ApiException && mounted) {
+      _showErrorDialog('Falha ao criar o álbum: ${e.message}');
+      if (e.statusCode == 401) {
+        _navigateToLogin();
       }
     }
   }
+}
 
   Future<void> _fetchFoldersFromApiAndRefreshState() async {
     if (!mounted) return;

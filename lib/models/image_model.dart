@@ -28,34 +28,40 @@ class ImageModel {
   // Propriedades convenientes para acesso aos metadados, mantendo
   // a compatibilidade e a clareza.
   String? get date => metadata['date'];
-  set date(String? value) =>
-      value != null ? metadata['date'] = value : metadata.remove('date');
+  set date(String? value) => _setMetadata('date', value);
 
   String? get weight => metadata['weight'];
-  set weight(String? value) =>
-      value != null ? metadata['weight'] = value : metadata.remove('weight');
+  set weight(String? value) => _setMetadata('weight', value);
 
   String? get waist => metadata['waist'];
-  set waist(String? value) =>
-      value != null ? metadata['waist'] = value : metadata.remove('waist');
+  set waist(String? value) => _setMetadata('waist', value);
 
   String? get observation => metadata['observation'];
-  set observation(String? value) => value != null
-      ? metadata['observation'] = value
-      : metadata.remove('observation');
+  set observation(String? value) => _setMetadata('observation', value);
+
+  // Novo getter/setter para data_comparacao
+  String? get dataComparacao => metadata['data_comparacao'];
+  set dataComparacao(String? value) => _setMetadata('data_comparacao', value);
+
+  /// Método auxiliar para definir metadados com validação.
+  void _setMetadata(String key, String? value) {
+    if (value != null) {
+      metadata[key] = value;
+    } else {
+      metadata.remove(key);
+    }
+  }
 
   /// Construtor a partir de um mapa (ex.: API).
   ///
-  /// Esta versão foi simplificada para mapear dinamicamente os metadados,
-  /// garantindo que qualquer campo adicional da API seja capturado
-  /// no mapa de metadados.
+  /// Esta versão foi ajustada para mapear dinamicamente os metadados e suportar 'tags'.
   factory ImageModel.fromMap(Map<String, dynamic> map) {
-    // Mapeamento explícito das chaves da API para as chaves internas do app.
     final Map<String, String> apiToInternalKeys = {
       'takenAt': 'date',
       'weight': 'weight',
       'waist': 'waist',
       'observation': 'observation',
+      'data_comparacao': 'data_comparacao', // Novo mapeamento
     };
 
     final Map<String, String> newMetadata = {};
@@ -65,6 +71,16 @@ class ImageModel {
         newMetadata[internalKey] = value.toString();
       }
     });
+
+    // Se 'tags' vier da API como uma lista de mapas, converte para metadados
+    final List<dynamic>? tags = map['tags'] as List<dynamic>?;
+    if (tags != null) {
+      for (var tag in tags) {
+        if (tag is Map<String, dynamic> && tag['id_tag'] != null && tag['valor'] != null) {
+          newMetadata[tag['id_tag'].toString()] = tag['valor'].toString();
+        }
+      }
+    }
 
     // Se 'customTags' vier da API, mesclamos com os metadados existentes.
     final Map<String, dynamic>? customTags = map['customTags'] as Map<String, dynamic>?;
@@ -107,14 +123,14 @@ class ImageModel {
 
   /// Converte o modelo para um mapa (ex.: envio à API).
   ///
-  /// Esta versão usa um mapeamento explícito para converter chaves internas
-  /// para as chaves esperadas pela API, garantindo consistência.
+  /// Esta versão foi ajustada para incluir 'tags' como um campo separado, se necessário.
   Map<String, dynamic> toMap() {
     final Map<String, String> internalToApiKeys = {
       'date': 'takenAt',
       'weight': 'weight',
       'waist': 'waist',
       'observation': 'observation',
+      'data_comparacao': 'data_comparacao',
     };
 
     final Map<String, dynamic> outputMap = {
@@ -122,14 +138,21 @@ class ImageModel {
       'url': url,
     };
 
+    // Converte metadados para o formato da API
+    final List<Map<String, dynamic>> tags = [];
     metadata.forEach((key, value) {
       final apiFieldKey = internalToApiKeys[key] ?? key;
-      outputMap[apiFieldKey] = value;
+      if (apiFieldKey == 'takenAt' || apiFieldKey == 'data_comparacao' || apiFieldKey == 'weight' || apiFieldKey == 'waist' || apiFieldKey == 'observation') {
+        outputMap[apiFieldKey] = value;
+      } else {
+        tags.add({'id_tag': key, 'valor': value}); // Adiciona como tag se não for um campo mapeado
+      }
     });
 
-    // Se a API espera um campo 'customTags' separado para tags dinâmicas.
-    // Isso depende do formato da sua API. Mantive a lógica para ilustrar.
-    // outputMap['customTags'] = metadata;
+    // Inclui 'tags' como campo separado, se houver
+    if (tags.isNotEmpty) {
+      outputMap['tags'] = tags;
+    }
 
     return outputMap;
   }
@@ -171,7 +194,9 @@ Future<Uint8List?> _loadImageBytesFromUrl(String url) async {
   // Implementação existente (ex.: usando http.get)
   // Retorna Uint8List ou null em caso de erro
   return null; // Placeholder, substitua pela lógica real
-}// Funções e classes auxiliares
+}
+
+// Funções e classes auxiliares
 class PickedFileItem {
   final PlatformFile platformFile;
   final Uint8List? bytes;

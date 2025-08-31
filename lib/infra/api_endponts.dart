@@ -53,8 +53,8 @@ class ApiEndpoints {
   // DELETE: { "folderId": ... }
   static String get deleteFolder => '$baseUrl/pasta/excluir';
 
-  /// Endpoint para excluir uma subpasta.
-  //static String get deleteSubfolder => '$baseUrl/subfolder/excluir';
+  /// lista o valor das tags.
+  static String get listarTags => '$baseUrl/tags/recuperar-tags-usuario';
 
   /// Endpoint para excluir uma imagem específica.
   /// Usa o método DELETE na API.
@@ -80,8 +80,8 @@ class ApiEndpoints {
   static String get cancelPlan => '$baseUrl/admin/vendas/cancelar-assinatura';
 
   // recupera as comparações
-  static String getComparacao(int idPhoto) {
-    return '$baseUrl/comparacao$idPhoto';
+    static String getComparacao(int idPhoto) {
+    return '$baseUrl/comparacao/$idPhoto';
   }
 
   // --- Endpoints de Pastas e Conteúdo ---

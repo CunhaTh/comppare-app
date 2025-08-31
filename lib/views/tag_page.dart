@@ -95,31 +95,39 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
     debugPrint('Tags globais salvas: ${tagsJson.join(",")}');
   }
 
-  Future<void> _createTagsOnApi(String nomeTag) async {
-    final user = UserHelper().user;
-    if (user == null || user.id == null) {
-      _navigateToLogin();
-      return;
-    }
-    try {
-      await _apiService.refreshTokenIfNeeded();
-      final response = await _apiService.saveTags(
-        nomeTag: nomeTag,
-        usuario: user.id!,
-      );
-      debugPrint('Tags sincronizadas com a API: ${response['message']}');
+Future<void> _createTagsOnApi(String nomeTag) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) {
+    _navigateToLogin();
+    return;
+  }
+  try {
+    await _apiService.refreshTokenIfNeeded();
+    final dynamic response = await _apiService.saveTags(
+      nomeTag: nomeTag,
+      usuario: user.id!,
+    );
+    debugPrint('Resposta bruta de saveTags: $response'); // Depuração da resposta
+
+    // Verifica se response é um Map e extrai os valores
+    if (response is Map<String, dynamic>) {
+      debugPrint('Tags sincronizadas com a API: ${response['message']}'); // Correção de 'messge' para 'message'
       if (response['codRetorno'] == 201) {
         await _loadTags(); // Recarrega após sucesso
       }
-    } catch (e) {
-      debugPrint('Erro ao sincronizar tags com a API: $e');
-      if (e is ApiException && e.statusCode == 401) {
-        _navigateToLogin();
-      } else if (mounted) {
-        _showErrorDialog('Falha ao salvar tags no servidor: $e');
-      }
+    } else {
+      debugPrint('Resposta inesperada de saveTags: Tipo ${response.runtimeType}, Valor $response');
+      throw ApiException('Resposta inválida do servidor: formato inesperado.', statusCode: 0);
+    }
+  } catch (e) {
+    debugPrint('Erro ao sincronizar tags com a API: $e');
+    if (e is ApiException && e.statusCode == 401) {
+      _navigateToLogin();
+    } else if (mounted) {
+      _showErrorDialog('Falha ao salvar tags no servidor: $e');
     }
   }
+}
 
 
 

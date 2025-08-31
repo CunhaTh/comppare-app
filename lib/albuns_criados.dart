@@ -247,72 +247,65 @@ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
     }
   }
 
-  Future<void> _addSubfolder(String subfolderName) async {
-    final user = UserHelper().user;
-    if (user == null || user.id == null) {
-      debugPrint(
-          '[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
-      _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
-      _navigateToLogin();
-      return;
-    }
+Future<void> _addSubfolder(String subfolderName) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) {
+    debugPrint('[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
+    _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
+    _navigateToLogin();
+    return;
+  }
 
-    try {
-      final String subfolderNameForApi = subfolderName.trim();
-      debugPrint(
-          '[_addSubfolder] Tentando criar subálbum com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}}');
+  try {
+    final String subfolderNameForApi = subfolderName.trim();
+    debugPrint('[_addSubfolder] Tentando criar subálbum com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}}');
 
-      final response = await _apiService.createSubFolder(
-        parentFolderId: widget.initialFolderId,
-        idUsuario: user.id!,
-        folderName: subfolderNameForApi,
-        parentFolderPath: widget.folderApiPath,
-      );
-      debugPrint(
-          '[_addSubfolder] Subalbum criada com sucesso, resposta: ${json.encode(response)}');
-
-      if (mounted) {
-        final newSubfolder = Folder.fromMap({
-          'id': response['id'] ?? 0,
-          'nome': response['caminho'] ??
-              '${response['nome'] ?? subfolderNameForApi}',
-          'caminho': response['caminho'],
-          'idPastaPai': widget.initialFolderId,
-          'imagens': [],
-          'subpastas': [],
-              
-        });
-        setState(() {
-          _subfolders.add(newSubfolder);
-        });
-        debugPrint(
-            '[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai} ?? "nenhuma"}');
-      }
-    } catch (e) {
-      debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
-      if (e is ApiException && mounted) {
-        _showErrorDialog('Falha ao criar a subpasta: ${e.message}');
-        if (e.statusCode == 401) {
-          _navigateToLogin();
-        }
-      }
-    }
+    final Map<String, dynamic> response = (await _apiService.createSubFolder(
+      parentFolderId: widget.initialFolderId,
+      idUsuario: user.id!,
+      folderName: subfolderName,
+      parentFolderPath: widget.folderApiPath,
+    )) as Map<String, dynamic>;
+    debugPrint('[_addSubfolder] Subalbum criada com sucesso, resposta: ${json.encode(response)}');
 
     if (mounted) {
-      try {
-        await _fetchSubfoldersFromApiAndRefreshState();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Subpasta "$subfolderName" criada com sucesso!')),
-        );
-      } catch (e) {
-        debugPrint('[_addSubfolder] Erro ao atualizar após criação: $e');
-        if (mounted) {
-          _showErrorDialog('Erro ao atualizar a lista de subpastas.');
-        }
+      final newSubfolder = Folder.fromMap({
+        'id': response['id'] ?? 0,
+        'nome': response['caminho'] ?? '${response['nome'] ?? subfolderNameForApi}',
+        'caminho': response['caminho'],
+        'idPastaPai': widget.initialFolderId,
+        'imagens': [],
+        'subpastas': [],
+      });
+      setState(() {
+        _subfolders.add(newSubfolder);
+      });
+      debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai} ?? "nenhuma"}');
+    }
+  } catch (e) {
+    debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
+    if (e is ApiException && mounted) {
+      _showErrorDialog('Falha ao criar a subpasta: ${e.message}');
+      if (e.statusCode == 401) {
+        _navigateToLogin();
       }
     }
   }
+
+  if (mounted) {
+    try {
+      await _fetchSubfoldersFromApiAndRefreshState();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
+      );
+    } catch (e) {
+      debugPrint('[_addSubfolder] Erro ao atualizar após criação: $e');
+      if (mounted) {
+        _showErrorDialog('Erro ao atualizar a lista de subpastas.');
+      }
+    }
+  }
+}
 
   void _showErrorDialog(String message) {
     if (!mounted) return;

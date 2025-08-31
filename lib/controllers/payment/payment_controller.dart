@@ -78,7 +78,7 @@ class PaymentController extends Cubit<PaymentState> {
       log('Token gerado e recebido no DART(generateCardToken): $token');
       return await createPaymentWithCard(token);
     } catch (e) {
-      log('Erro ao gerar token do cartão: $e');
+      log('Erro ao gerar token: $e');
       // Em caso de erro, trate e propague a exceção
       return PaymentReturnModel.empty();
     }
