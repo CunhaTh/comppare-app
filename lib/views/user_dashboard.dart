@@ -3,6 +3,10 @@ import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:flutter/material.dart';
 
+import '../controllers/plans/plans_controller.dart';
+import '../infra/api_services.dart';
+import '../helpers/helpers.dart';
+
 class UserDashboardScreen extends StatefulWidget {
   final List<Folder> folders;
 
@@ -13,9 +17,20 @@ class UserDashboardScreen extends StatefulWidget {
 }
 
 class _UserDashboardScreenState extends State<UserDashboardScreen> {
+  late User user;
+
+  late PlansController plansController;
+
+  @override
+  void initState() {
+    super.initState();
+    user = UserHelper().user ?? User.empty();
+    plansController = PlansController(apiService: ApiService());
+    plansController.getPlanById(user.idPlano ?? 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userName = UserHelper().user?.nome ?? 'Convidado';
     final foldersCount = widget.folders.length;
 
     return Scaffold(
@@ -40,24 +55,30 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            children: [
-              // Header Section
-              _buildHeaderSection(userName),
-              const SizedBox(height: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Header Section
+                _buildHeaderSection(user.nome ?? ""),
+                const SizedBox(height: 24),
 
-              // Stats Section
-              _buildStatsSection(foldersCount),
-              const SizedBox(height: 32),
+                // Plan Section
+                _buildPlanSection(),
+                const SizedBox(height: 24),
 
-              // Quick Actions Section
-              _buildQuickActionsSection(),
+                // Stats Section
+                _buildStatsSection(foldersCount),
+                const SizedBox(height: 24),
 
-              const Spacer(),
+                // Quick Actions Section
+                _buildQuickActionsSection(),
+                const SizedBox(height: 32),
 
-              // Back Button
-              _buildBackButton(),
-            ],
+                // Back Button
+                _buildBackButton(),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),
@@ -200,6 +221,322 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // Plan Section
+  Widget _buildPlanSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Seu Plano',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        StreamBuilder<PlansState>(
+          stream: plansController.stream,
+          builder: (context, snapshot) {
+            final state = snapshot.data ?? plansController.state;
+            final plan = state.plan;
+
+            if (state.status == AppStateStatus.loading) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFaed513),
+                  ),
+                ),
+              );
+            }
+
+            if (plan.id == 0) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'Nenhum plano ativo',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFaed513).withValues(alpha: 0.3),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFaed513).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.card_membership,
+                          color: Color(0xFFaed513),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              plan.nome,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'R\$ ${plan.valor.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    plan.descricao,
+                    style: TextStyle(
+                      color: Colors.black.withValues(alpha: 0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _buildPlanFeature(
+                        icon: Icons.folder,
+                        value: '${plan.quantidadePastas} pastas',
+                      ),
+                      const SizedBox(width: 16),
+                      _buildPlanFeature(
+                        icon: Icons.photo_library,
+                        value: '${plan.quantidadeFotos} fotos',
+                      ),
+                      const SizedBox(width: 16),
+                      _buildPlanFeature(
+                        icon: Icons.tag,
+                        value: '${plan.quantidadeTags} tags',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _showCancelPlanDialog(plan.nome),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[50],
+                        foregroundColor: Colors.red[700],
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: Colors.red[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Cancelar Assinatura',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // Plan Feature Helper
+  Widget _buildPlanFeature({
+    required IconData icon,
+    required String value,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: const Color(0xFFaed513),
+          size: 16,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.black.withValues(alpha: 0.7),
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Cancel Plan Dialog
+  void _showCancelPlanDialog(String planName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Cancelar Assinatura',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Deseja mesmo cancelar a sua assinatura?',
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.card_membership,
+                      color: Color(0xFFaed513),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      planName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Voltar',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                plansController.cancelPlan(
+                  userId: user.id ?? 0,
+                  context: context,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[600],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Confirmar',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

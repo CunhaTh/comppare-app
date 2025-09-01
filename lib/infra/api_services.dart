@@ -18,7 +18,8 @@ class ApiService {
   ApiService({http.Client? httpClient})
       : _httpClient = httpClient ?? http.Client();
 
-  Map<String, String> getHeaders({bool includeContentType = true, String? token}) {
+  Map<String, String> getHeaders(
+      {bool includeContentType = true, String? token}) {
     final String? authToken = TokenHelper().token;
     foundation.debugPrint(
         'ApiService: Token sendo acessado em getHeaders(: $authToken');
@@ -73,7 +74,8 @@ class ApiService {
     };
 
     return sendRequest(
-      () => _httpClient.put( // Usando o método PUT para atualizar a pasta.
+      () => _httpClient.put(
+        // Usando o método PUT para atualizar a pasta.
         url,
         headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
@@ -110,81 +112,93 @@ class ApiService {
     }
   }
 
-
-Future<dynamic> sendRequest(
+  Future<dynamic> sendRequest(
     Future<http.Response> Function() requestFunction, {
     String? successMessage,
     String? errorMessage,
     bool decodeJson = true,
   }) async {
-  try {
-    final response = await requestFunction().timeout(const Duration(seconds: 20));
-    foundation.debugPrint('[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
+    try {
+      final response =
+          await requestFunction().timeout(const Duration(seconds: 20));
+      foundation.debugPrint(
+          '[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      if (decodeJson) {
-        final dynamic responseBody = json.decode(response.body);
-        foundation.debugPrint('[sendRequest] Decoded responseBody type: ${responseBody.runtimeType}');
-        if (responseBody is Map<String, dynamic>) {
-          if (responseBody.containsKey('codRetorno') && (responseBody['codRetorno'] == 200 || responseBody['codRetorno'] == 201)) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (decodeJson) {
+          final dynamic responseBody = json.decode(response.body);
+          foundation.debugPrint(
+              '[sendRequest] Decoded responseBody type: ${responseBody.runtimeType}');
+          if (responseBody is Map<String, dynamic>) {
+            if (responseBody.containsKey('codRetorno') &&
+                (responseBody['codRetorno'] == 200 ||
+                    responseBody['codRetorno'] == 201)) {
+              return responseBody;
+            } else {
+              throw ApiException(
+                responseBody['message'] ??
+                    (successMessage ?? 'Erro desconhecido na API.'),
+                statusCode: response.statusCode,
+                body: response.body,
+              );
+            }
+          } else if (responseBody is List<dynamic> && responseBody.isNotEmpty) {
+            // Assume que uma lista não vazia é uma resposta válida para comparações
             return responseBody;
           } else {
             throw ApiException(
-              responseBody['message'] ?? (successMessage ?? 'Erro desconhecido na API.'),
+              'Resposta inválida do servidor: formato inesperado.',
               statusCode: response.statusCode,
               body: response.body,
             );
           }
-        } else if (responseBody is List<dynamic> && responseBody.isNotEmpty) {
-          // Assume que uma lista não vazia é uma resposta válida para comparações
-          return responseBody;
         } else {
-          throw ApiException(
-            'Resposta inválida do servidor: formato inesperado.',
-            statusCode: response.statusCode,
-            body: response.body,
-          );
+          return {
+            'status': 'success',
+            'statusCode': response.statusCode,
+            'body': response.body
+          };
         }
+      } else if (response.statusCode == 401) {
+        throw ApiException(
+          'Não autorizado: Token inválido ou expirado.',
+          statusCode: 401,
+          body: response.body,
+        );
       } else {
-        return {
-          'status': 'success',
-          'statusCode': response.statusCode,
-          'body': response.body
-        };
+        String serverMessage = 'Falha na requisição.';
+        try {
+          final errorBody = json.decode(response.body) as Map<String, dynamic>;
+          serverMessage = errorBody['message'] ??
+              errorBody['errors']?.toString() ??
+              serverMessage;
+        } catch (_) {
+          serverMessage =
+              response.body.isNotEmpty ? response.body : serverMessage;
+        }
+        throw ApiException(
+          errorMessage ??
+              'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
+          statusCode: response.statusCode,
+          body: response.body,
+        );
       }
-    } else if (response.statusCode == 401) {
-      throw ApiException(
-        'Não autorizado: Token inválido ou expirado.',
-        statusCode: 401,
-        body: response.body,
-      );
-    } else {
-      String serverMessage = 'Falha na requisição.';
-      try {
-        final errorBody = json.decode(response.body) as Map<String, dynamic>;
-        serverMessage = errorBody['message'] ?? errorBody['errors']?.toString() ?? serverMessage;
-      } catch (_) {
-        serverMessage = response.body.isNotEmpty ? response.body : serverMessage;
+    } on http.ClientException catch (e) {
+      throw ApiException('Erro de conexão: ${e.message}',
+          statusCode: 0, body: '');
+    } on FormatException {
+      throw ApiException('Resposta inválida do servidor.',
+          statusCode: 0, body: '');
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
       }
-      throw ApiException(
-        errorMessage ?? 'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
-        statusCode: response.statusCode,
-        body: response.body,
-      );
+      throw ApiException('Erro inesperado: ${e.toString()}',
+          statusCode: 0, body: '');
     }
-  } on http.ClientException catch (e) {
-    throw ApiException('Erro de conexão: ${e.message}', statusCode: 0, body: '');
-  } on FormatException {
-    throw ApiException('Resposta inválida do servidor.', statusCode: 0, body: '');
-  } catch (e) {
-    if (e is ApiException) {
-      rethrow;
-    }
-    throw ApiException('Erro inesperado: ${e.toString()}', statusCode: 0, body: '');
   }
-}
 
-    // lib/infra/api_services.dart
+  // lib/infra/api_services.dart
   // CORREÇÃO: Método revisado para usar sendRequest e incluir o ID do usuário.
   /// Função para excluir uma tag existente pelo seu ID.
   /// O endpoint para esta requisição deve ser definido em `ApiEndpoints`
@@ -202,7 +216,7 @@ Future<dynamic> sendRequest(
     }
 
     final url = Uri.parse(ApiEndpoints.excluiTags);
-    
+
     // O token será verificado automaticamente em getHeaders( e sendRequest.
     // Inclui agora o idUsuario no corpo da requisição
     final body = {
@@ -373,7 +387,7 @@ Future<dynamic> sendRequest(
   /// da requisição DELETE.
   Future<Future> _deleteTag(int idTag) async {
     final url = Uri.parse(ApiEndpoints.excluiTags);
-    
+
     // O token será verificado automaticamente em getHeaders( e sendRequest.
     final body = {'idTag': idTag};
 
@@ -554,7 +568,6 @@ Future<dynamic> sendRequest(
     }
   }
 
-
   Future<Future> createSubFolder({
     required int parentFolderId,
     required int idUsuario,
@@ -668,8 +681,7 @@ Future<dynamic> sendRequest(
     );
   }
 
-  Future<Future> createPaymentWithCard(
-      PaymentModel payment) async {
+  Future<Future> createPaymentWithCard(PaymentModel payment) async {
     final url = Uri.parse('${ApiEndpoints.baseUrl}/vendas/criar-assinatura');
     log("URL DA ASSINATURA: $url || BODY ENVIADO: ${jsonEncode(payment.toMap())}");
     log("CABEÇALHOS: ${getHeaders(includeContentType: true)}");
@@ -770,41 +782,97 @@ Future<dynamic> sendRequest(
     }
   }
 
-  
-Future<ComparacaoModel> getComparacaoSave(int idPhoto) async {
-  final User? user = UserHelper().user;
-  if (user == null || user.id == null || user.token == null) {
-    throw ApiException('Usuário não autenticado.', statusCode: 401);
-  }
+  Future<ComparacaoModel> getComparacaoSave(int idPhoto) async {
+    final User? user = UserHelper().user;
+    if (user == null || user.id == null || user.token == null) {
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
 
-  final url = Uri.parse(ApiEndpoints.getComparacao(idPhoto));
-  foundation.debugPrint('Requesting URL: $url');
-  final responseBody = await sendRequest(
-    () => _httpClient.get(
-      url,
-      headers: {
-        ...getHeaders(includeContentType: true),
-        'Authorization': 'Bearer ${user.token}',
-      },
-    ),
-    successMessage: 'Comparação carregada com sucesso.',
-    errorMessage: 'Falha ao carregar a comparação.',
-  );
-  foundation.debugPrint('Raw responseBody: $responseBody');
+    final url = Uri.parse(ApiEndpoints.getComparacao(idPhoto));
+    foundation.debugPrint('Requesting URL: $url');
+    final responseBody = await sendRequest(
+      () => _httpClient.get(
+        url,
+        headers: {
+          ...getHeaders(includeContentType: true),
+          'Authorization': 'Bearer ${user.token}',
+        },
+      ),
+      successMessage: 'Comparação carregada com sucesso.',
+      errorMessage: 'Falha ao carregar a comparação.',
+    );
+    foundation.debugPrint('Raw responseBody: $responseBody');
 
-  if (responseBody is List && responseBody.isNotEmpty) {
-    final Map<String, dynamic> comparacaoJson = responseBody.first as Map<String, dynamic>;
-    foundation.debugPrint('Comparação recuperada: $comparacaoJson');
-    return ComparacaoModel.fromJson(comparacaoJson);
-  } else if (responseBody is Map<String, dynamic>) {
-    if (responseBody.containsKey('data') && responseBody['data'] is Map) {
-      final Map<String, dynamic> comparacaoJson = responseBody['data'] as Map<String, dynamic>;
+    if (responseBody is List && responseBody.isNotEmpty) {
+      final Map<String, dynamic> comparacaoJson =
+          responseBody.first as Map<String, dynamic>;
       foundation.debugPrint('Comparação recuperada: $comparacaoJson');
       return ComparacaoModel.fromJson(comparacaoJson);
+    } else if (responseBody is Map<String, dynamic>) {
+      if (responseBody.containsKey('data') && responseBody['data'] is Map) {
+        final Map<String, dynamic> comparacaoJson =
+            responseBody['data'] as Map<String, dynamic>;
+        foundation.debugPrint('Comparação recuperada: $comparacaoJson');
+        return ComparacaoModel.fromJson(comparacaoJson);
+      }
+    }
+    foundation.debugPrint(
+        'Nenhuma comparação encontrada para o idPhoto: $idPhoto. ResponseBody: $responseBody');
+    throw ApiException('Nenhuma comparação encontrada.', statusCode: 404);
+  }
+
+  Future<PlanModel> getPlanById(int planId) async {
+    try {
+      final url = Uri.parse('${ApiEndpoints.getPlanById}/$planId');
+      log("URL DE BUSCA DE PLANO POR ID: $url");
+
+      final response = await sendRequest(
+        () => _httpClient.get(
+          url,
+          headers: getHeaders(includeContentType: true),
+        ),
+        successMessage: 'Plano recuperado com sucesso.',
+        errorMessage: 'Falha ao recuperar plano.',
+      );
+
+      log("RESPOSTA DA API - GET PLAN BY ID: ${jsonEncode(response)}");
+
+      if (response['codRetorno'] == 200) {
+        return PlanModel.fromJson(response['data']);
+      } else {
+        throw ApiException(response['message'],
+            statusCode: response['codRetorno']);
+      }
+    } catch (e) {
+      rethrow;
     }
   }
-  foundation.debugPrint('Nenhuma comparação encontrada para o idPhoto: $idPhoto. ResponseBody: $responseBody');
-  throw ApiException('Nenhuma comparação encontrada.', statusCode: 404);
-}
 
+  Future<bool> cancelPlan(int idUser) async {
+    try {
+      final url = Uri.parse(ApiEndpoints.cancelPlan);
+      log("URL DE BUSCA DE PLANO POR ID: $url");
+
+      final response = await sendRequest(
+        () => _httpClient.post(
+          url,
+          headers: getHeaders(includeContentType: true),
+          body: jsonEncode({'usuario': idUser}),
+        ),
+        successMessage: 'Plano recuperado com sucesso.',
+        errorMessage: 'Falha ao recuperar plano.',
+      );
+
+      log("RESPOSTA DA API - CANCELAR PLANO: ${jsonEncode(response)}");
+
+      if (response['codRetorno'] == 200) {
+        return true;
+      } else {
+        throw ApiException(response['message'],
+            statusCode: response['codRetorno']);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

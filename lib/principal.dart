@@ -18,7 +18,7 @@ import 'package:flutter/material.dart' as foundation;
 import 'package:http/http.dart' as http;
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/api_endponts.dart';
-import 'package:application_progress/models/plan_model.dart';
+import 'models/plan_model.dart';
 
 class PrincipalPage extends StatefulWidget {
   const PrincipalPage({super.key});
@@ -163,70 +163,77 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-Future<void> _addFolder(String folderName) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null || user.nome == null) {
-    foundation.debugPrint('[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
-    _showErrorDialog('Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
-    _navigateToLogin();
-    return;
-  }
+  Future<void> _addFolder(String folderName) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null || user.nome == null) {
+      foundation.debugPrint(
+          '[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
+      _showErrorDialog(
+          'Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
+      _navigateToLogin();
+      return;
+    }
 
-  try {
-    final String folderNameForApi = folderName.trim();
-    foundation.debugPrint('[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
+    try {
+      final String folderNameForApi = folderName.trim();
+      foundation.debugPrint(
+          '[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
 
-    final Map<String, dynamic> response = (await _apiService.createFolder(
-      idUsuario: user.id!,
-      folderName: folderNameForApi,
-      parentFolderId: null,
-    )) as Map<String, dynamic>;
-    foundation.debugPrint('[_addFolder] Resposta bruta da API: ${json.encode(response)}');
+      final Map<String, dynamic> response = (await _apiService.createFolder(
+        idUsuario: user.id!,
+        folderName: folderNameForApi,
+        parentFolderId: null,
+      )) as Map<String, dynamic>;
+      foundation.debugPrint(
+          '[_addFolder] Resposta bruta da API: ${json.encode(response)}');
 
-    if (mounted) {
-      final folderId = response['pasta_id'] as int? ?? 0;
-      final folderNameFromApi = response['pasta_nome'] as String? ?? folderNameForApi;
-      final folderPath = response['pasta_caminho'] as String?;
-      final folderStructure = response['estrutura_completa'] as String? ?? folderNameFromApi;
+      if (mounted) {
+        final folderId = response['pasta_id'] as int? ?? 0;
+        final folderNameFromApi =
+            response['pasta_nome'] as String? ?? folderNameForApi;
+        final folderPath = response['pasta_caminho'] as String?;
+        final folderStructure =
+            response['estrutura_completa'] as String? ?? folderNameFromApi;
 
-      final folderToAdd = Folder(
-        id: folderId,
-        nome: folderNameFromApi,
-        caminho: folderPath!,
-        principalPageDisplayName: folderStructure,
-        idPastaPai: null,
-        imagens: [],
-        tags: [],
-        subpastas: [],
-      );
-
-      setState(() {
-        _folders.add(folderToAdd);
-      });
-
-      try {
-        await _fetchFoldersFromApiAndRefreshState();
-        folderNameController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
+        final folderToAdd = Folder(
+          id: folderId,
+          nome: folderNameFromApi,
+          caminho: folderPath!,
+          principalPageDisplayName: folderStructure,
+          idPastaPai: null,
+          imagens: [],
+          tags: [],
+          subpastas: [],
         );
-      } catch (e) {
-        foundation.debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
-        if (mounted) {
-          _showErrorDialog('Erro ao atualizar a lista de álbuns.');
+
+        setState(() {
+          _folders.add(folderToAdd);
+        });
+
+        try {
+          await _fetchFoldersFromApiAndRefreshState();
+          folderNameController.clear();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
+          );
+        } catch (e) {
+          foundation
+              .debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
+          if (mounted) {
+            _showErrorDialog('Erro ao atualizar a lista de álbuns.');
+          }
+        }
+      }
+    } catch (e) {
+      foundation.debugPrint('[_addFolder] Erro ao criar álbum: $e');
+      if (e is ApiException && mounted) {
+        _showErrorDialog('Falha ao criar o álbum: ${e.message}');
+        if (e.statusCode == 401) {
+          _navigateToLogin();
         }
       }
     }
-  } catch (e) {
-    foundation.debugPrint('[_addFolder] Erro ao criar álbum: $e');
-    if (e is ApiException && mounted) {
-      _showErrorDialog('Falha ao criar o álbum: ${e.message}');
-      if (e.statusCode == 401) {
-        _navigateToLogin();
-      }
-    }
   }
-}
 
   Future<void> _fetchFoldersFromApiAndRefreshState() async {
     if (!mounted) return;
@@ -1011,10 +1018,10 @@ Future<void> _addFolder(String folderName) async {
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.black, size: 24),
             onPressed: () async {
-                        await TokenHelper().clear();
-                        await UserHelper().removeUser();
-                        _navigateToLogin();
-                      },
+              await TokenHelper().clear();
+              await UserHelper().removeUser();
+              _navigateToLogin();
+            },
             tooltip: 'Sair',
           ),
         ],
@@ -1210,7 +1217,8 @@ Future<void> _addFolder(String folderName) async {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const CreateTagsPage()),
+                          MaterialPageRoute(
+                              builder: (_) => const CreateTagsPage()),
                         );
                       },
                     ),

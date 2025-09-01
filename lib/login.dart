@@ -10,7 +10,8 @@ import 'package:application_progress/cadastro.dart'; // Ajuste o nome do arquivo
 import 'package:application_progress/views/recupera_senha.dart';
 import 'package:application_progress/principal.dart';
 
-import 'models/models.dart'; // Importa a PrincipalPage
+import 'package:application_progress/models/plan_model.dart';
+// Importa a PrincipalPage
 
 // Removendo MyApp e AuthWrapper daqui, eles devem estar em main.dart
 // class MyApp extends StatelessWidget { ... }
