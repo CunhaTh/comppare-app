@@ -1063,16 +1063,14 @@ Widget _buildShareableFrame({
                   color: Colors.black.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.exit_to_app, color: Colors.black),
+                child: const Icon(Icons.home, color: Colors.black),
               ),
               onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const main_app.MyHomePage(title: ''),
-                  ),
-                  (Route<dynamic> route) => false,
-                );
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PrincipalPage()),
+                      (Route<dynamic> route) => false,
+                    );
               },
             ),
           ),

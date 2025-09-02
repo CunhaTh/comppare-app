@@ -193,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.black,
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 20),
+                                    const EdgeInsets.symmetric(vertical: 20,),
                                 textStyle: const TextStyle(fontSize: 18),
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
@@ -207,23 +207,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                       style: TextStyle(color: Colors.white)),
                             ),
                           ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            // Para que o botão ocupe o espaço disponível
-                            child: _buildActionButton(
-                                context,
-                                'Cadastrar',
-                                CadastroScreen(
-                                  plan: PlanModel.empty()..id = 1,
-                                )),
-                          ),
+                          const SizedBox(width: 15),
                         ],
                       ),
                     ),
-                    Padding(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                      Padding(
                       padding: const EdgeInsets.only(top: 30),
-                      child: GestureDetector(
-                        onTap: () {
+                      child: ElevatedButton(
+                        onPressed: () {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
@@ -231,14 +226,32 @@ class _LoginScreenState extends State<LoginScreen> {
                                     const RecoverPasswordScreen()),
                           );
                         },
-                        child: const Text(
-                          'Esqueceu a senha?',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(165, 0, 0, 0)),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Color(0xFFaed513),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)), // Arredondamento
                         ),
-                      ),
+                        child: Text('Esqueceu a senha?'),
+                      )
                     ),
+                    SizedBox(width: 50),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 30),
+                      child: Expanded(
+                            // Para que o botão ocupe o espaço disponível
+                            child: _buildActionButton(
+                                context,
+                                'Deseja se cadastrar?',
+                                CadastroScreen(
+                                  plan: PlanModel.empty()..id = 1,
+                                )),
+                          ),
+                    ),
+                    ],)
+                    
                   ],
                 ),
               ),
@@ -271,9 +284,9 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       style: ElevatedButton.styleFrom(
         foregroundColor: Colors.white,
-        backgroundColor: Colors.black,
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        textStyle: const TextStyle(fontSize: 18),
+        backgroundColor: Color(0xFFaed513),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8)), // Arredondamento
       ),

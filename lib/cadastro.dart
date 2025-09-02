@@ -510,18 +510,19 @@ class CadastroScreenState extends State<CadastroScreen> {
                       _buildTextField(
                           _confirmPasswordController, 'Confirmar Senha',
                           obscureText: true),
-                      const SizedBox(height: 10),
                       _isLoading
                           ? const CircularProgressIndicator()
                           : Padding(
-                              padding: const EdgeInsets.only(top: 100),
+                              padding: const EdgeInsets.only(top: 15),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 80, vertical: 20),
-                                  textStyle: const TextStyle(fontSize: 18),
-                                ),
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Color(0xFFaed513),
+                                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 100),
+                                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12)), // Arredondamento
+                                  ),
                                 onPressed: _sendCadastroData,
                                 child: const Text('Avançar',
                                     style: TextStyle(color: Colors.white)),

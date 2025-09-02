@@ -642,7 +642,7 @@ Future<void> _addSubfolder(String subfolderName) async {
                 (Route<dynamic> route) => false,
               );
             },
-            tooltip: 'Sair',
+            tooltip: 'HomesPage',
           ),
         ],
       ),
