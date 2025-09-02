@@ -185,15 +185,22 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            
             _buildHeroSection(),
             const SizedBox(height: 20),
-            _buildPlansSection(),
-            const SizedBox(height: 20),
-            // Imagem no topo
-           // _buildImageAsset(),
+            _featuresTitle(isLoading),
+            _buildPlansSection(),            
             const SizedBox(height: 40),
             // Texto e Botão abaixo
             _buildTextContent(context, isMobile: true),
+            const SizedBox(height: 40),
+            _buildCommentsOne(context),
+            const SizedBox(height: 40),
+            _buildCommentstwo(context),
+            const SizedBox(height: 40),
+            _buildCommentstree(context),
+            const SizedBox(height: 40),
+            _buildCommentsfor(context),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -408,10 +415,6 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text(
-            'Nossos Planos',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -512,7 +515,7 @@ class _MyHomePageState extends State<MyHomePage> {
         id: 3,
         nome: 'Avançado Mensal',
         descricao: 'Plano Avançado mensal com acesso a mais funcionalidades',
-        valor: 24.90,
+        valor: 29.90,
         quantidadeTags: 5,
         quantidadeFotos: 50,
         quantidadeConvites: 1,
@@ -910,7 +913,7 @@ Funcionalidades''',
               ),
               const SizedBox(height: 24),
               Text(
-                'Engaje seus clientes com elementos de gamificação que o acompanhamento continuo',
+                'Engaje seus clientes com elementos de gamificação que incentivam o acompanhamento continuo',
                 textAlign: isMobile ? TextAlign.center : TextAlign.start,
                 style: paragraphStyle,
               ),
@@ -918,11 +921,50 @@ Funcionalidades''',
           )
         ),
         const SizedBox(height: 30),
-        
+
+        Container(
+        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+      child: Column(
+        children: [
+            SizedBox(height: 33,),
+                    Text(
+                '''O que dizem nossos 
+Usuários''',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: TextStyle(
+                  fontSize: 30,fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  height: 1.2,),
+              ),
+              SizedBox(height: 10),
+                        // Linha Decorativa com Gradiente
+          Container(
+            height: 4,
+            width: 80,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color.fromARGB(255, 108, 127, 1),Color(0xFFaed513), Color(0xFF9bc412)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+              const SizedBox(height: 24),
+              Text(
+                '''Veja como a Comppare está
+  transformando o dia dia de
+  profissionais como você.''',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: paragraphStyle,
+              ),
+            ],
+          )
+        ),
       ],
     );
   }
-    // texto depois dos planos
+    // texto antes dos planos
     Widget  _featuresTitle ( bool isMobile ) {
       final paragraphStyle = TextStyle(
       fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
@@ -948,11 +990,11 @@ Funcionalidades''',
         children: [
           // Título Principal
           const Text(
-            '''Principais
-    Funcionalidades''',
+            '''Planos para todos os
+Perfis   ''',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 30,
+              fontSize: 28,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -964,7 +1006,7 @@ Funcionalidades''',
             width: 80,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                colors: [Color.fromARGB(255, 108, 127, 1),Color(0xFFaed513), Color(0xFF9bc412)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -976,7 +1018,7 @@ Funcionalidades''',
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child:               Text(
-                  'Nossa plataforma reúne recursos tecnológicos projetados para maximizar sua produtividade e encantar seus clientes.',
+                  'Escolhe o plano ideal para o seu negócio e comece a transformar sua comunicação visual.',
                   textAlign: isMobile ? TextAlign.center : TextAlign.start,
                   style: paragraphStyle,
                 ),
@@ -986,33 +1028,339 @@ Funcionalidades''',
     );
   }
 
-  /// Constrói o ícone de destaque.
-  Widget _buildImageAsset() {
-    // Container estilizado para replicar o design do print
+  Widget _buildCommentsOne(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+      padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 20,
-            spreadRadius: 5,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Icon(
-        // Este ícone é visualmente similar ao do print
-        Icons.photo_library_outlined,
-        size: 80, // Tamanho grande para destaque
-        color: const Color(0xFFaed513), // Cor da marca
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Avaliação por Estrelas
+          _buildRatingStars(),
+          const SizedBox(height: 16),
+
+          // 2. Texto do Depoimento (Citação)
+          Text(
+            '" A Comppare transformou o acompanhamento do meu pacientes"',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black54,
+              height: 1.5,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 24),
+               // Avatar circular com a inicial do autor
+              // 4° comentário 
+              const  Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFaed513), // Cor da marca
+                child: Text(
+                  'T',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Coluna com Nome e Cargo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Thiago Gomes",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Plano Avançado",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
+    Widget _buildCommentstwo(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Avaliação por Estrelas
+          _buildRatingStars(),
+          const SizedBox(height: 16),
 
+          // 2. Texto do Depoimento (Citação)
+          Text(
+            '" A Comppare transformou o acompanhamento do meu pacientes"',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black54,
+              height: 1.5,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 24),
+               // Avatar circular com a inicial do autor
+              // 4° comentário 
+              const  Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFaed513), // Cor da marca
+                child: Text(
+                  'B',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Coluna com Nome e Cargo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Bruno Silva",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Plano Avançado",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+    Widget _buildCommentstree(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Avaliação por Estrelas
+          _buildRatingStars(),
+          const SizedBox(height: 16),
+
+          // 2. Texto do Depoimento (Citação)
+          Text(
+            '" A Comppare transformou o acompanhamento do meu pacientes"',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black54,
+              height: 1.5,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 24),
+               // Avatar circular com a inicial do autor
+              // 4° comentário 
+              const  Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFaed513), // Cor da marca
+                child: Text(
+                  'L',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Coluna com Nome e Cargo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Larissa Conde",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Plano Avançado",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+    Widget _buildCommentsfor(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Avaliação por Estrelas
+          _buildRatingStars(),
+          const SizedBox(height: 16),
+
+          // 2. Texto do Depoimento (Citação)
+          Text(
+            '" A Comppare transformou o acompanhamento do meu pacientes"',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black54,
+              height: 1.5,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 24),
+               // Avatar circular com a inicial do autor
+              // 4° comentário 
+              const  Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFaed513), // Cor da marca
+                child: Text(
+                  'C',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Coluna com Nome e Cargo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Claudia Medeiros",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Plano Avançado",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+    /// Constrói a linha de estrelas de avaliação.
+  Widget _buildRatingStars() {
+    return Row(
+      children: List.generate(
+        5,
+        (index) => const Icon(
+          Icons.star,
+          color: Colors.amber,
+          size: 20,
+        ),
+      ),
+    );
+  }
 
   void showErrorDialog(String message) {
     showDialog(
