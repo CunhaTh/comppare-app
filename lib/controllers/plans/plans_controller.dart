@@ -82,13 +82,16 @@ class PlansController extends Cubit<PlansState> {
       emit(state.copyWith(
           status: AppStateStatus.success, plan: PlanModel.empty()));
 
+      // Usar contexto global para navegação para evitar problemas de contexto descartado
+      final globalContext = navigatorKey.currentContext;
+
+      _showSnackBarMessage(response.message);
+
       await Navigator.pushAndRemoveUntil(
-        context,
+        globalContext!,
         MaterialPageRoute(builder: (context) => const MyHomePage(title: '')),
         (Route<dynamic> route) => false,
       );
-
-      _showSnackBarMessage(response.message);
     } on ApiException catch (e) {
       // Fechar loading antes de mostrar erro
       _dismissLoadingDialog(context);
@@ -108,9 +111,10 @@ class PlansController extends Cubit<PlansState> {
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.only(
-            top: kToolbarHeight + 20, // espaço abaixo do AppBar
-            right: 20,
-            left: 20,
+            bottom: 0,
+            left: 10,
+            right: 10,
+            top: 10,
           ),
         ),
       );
@@ -190,40 +194,29 @@ class PlansController extends Cubit<PlansState> {
     final globalContext = navigatorKey.currentContext;
     if (globalContext != null) {
       try {
-        // Verificar se o ScaffoldMessenger está disponível
         final scaffoldMessenger = ScaffoldMessenger.maybeOf(globalContext);
         if (scaffoldMessenger != null) {
           scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(message),
-              duration: const Duration(seconds: 4),
+              duration: const Duration(seconds: 5),
               backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-              margin: EdgeInsets.only(
-                top: kToolbarHeight + 20, // espaço abaixo do AppBar
-                right: 20,
-                left: 20,
-              ),
+              // Altera para 'fixed' para posicionar a SnackBar na parte superior
+              behavior: SnackBarBehavior.fixed,
             ),
           );
         } else {
-          // Fallback: tentar usar o contexto diretamente
           ScaffoldMessenger.of(globalContext).showSnackBar(
             SnackBar(
               content: Text(message),
-              duration: const Duration(seconds: 3),
+              duration: const Duration(seconds: 5),
               backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-              margin: EdgeInsets.only(
-                top: kToolbarHeight + 20, // espaço abaixo do AppBar
-                right: 20,
-                left: 20,
-              ),
+              // Altera para 'fixed' para posicionar a SnackBar na parte superior
+              behavior: SnackBarBehavior.fixed,
             ),
           );
         }
       } catch (e) {
-        // Se houver erro, logar para debug
         log('Erro ao mostrar SnackBar: $e');
       }
     } else {
