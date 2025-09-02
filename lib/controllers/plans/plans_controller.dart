@@ -79,16 +79,16 @@ class PlansController extends Cubit<PlansState> {
       // Fechar loading antes de mostrar outros diálogos
       _dismissLoadingDialog(context);
 
-      if (response) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const MyHomePage(title: ''),
-          ),
-        );
-      } else {
-        _handleFailure(context, 'Falha ao cancelar plano');
-      }
+      emit(state.copyWith(
+          status: AppStateStatus.success, plan: PlanModel.empty()));
+
+      await Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MyHomePage(title: '')),
+        (Route<dynamic> route) => false,
+      );
+
+      _showSnackBarMessage(response.message);
     } on ApiException catch (e) {
       // Fechar loading antes de mostrar erro
       _dismissLoadingDialog(context);
@@ -105,7 +105,13 @@ class PlansController extends Cubit<PlansState> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Usuário não autenticado.'),
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(
+            top: kToolbarHeight + 20, // espaço abaixo do AppBar
+            right: 20,
+            left: 20,
+          ),
         ),
       );
       return false;
@@ -193,6 +199,11 @@ class PlansController extends Cubit<PlansState> {
               duration: const Duration(seconds: 4),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.only(
+                top: kToolbarHeight + 20, // espaço abaixo do AppBar
+                right: 20,
+                left: 20,
+              ),
             ),
           );
         } else {
@@ -200,9 +211,14 @@ class PlansController extends Cubit<PlansState> {
           ScaffoldMessenger.of(globalContext).showSnackBar(
             SnackBar(
               content: Text(message),
-              duration: const Duration(seconds: 2),
+              duration: const Duration(seconds: 3),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.only(
+                top: kToolbarHeight + 20, // espaço abaixo do AppBar
+                right: 20,
+                left: 20,
+              ),
             ),
           );
         }

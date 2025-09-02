@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/models/comppare_model.dart';
+import 'package:application_progress/models/response_model.dart';
 import 'package:application_progress/models/tag_model.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/material.dart';
@@ -848,7 +849,7 @@ class ApiService {
     }
   }
 
-  Future<bool> cancelPlan(int idUser) async {
+  Future<ResponseModel> cancelPlan(int idUser) async {
     try {
       final url = Uri.parse(ApiEndpoints.cancelPlan);
       log("URL DE BUSCA DE PLANO POR ID: $url");
@@ -866,7 +867,7 @@ class ApiService {
       log("RESPOSTA DA API - CANCELAR PLANO: ${jsonEncode(response)}");
 
       if (response['codRetorno'] == 200) {
-        return true;
+        return ResponseModel.fromMap(response);
       } else {
         throw ApiException(response['message'],
             statusCode: response['codRetorno']);

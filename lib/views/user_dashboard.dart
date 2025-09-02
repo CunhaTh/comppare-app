@@ -2,6 +2,7 @@
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/models/folder_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../controllers/plans/plans_controller.dart';
 import '../infra/api_services.dart';
@@ -238,10 +239,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        StreamBuilder<PlansState>(
-          stream: plansController.stream,
-          builder: (context, snapshot) {
-            final state = snapshot.data ?? plansController.state;
+        BlocBuilder<PlansController, PlansState>(
+          buildWhen: (previous, current) => previous.status != current.status,
+          bloc: plansController,
+          builder: (context, state) {
             final plan = state.plan;
 
             if (state.status == AppStateStatus.loading) {
@@ -387,32 +388,33 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _showCancelPlanDialog(plan.nome),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[50],
-                        foregroundColor: Colors.red[700],
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(
-                            color: Colors.red[300]!,
-                            width: 1,
+                  if (user.idPlano != null && user.idPlano != 1)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _showCancelPlanDialog(plan.nome),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[50],
+                          foregroundColor: Colors.red[700],
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(
+                              color: Colors.red[300]!,
+                              width: 1,
+                            ),
                           ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Cancelar Assinatura',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                        child: const Text(
+                          'Cancelar Assinatura',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             );
