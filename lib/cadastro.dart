@@ -11,7 +11,7 @@ import 'dart:convert';
 import 'helpers/helpers.dart';
 import 'infra/api_endponts.dart';
 import 'infra/user_helper.dart';
-import 'models/plan_model.dart'; // Importa o UserHelper (agora com a classe User)
+import 'package:application_progress/models/plan_model.dart';
 
 class CadastroScreen extends StatefulWidget {
   final PlanModel plan;
@@ -365,16 +365,8 @@ class CadastroScreenState extends State<CadastroScreen> {
     String confirmSenha = _confirmPasswordController.text.trim();
 
     // Remove o apelido da lista de campos obrigatórios
-    if ([
-      nome,
-      sobrenome,
-      cpf,
-      email,
-      nascimento,
-      telefone,
-      senha,
-      confirmSenha
-    ].any((field) => field.isEmpty)) {
+    if ([nome, sobrenome, cpf, email, nascimento, telefone, senha, confirmSenha]
+        .any((field) => field.isEmpty)) {
       _showErrorDialog('Por favor, preencha todos os campos obrigatórios!');
       setState(() => _isLoading = false);
       return;
