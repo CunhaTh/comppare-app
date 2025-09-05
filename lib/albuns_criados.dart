@@ -159,86 +159,95 @@ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
     });
   }
 
-  // Método para remover tags ao deletar subpasta
+  // Método para remover tags ao deletar Subalbum
   Future<void> _removeTags(int folderId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('tags_$folderId');
     debugPrint('Tags removidas localmente para folderId $folderId');
   }
 
-  // Método para remover uma tag específica
-  Future<void> _removeTag(Folder folder, String tag) async {
-    if (!mounted) return;
+// Função para REMOVER uma tag
+Future<void> _removeTag(Folder folder, String tag) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) return;
+
+  final currentTags = List<String>.from(folder.tags ?? []);
+  if (currentTags.contains(tag)) {
+    final newTags = currentTags.where((t) => t != tag).toList();
+
     setState(() {
-      folder.tags?.remove(tag);
+      folder.tags = newTags;
     });
-    await _saveTags(folder.id, folder.tags ?? []);
-    debugPrint('Tag "$tag" removida do folderId ${folder.id}');
+
+    try {
+      await _apiService.updateFolder(
+        folderId: folder.id,
+        idUsuario: user.id!,
+        folderName: folder.nome, // <-- ADICIONADO: Enviando o nome da pasta
+        tags: newTags,
+      );
+      await _saveTags(folder.id, newTags);
+    } catch (e) {
+      setState(() {
+        folder.tags = currentTags;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao remover categoria: ${e.toString()}')),
+      );
+    }
   }
+}
 
 
-  void _addTagToFolder(Folder folder, String tag) {
+// Função para ADICIONAR uma tag
+void _addTagToFolder(Folder folder, String tag) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) return;
+
+  final currentTags = List<String>.from(folder.tags ?? []);
+  if (!currentTags.contains(tag)) {
+    final newTags = [...currentTags, tag];
+
     setState(() {
-      final currentTags = folder.tags ?? [];
-      if (!currentTags.contains(tag)) {
-        folder.tags = [...currentTags, tag];
-        _saveTags(folder.id, folder.tags!);
-      }
+      folder.tags = newTags;
     });
+
+    try {
+      await _apiService.updateFolder(
+        folderId: folder.id,
+        idUsuario: user.id!,
+        folderName: folder.nome, // <-- ADICIONADO: Enviando o nome da pasta
+        tags: newTags,
+      );
+      await _saveTags(folder.id, newTags);
+    } catch (e) {
+      setState(() {
+        folder.tags = currentTags;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar categoria: ${e.toString()}')),
+      );
+    }
   }
+}
 
-
+  // FUNÇÃO DE ATUALIZAÇÃO PRINCIPAL - Busca a lista mais recente da API
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
-    debugPrint(
-        'AlbunsCriados: Token no início de _fetchSubfoldersFromApiAndRefreshState: ${TokenHelper().token}');
-    debugPrint(
-        'AlbunsCriados: Buscando subálbum para initialFolderId: ${widget.initialFolderId}');
 
     try {
-      final user = UserHelper().user;
-      if (user == null || user.id == null || !TokenHelper().hasToken()) {
-        debugPrint(
-            'Usuário não autenticado ou token ausente. Redirecionando para login.');
-        _navigateToLogin();
-        return;
-      }
-
       final List<Folder> subfolders =
           await _apiService.fetchSubfolders(widget.initialFolderId);
-      debugPrint(
-          'subálbum recebidos da API: ${subfolders.map((f) => 'id=${f.id}, nome=${f.nome}, idPastaPai=${f.idPastaPai}, tags=${f.tags?.join(",") ?? "nenhuma"}').join(', ')}');
 
       if (mounted) {
-        final updatedSubfolders = await Future.wait(subfolders.map((f) async {
-          final localTags = await _loadTags(f.id);
-          return copyFolder(f,
-              tags: localTags.isNotEmpty ? localTags : f.tags ?? []);
-        }).toList());
         setState(() {
-          _subfolders = updatedSubfolders;
-          debugPrint('subálbum atualizados: ${_subfolders.length}');
+          _subfolders = subfolders;
         });
       }
-    } on ApiException catch (e) {
-      debugPrint('Erro ao atualizar subálbum da API: ${e.message}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar subálbum: ${e.message}')),
-        );
-        if (e.statusCode == 401) {
-          _navigateToLogin();
-        }
-      }
     } catch (e) {
-      debugPrint('Erro inesperado ao atualizar subpastas da API: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Ocorreu um erro inesperado ao carregar subálbum.')),
-        );
+        _showErrorDialog('Erro ao carregar subálbuns: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -247,65 +256,49 @@ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
     }
   }
 
-Future<void> _addSubfolder(String subfolderName) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null) {
-    debugPrint('[_addSubfolder] Tentativa de criar subpasta sem usuário ou ID válido.');
-    _showErrorDialog('Erro: Usuário não logado. Faça login novamente.');
-    _navigateToLogin();
-    return;
-  }
+  /// **CORRIGIDO:** Cria um subálbum na API e atualiza o estado local com a resposta.
+  Future<void> _addSubfolderAndUpdateState(String subfolderName) async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      _showErrorDialog('Erro: Usuário não logado.');
+      _navigateToLogin();
+      return;
+    }
 
-  try {
-    final String subfolderNameForApi = subfolderName.trim();
-    debugPrint('[_addSubfolder] Tentando criar subálbum com nome: $subfolderNameForApi, parentFolderId: ${widget.initialFolderId}, parentFolderPath: ${widget.folderApiPath}}');
+    try {
+      final Map<String, dynamic> response = await _apiService.createSubFolder(
+        parentFolderId: widget.initialFolderId,
+        idUsuario: user.id!,
+        folderName: subfolderName,
+        parentFolderPath: widget.folderApiPath,
+      );
 
-    final Map<String, dynamic> response = (await _apiService.createSubFolder(
-      parentFolderId: widget.initialFolderId,
-      idUsuario: user.id!,
-      folderName: subfolderName,
-      parentFolderPath: widget.folderApiPath,
-    )) as Map<String, dynamic>;
-    debugPrint('[_addSubfolder] Subalbum criada com sucesso, resposta: ${json.encode(response)}');
-
-    if (mounted) {
+      // Cria o objeto Folder com os dados retornados pela API
       final newSubfolder = Folder.fromMap({
-        'id': response['id'] ?? 0,
-        'nome': response['caminho'] ?? '${response['nome'] ?? subfolderNameForApi}',
-        'caminho': response['caminho'],
+        'id': response['pasta_id'] ?? 0,
+        'nome': response['pasta_nome'] ?? subfolderName,
+        'caminho': response['pasta_caminho'] ?? '',
         'idPastaPai': widget.initialFolderId,
         'imagens': [],
         'subpastas': [],
       });
-      setState(() {
-        _subfolders.add(newSubfolder);
-      });
-      debugPrint('[_addSubfolder] Subpasta adicionada localmente: id=${newSubfolder.id}, nome=${newSubfolder.nome}, idPastaPai=${newSubfolder.idPastaPai} ?? "nenhuma"}');
-    }
-  } catch (e) {
-    debugPrint('[_addSubfolder] Erro ao criar subpasta: $e');
-    if (e is ApiException && mounted) {
-      _showErrorDialog('Falha ao criar a subpasta: ${e.message}');
-      if (e.statusCode == 401) {
-        _navigateToLogin();
-      }
-    }
-  }
 
-  if (mounted) {
-    try {
-      await _fetchSubfoldersFromApiAndRefreshState();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Subpasta "$subfolderName" criada com sucesso!')),
-      );
-    } catch (e) {
-      debugPrint('[_addSubfolder] Erro ao atualizar após criação: $e');
+      // Adiciona o novo subálbum à lista local e atualiza a tela
       if (mounted) {
-        _showErrorDialog('Erro ao atualizar a lista de subpastas.');
+        setState(() {
+          _subfolders.add(newSubfolder);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Subálbum "$subfolderName" criado com sucesso!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('Falha ao criar o subálbum: ${e.toString()}');
       }
     }
   }
-}
+  
 
   void _showErrorDialog(String message) {
     if (!mounted) return;
@@ -341,108 +334,50 @@ Future<void> _addSubfolder(String subfolderName) async {
   void _showAddSubalbumDialog() {
     if (!mounted) return;
     _subalbumNameController.clear();
-    _tagsController.clear();
-
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen =
-        screenWidth > 520 && MediaQuery.of(context).size.height > 889;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: StatefulBuilder(
-            builder: (dialogContext, setDialogState) {
-              bool isDialogLoading = false;
-              return AlertDialog(
-                title: const Text('Criar Novo Subálbum'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _subalbumNameController,
-                      decoration: InputDecoration(
-                        hintText: 'Nome do subálbum',
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: isLargeScreen
-                              ? screenWidth * 0.02
-                              : screenWidth * 0.028,
-                          vertical: isLargeScreen
-                              ? screenWidth * 0.015
-                              : screenWidth * 0.022,
-                        ),
-                      ),
-                      enabled: !isDialogLoading,
-                    ),
-                    if (isDialogLoading)
-                      // ignore: dead_code
-                      const Padding(
-                        padding: EdgeInsets.only(top: 16.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                  ],
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            bool isDialogLoading = false;
+            return AlertDialog(
+              title: const Text('Criar Novo Subálbum'),
+              content: TextField(
+                controller: _subalbumNameController,
+                decoration: const InputDecoration(hintText: 'Nome do subálbum'),
+                enabled: !isDialogLoading,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDialogLoading ? null : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancelar'),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: isDialogLoading
-                        ? null
-                        : () {
+                ElevatedButton(
+                  child: isDialogLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salvar'),
+                  onPressed: isDialogLoading
+                      ? null
+                      : () async {
+                          final subalbumName = _subalbumNameController.text.trim();
+                          if (subalbumName.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('O nome não pode ser vazio.')),
+                            );
+                            return;
+                          }
+                          
+                          setDialogState(() => isDialogLoading = true);
+                          // Chama a nova função unificada
+                          await _addSubfolderAndUpdateState(subalbumName);
+                          if (mounted) {
                             Navigator.of(dialogContext).pop();
-                          },
-                    child: const Text('Cancelar'),
-                  ),
-                  ElevatedButton(
-                    child: const Text('Salvar'),
-                    onPressed: isDialogLoading
-                        ? null
-                        : () async {
-                            final subalbumName =
-                                _subalbumNameController.text.trim();
-                            if (subalbumName.isEmpty) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'O nome do subálbum não pode ser vazio.')),
-                                );
-                              }
-                              return;
-                            }
-
-                            final tagsString = _tagsController.text.trim();
-                            final List<String> tags = tagsString.isNotEmpty
-                                ? tagsString
-                                    .split(',')
-                                    .map((tag) => tag.trim())
-                                    .where((tag) => tag.isNotEmpty)
-                                    .toList()
-                                : [];
-
-                            setDialogState(() => isDialogLoading = true);
-                            try {
-                              await _addSubfolder(subalbumName);
-                              if (context.mounted) {
-                                Navigator.of(dialogContext).pop();
-                              }
-                            } catch (e) {
-                              debugPrint('Erro no modal de criar subálbum: $e');
-                              if (mounted) {
-                                _showErrorDialog(
-                                    'Você atingiu o limite de supálbuns criados: $e');
-                              }
-                            } finally {
-                              if (context.mounted) {
-                                setDialogState(() => isDialogLoading = false);
-                              }
-                            }
-                          },
-                  ),
-                ],
-              );
-            },
-          ),
+                          }
+                        },
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -533,9 +468,10 @@ Future<void> _addSubfolder(String subfolderName) async {
     }
   }
 
+  /// **CORRIGIDO:** Exclui um subálbum na API e atualiza o estado local após o sucesso.
   Future<void> _confirmAndDeleteSubfolder(Folder subfolder) async {
     final user = UserHelper().user;
-    if (user == null || user.id == null || !TokenHelper().hasToken()) {
+    if (user == null || user.id == null) {
       _navigateToLogin();
       return;
     }
@@ -545,8 +481,7 @@ Future<void> _addSubfolder(String subfolderName) async {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
-          content: Text(
-              'Tem certeza que deseja excluir o subálbum "${subfolder.albunsCriadosPageDisplayName}"? Esta ação removerá todas as imagens e informações inseridas e não poderá ser desfeita.'),
+          content: Text('Tem certeza que deseja excluir o subálbum "${subfolder.albunsCriadosPageDisplayName}"?'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -562,47 +497,30 @@ Future<void> _addSubfolder(String subfolderName) async {
     );
 
     if (confirm == true) {
-      setState(() {
-        _isLoading = true;
-      });
-
+      setState(() => _isLoading = true);
       try {
         await _apiService.deleteFolder(user.id!, subfolder.id);
-        await _removeTags(subfolder.id); // Remover tags persistidas
-
+        
         if (mounted) {
           setState(() {
             _subfolders.removeWhere((f) => f.id == subfolder.id);
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    'Subpasta "${subfolder.albunsCriadosPageDisplayName}" excluída com sucesso!')),
+            SnackBar(content: Text('Subálbum "${subfolder.albunsCriadosPageDisplayName}" excluído com sucesso!')),
           );
-          await _fetchSubfoldersFromApiAndRefreshState();
-        }
-      } on ApiException catch (e) {
-        debugPrint('Erro em _confirmAndDeleteSubfolder: ${e.message}');
-        if (mounted) {
-          _showErrorDialog('Não foi possível excluir a subpasta: ${e.message}');
-          if (e.statusCode == 401) {
-            _navigateToLogin();
-          }
         }
       } catch (e) {
-        debugPrint('Erro inesperado em _confirmAndDeleteSubfolder: $e');
         if (mounted) {
-          _showErrorDialog('Ocorreu um erro inesperado ao excluir a subpasta.');
+          _showErrorDialog('Não foi possível excluir o subálbum: ${e.toString()}');
         }
       } finally {
         if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
+          setState(() => _isLoading = false);
         }
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -672,17 +590,106 @@ Future<void> _addSubfolder(String subfolderName) async {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+   /*   floatingActionButton: FloatingActionButton(
         onPressed: _showAddSubalbumDialog,
         backgroundColor: const Color(0xFFaed513),
         elevation: 4,
         child: const Icon(Icons.add, color: Colors.black, size: 28),
+      ),*/
+    );
+  }
+  
+
+    Widget _buildHeaderSection() {
+    return GestureDetector(
+      onTap: _showAddSubalbumDialog,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFFaed513).withValues(alpha: 0.1),
+              Colors.white,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFaed513).withValues(alpha: 0.3),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFaed513),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFaed513).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _showAddSubalbumDialog,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    child: const Icon(
+                      Icons.add_photo_alternate,
+                      color: Colors.black,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Criar Subálbuns',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Visualize e gerencie os sub álbuns',
+                    style: TextStyle(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+
   // Header Section
-  Widget _buildHeaderSection() {
+ /* Widget _buildHeaderSection() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -723,7 +730,7 @@ Future<void> _addSubfolder(String subfolderName) async {
 
               // Page Title
               const Text(
-                'Sub álbuns',
+                'Subálbuns',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 18,
@@ -743,7 +750,7 @@ Future<void> _addSubfolder(String subfolderName) async {
         ],
       ),
     );
-  }
+  }*/
 
   // Empty State
   Widget _buildEmptyState() {

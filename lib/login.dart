@@ -193,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.black,
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 20,),
+                                    const EdgeInsets.symmetric(vertical: 20),
                                 textStyle: const TextStyle(fontSize: 18),
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
@@ -207,51 +207,39 @@ class _LoginScreenState extends State<LoginScreen> {
                                       style: TextStyle(color: Colors.white)),
                             ),
                           ),
-                          const SizedBox(width: 15),
                         ],
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                      Padding(
-                      padding: const EdgeInsets.only(top: 30),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const RecoverPasswordScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Color(0xFFaed513),
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)), // Arredondamento
-                        ),
-                        child: Text('Esqueceu a senha?'),
-                      )
-                    ),
-                    SizedBox(width: 50),
                     Padding(
-                      padding: const EdgeInsets.only(top: 30),
-                      child: Expanded(
-                            // Para que o botão ocupe o espaço disponível
-                            child: _buildActionButton(
-                                context,
-                                'Deseja se cadastrar?',
-                                CadastroScreen(
-                                  plan: PlanModel.empty()..id = 1,
-                                )),
+                      padding: const EdgeInsets.only(top: 20),
+                      child:Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                         // Exemplo de uso dentro de um Scaffold
+                        TextButton(
+                              onPressed: () {},
+                              child: Center( // 2. Garante que o botão fique centralizado
+                                child: _buildActionButton(
+                                  context,
+                                  'Esqueceu a senha?',
+                                ),
+                              ),
+                            
                           ),
+                         
+                          TextButton(
+                              onPressed: () {},
+                              child:  Center(
+                                child: _buildregistrationButton(
+                                  context,
+                                  'Deseja Cadastrar?',
+                                  CadastroScreen(
+                                    plan: PlanModel.empty()..id = 1,
+                                  )),
+                              ),
+                              ),
+                      ],) 
                     ),
-                    ],)
-                    
                   ],
                 ),
               ),
@@ -273,24 +261,55 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildActionButton(
+  Widget  _buildregistrationButton(
       BuildContext context, String label, Widget targetPage) {
     return ElevatedButton(
-      onPressed: () {
-        Navigator.push(
+        onPressed: () {
+         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => targetPage),
         );
-      },
-      style: ElevatedButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: Color(0xFFaed513),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8)), // Arredondamento
-      ),
-      child: Text(label),
-    );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFaed513), // Cor de fundo
+          foregroundColor: Colors.black,             // Cor do texto
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0), // Bordas arredondadas
+            side: const BorderSide(
+              color: Colors.black45, // Cor da borda
+              width: 1.3,            // Espessura da borda
+            ),
+          ),
+        ),
+        child: const Text('Deseja Cadastrar?', style: TextStyle(fontSize: 13),),
+      );
+  }
+
+    Widget _buildActionButton(
+      BuildContext context, String label,) {
+    return ElevatedButton(
+        onPressed: () {
+           Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const RecoverPasswordScreen()),
+                          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFaed513), // Cor de fundo
+          foregroundColor: Colors.black,             // Cor do texto
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0), // Bordas arredondadas
+            side: const BorderSide(
+              color: Colors.black45, // Cor da borda
+              width: 1.3,            // Espessura da borda
+            ),
+          ),
+        ),
+        child: const Text('Esqueceu a senha?',style: TextStyle(fontSize: 13)),
+      );
   }
 }

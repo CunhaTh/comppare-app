@@ -12,8 +12,7 @@ class ApiEndpoints {
         : 'https://api.comppare.com.br/api';
   }
 
-  static const String recoverFolder =
-      '/pasta/recuperar'; // Remover '/api' daqui
+  static const String recoverFolder = '/pasta/recuperar'; // Remover '/api' daqui
 
   /// Endpoint para criar uma assinatura de vendas (admin).
   static String get createSignature => '$baseUrl/admin/vendas/criar-assinatura';
@@ -53,9 +52,6 @@ class ApiEndpoints {
   // DELETE: { "folderId": ... }
   static String get deleteFolder => '$baseUrl/pasta/excluir';
 
-  /// lista o valor das tags.
-  static String get listarTags => '$baseUrl/tags/recuperar-tags-usuario';
-
   /// Endpoint para excluir uma imagem específica.
   /// Usa o método DELETE na API.
   static String get deleteImage => '$baseUrl/imagens/excluir';
@@ -63,6 +59,9 @@ class ApiEndpoints {
   /// Endpoint para fazer upload de imagens.
   /// Formato esperado: POST /api/imagens/salvar (com idUsuario e idPasta como campos no multipart)
   static String get uploadImages => '$baseUrl/imagens/salvar';
+
+   /// lista o valor das tags.
+  static String get listarTags => '$baseUrl/tags/recuperar-tags-usuario';
 
   // Salva as tags
   static String get cadastraTags => '$baseUrl/tags/cadastrar';

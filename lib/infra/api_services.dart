@@ -4,12 +4,14 @@ import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/models/comppare_model.dart';
 import 'package:application_progress/models/response_model.dart';
 import 'package:application_progress/models/tag_model.dart';
+import 'package:application_progress/models/user_stats_model.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
+import 'package:http/http.dart' as httpClient;
 import '../models/models.dart'; // Para o modelo Folder
 
 /// Uma classe de serviço para interagir com a API do seu backend.
@@ -75,7 +77,7 @@ class ApiService {
     };
 
     return sendRequest(
-      () => _httpClient.put(
+      () => _httpClient.post(
         // Usando o método PUT para atualizar a pasta.
         url,
         headers: getHeaders(includeContentType: true),
@@ -196,6 +198,31 @@ class ApiService {
       }
       throw ApiException('Erro inesperado: ${e.toString()}',
           statusCode: 0, body: '');
+    }
+  }
+
+  // MÉTODO fetchUserStats CORRIGIDO
+  Future<UserStats> fetchUserStats() async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      // CORRIGIDO: Passando a mensagem como argumento posicional
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
+
+    final url =
+        Uri.parse('${ApiEndpoints.baseUrl}/usuarios/${user.id}/estatisticas');
+
+    // A função de requisição é criada e passada para o seu método sendRequest
+    final response =
+        await sendRequest(() => httpClient.get(url, headers: getHeaders()));
+
+    if (response is Map<String, dynamic> &&
+        response['data'] != null &&
+        response['data'] is Map<String, dynamic>) {
+      return UserStats.fromJson(response['data']);
+    } else {
+      // CORRIGIDO: Passando a mensagem como argumento posicional
+      throw ApiException('Resposta de estatísticas inválida da API.');
     }
   }
 
@@ -332,17 +359,14 @@ class ApiService {
     );
   }
 
-  // lib/infra/api_services.dart
-  Future<Future> createFolder({
+  // FUNÇÃO CORRIGIDA - Agora retorna Future<Map<String, dynamic>>
+  Future<Map<String, dynamic>> createFolder({
     int? parentFolderId,
     required int idUsuario,
     required String folderName,
-    List<String>? tags, // Adiciona suporte a tags
+    List<String>? tags,
   }) async {
     final url = Uri.parse(ApiEndpoints.createFolder);
-    foundation.debugPrint(
-        '[_createFolder] Requisição para criar pasta/subpasta em: $url com nome: $folderName, parentFolderId: $parentFolderId');
-
     final body = {
       'idUsuario': idUsuario,
       'nomePasta': folderName,
@@ -350,7 +374,8 @@ class ApiService {
       if (tags != null && tags.isNotEmpty) 'tags': tags,
     };
 
-    return sendRequest(
+    // AWAIT foi adicionado aqui para esperar o resultado antes de retornar
+    final response = await sendRequest(
       () => _httpClient.post(
         url,
         headers: getHeaders(includeContentType: true),
@@ -359,6 +384,19 @@ class ApiService {
       successMessage: 'Pasta/subpasta criada com sucesso.',
       errorMessage: 'Você atingiu o limite de albuns criados.',
     );
+    return response;
+  }
+
+    // NOVA FUNÇÃO - Usa sua lógica de autenticação para atualizar os dados
+  Future<void> refreshUserData() async {
+    final token = TokenHelper().token;
+    if (token == null || token.isEmpty) {
+      throw ApiException('Nenhum token disponível para atualização.', statusCode: 401);
+    }
+    
+    // Chama sua função de autenticação em modo "refresh", que busca os dados do usuário
+    // e já atualiza o TokenHelper e UserHelper internamente.
+    await authenticateUser( '', '', token: token);
   }
 
   Future<Future> deleteFolder(int idUsuario, int idPasta) async {
@@ -423,6 +461,42 @@ class ApiService {
       successMessage: 'Imagem excluída com sucesso.',
       errorMessage: 'Falha ao excluir imagem.',
     );
+  }
+
+    /// NOVO: Busca a lista completa e atualizada de pastas do usuário diretamente da API.
+  Future<List<Folder>> fetchAllFolders() async {
+    // Assume que existe um endpoint para listar todas as pastas do usuário logado.
+    // O backend identificará o usuário pelo token de autenticação.
+    final url = Uri.parse(
+        '${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}');
+
+    final responseBody = await sendRequest(
+      () => _httpClient.get(url, headers: getHeaders()),
+      successMessage: 'Pastas carregadas da API.',
+      errorMessage: 'Falha ao buscar pastas da API.',
+    );
+
+    // A resposta da API para uma lista é diretamente a lista de pastas
+    if (responseBody is List) {
+      final List<Folder> folders = responseBody
+          .map((item) => Folder.fromMap(item as Map<String, dynamic>))
+          .toList();
+      
+      // Opcional, mas recomendado: Atualiza o cache do UserHelper com os dados mais recentes
+      final user = UserHelper().user;
+      if (user != null) {
+        user.pastas = folders;
+        await UserHelper().setUser(user);
+      }
+
+      return folders;
+    } else {
+      throw ApiException(
+        'Resposta da API para listar pastas não era uma lista.',
+        statusCode: 0,
+        body: json.encode(responseBody),
+      );
+    }
   }
 
   /// Função para listar TODAS as pastas principais do usuário logado.
@@ -569,54 +643,42 @@ class ApiService {
     }
   }
 
-  Future<Future> createSubFolder({
+  // FUNÇÃO CORRIGIDA
+  Future<Map<String, dynamic>> createSubFolder({
     required int parentFolderId,
     required int idUsuario,
     required String folderName,
-    required String
-        parentFolderPath, // Novo parâmetro para o caminho da pasta pai
+    required String parentFolderPath,
     List<String>? tags,
   }) async {
     final url = Uri.parse(ApiEndpoints.createFolder);
     String nomePasta = folderName.trim();
 
-    // Constrói o nomePasta usando o caminho da pasta pai
+    // ... (sua lógica para construir o nomePasta)
     if (parentFolderPath.isNotEmpty) {
-      final parentName = parentFolderPath
-          .split('/')
-          .last; // Extrai o nome da pasta pai (ex.: "PASTAFOLDER")
+      final parentName = parentFolderPath.split('/').last;
       nomePasta = '$parentName/$folderName';
-    } else {
-      // Fallback: tenta obter o nome da pasta pai via API
-      try {
-        final parentFolder = await _getParentFolderDetails(parentFolderId);
-        if (parentFolder != null && parentFolder['nome'] != null) {
-          nomePasta = '${parentFolder['nome']}/$folderName';
-        }
-      } catch (e) {
-        foundation
-            .debugPrint('[_createSubFolder] Erro ao buscar pasta pai: $e');
-      }
     }
-
-    foundation.debugPrint(
-        '[_createSubFolder] Requisição para criar subpasta em: $url com nome: $nomePasta, parentFolderId: $parentFolderId');
-
+    
     final body = {
       'idUsuario': idUsuario,
-      'nomePasta': nomePasta, // Usa a hierarquia completa
+      'nomePasta': nomePasta,
       if (tags != null && tags.isNotEmpty) 'tags': tags,
     };
 
-    return sendRequest(
+    // A CORREÇÃO ESTÁ AQUI:
+    // 1. Usamos 'await' para esperar a resposta da API.
+    // 2. O retorno de 'sendRequest' é um 'dynamic', então fazemos um cast para o tipo esperado.
+    final response = await sendRequest(
       () => _httpClient.post(
         url,
         headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
       successMessage: 'Subálbum criado com sucesso.',
-      errorMessage: 'Você atingiu o limite de subálbuns criadas.',
+      errorMessage: 'Você atingiu o limite de subálbuns criados.',
     );
+    return response as Map<String, dynamic>;
   }
 
   Future<String?> refreshTokenIfNeeded() async {
@@ -668,6 +730,7 @@ class ApiService {
       rethrow;
     }
   }
+
 
 // lib/infra/api_services.dart
   Future<Future> fetchFolderDetails(int folderId) async {

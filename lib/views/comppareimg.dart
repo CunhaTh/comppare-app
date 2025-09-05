@@ -1315,6 +1315,9 @@ Widget _buildShareableFrame({
     );
   }
 
+
+
+
 Future<void> _showErrorDialog(BuildContext context, String message) async {
   await showDialog(
     context: context,
@@ -1881,7 +1884,10 @@ Future<ImageModel?> _openEditDialog(
                                                   metadata: Map.from(updatedMetadata), // Usa uma cópia para evitar referências
                                                 );
                                                 if (dialogContext.mounted) {
-                                                  await _showErrorDialog(dialogContext, '');
+                                                   ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Salva com sucesso')),
+                                                  );
+                                                
                                                   Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
                                                 }
                                               }

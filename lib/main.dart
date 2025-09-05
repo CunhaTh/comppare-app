@@ -172,24 +172,94 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<Map<String, String>> faqs = [
     {
-      "question": "Como faço para assinar um plano?",
+      "question": "O que são os álbuns e subálbuns?",
       "answer":
-          "Para assinar um plano, escolha um dos planos disponíveis e clique no botão 'Assinar'."
+          "Álbum: É a pasta principal onde você irá organizar os subálbuns. Subálbum: É a pasta secundária onde serão armazenadas as fotos de um tema específico do álbum. Exemplo: Álbum: casa | Subálbuns: sala, quarto, banheiro, área externa, piscina etc"
     },
     {
-      "question": "Quais são os métodos de pagamento aceitos?",
-      "answer": "Aceitamos cartões de crédito, débito e PayPal."
+      "question": "O que são as categorias?",
+      "answer": "As categorias são campos para você inserir informações referente a foto selecionada. Os campos são livres para atender a sua necessidade. Exemplos: Data, peso, altura, medida, profundidade, porcentagem, quantidade etc"
     },
     {
-      "question": "Posso cancelar minha assinatura?",
+      "question": "Quais são os planos existentes?",
       "answer":
-          "Sim, você pode cancelar sua assinatura a qualquer momento através da sua conta."
+          "Hoje, os planos existentes são: gratuito, avançado e anual."
     },
     {
-      "question": "Como posso mudar meu plano?",
+      "question": "Quais as diferenças entre os planos?",
       "answer":
-          "Para mudar seu plano, entre em contato com o suporte ao cliente."
+          '''Gratuito:
+0
+01 Álbum
+03 Subálbuns
+03 Categorias
+Com anúncios 
+Compartilhamento em redes sociais
+
+Avançado:
+29,90
+20 Álbuns
+06 Subálbuns
+10 Categorias
+Sem anúncios
+Compartilhamento em redes sociais
+Ranking
+Mini painel
+Compartilhamento externo de álbum
+
+Anual:
+287,00
+20 Álbuns
+06 Subálbuns
+10 Categorias
+Sem anúncios
+Compartilhamento em redes sociais
+Ranking
+Mini painel
+Compartilhamento externo de álbum
+'''
     },
+    {
+      "question": "Qual a diferença do mensal para o anual?",
+      "answer": 'A diferença entre os planos, é que no plano anual, você possui um desconto de 20% no valor total.'
+    },
+    {
+      "question": "Existe taxa de cancelamento?",
+      "answer": 'Não existe taxa de cancelamento. Em caso de cancelamento, não há devolução de valores pagos anteriormente ou do período em curso.'
+    },
+    {
+      "question": "Quais as formas de pagamento?",
+      "answer": 'Cartão de crédito e pix recorrente.'
+    },
+        {
+      "question": "O que é o ranking? Como funcionam as pontuações?",
+      "answer": ''' É a classificação dos usuários da plataforma de acordo com a tabela de pontuação abaixo:
+- Criação de álbum ou subálbum: 1 pto
+- Anexou foto com tag/categoria: 2 ptos
+- Usou o botão “comppare”: 2 ptos
+- Baixou imagem: 5 ptos
+- Compartilhou imagem com redes sociais: 20 ptos
+- bônus: resposta de forms de sugestões/melhorias em suporte: 5 ptos
+ '''
+    },
+        {
+      "question": " Existe aplicativo ou apenas a versão web?",
+      "answer": 'Apenas a versão web no momento.'
+    },
+    {
+      "question": "Consigo salvar e/ou compartilhar as imagens comparadas?",
+      "answer": 'Sim. Após realizar a comparação de imagens, ficarão disponíveis os botões “salvar” e “compartilhar”'
+    },
+        {
+      "question": "Como posso entrar em contato?",
+      "answer": ''' Através do e-mail: contato@comppare.com.br ou das nossas redes sociais: 
+Instagram: comppare.br | Linkedin: linkedin.com/comppare
+ '''
+    },
+        {
+      "question": "O que são os dados de uso?",
+      "answer": 'É um resumo de uso do usuário dentro da plataforma, mostrando dados como número de álbuns, subábuns, imagens entre outros'
+    }
   ];
 
   // LÓGICA DE ASSINATURA INTEGRADA DA SUA `SubscriptionPage`
@@ -402,7 +472,7 @@ class _MyHomePageState extends State<MyHomePage> {
           const Text(
             'Comppare imagens de forma interativa e inteligente',
             style: TextStyle(
-              fontSize: 35,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
               height: 1.1,
               color: Color(0xFF222222),
@@ -410,7 +480,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Transforme a maneira como você acompanha a evolução dos seus projetos e resultados com a plataforma visual mais avançada do mercado.',
+            'Transforme a maneira como você acompanha a evolução de seus projetos, clientes e resultados com a plataforma visual mais avançada do mercado.',
             style: TextStyle(
               fontSize: 16,
               height: 1.5,
@@ -504,214 +574,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-
-  List<Widget> _buildMonthlyPlans(List<PlanModel> monthlyPlans) {
-    // Initialize list to hold plan cards
-    List<Widget> planCards = [];
-
-    // Try to find the "Gratuito" plan
-    final gratuito = monthlyPlans.firstWhere(
-      (plan) => plan.nome.toLowerCase().contains('gratuito'),
-      orElse: () => PlanModel(
-        id: 1,
-        nome: 'Gratuito',
-        descricao: 'Plano gratuito com funcionalidades básicas',
-        valor: 0.0,
-        quantidadeTags: 2,
-        quantidadeFotos: 10,
-        quantidadeConvites: 1,
-        quantidadePastas: 2,
-        status: 1,
-        frequenciaCobranca: 1,
-        tempoGratuidade: 1,
-      ),
-    );
-
-    // Try to find the "Básico Mensal" plan
-    final basico = monthlyPlans.firstWhere(
-      (plan) =>
-          plan.nome.toLowerCase().contains('básico') &&
-          !plan.nome.toLowerCase().contains('anual'),
-      orElse: () => PlanModel(
-        id: 3,
-        nome: 'Avançado Mensal',
-        descricao: 'Plano Avançado mensal com acesso a mais funcionalidades',
-        valor: 29.90,
-        quantidadeTags: 5,
-        quantidadeFotos: 50,
-        quantidadeConvites: 1,
-        quantidadePastas: 1,
-        status: 1,
-        frequenciaCobranca: 1,
-        tempoGratuidade: 1,
-      ),
-    );
-    // Add plan cards only for plans that were found or have valid fallbacks
-    planCards.add(
-      _buildPlanCard(
-        gratuito,
-        selectedPlans[gratuito.id] ?? false,
-        () => selectPlan(gratuito.id),
-        () => navigateToCadastro(gratuito),
-        context,
-        isPopular: false,
-      ),
-    );
-    planCards.add(
-      _buildPlanCard(
-        basico,
-        selectedPlans[basico.id] ?? false,
-        () => selectPlan(basico.id),
-        () => navigateToCadastro(basico),
-        context,
-        isPopular: false,
-      ),
-    );
-
-    return planCards;
-  }
-
-  List<Widget> _buildAnnualPlans(List<PlanModel> annualPlans) {
-    // Initialize list to hold plan cards
-    List<Widget> planCards = [];
-
-    // Try to find the "Avançado Anual" plan
-    final avancadoAnual = annualPlans.firstWhere(
-      (plan) => plan.nome.toLowerCase().contains('avançado'),
-      orElse: () => PlanModel(
-        id: 4,
-        nome: 'Avançado Anual',
-        descricao: 'Plano avançado anual com todos os recursos',
-        valor: 499.99,
-        quantidadeTags: 10,
-        quantidadeFotos: 100,
-        quantidadeConvites: 1,
-        quantidadePastas: 1,
-        status: 1,
-        frequenciaCobranca: 1,
-        tempoGratuidade: 1,
-      ),
-    );
-
-    // Add plans to selectedPlans if not already present
-    if (!selectedPlans.containsKey(avancadoAnual.id)) {
-      selectedPlans[avancadoAnual.id] = false;
-    }
-
-    // Add plan cards only for plans that were found or have valid fallbacks
-    planCards.add(
-      _buildPlanCard(
-        avancadoAnual,
-        selectedPlans[avancadoAnual.id] ?? false,
-        () => selectPlan(avancadoAnual.id),
-        () => navigateToCadastro(avancadoAnual),
-        context,
-        isPopular: true,
-      ),
-    );
-
-    return planCards;
-  }
-
-// Refatoração sugerida para o widget _buildPlanCard
-Widget _buildPlanCard(
-    PlanModel plan,
-    bool isSelected,
-    VoidCallback onSelect,
-    VoidCallback onCadastrar,
-    BuildContext context, {
-    bool isPopular = false,
-  }) {
-    return GestureDetector(
-      onTap:
-          onSelect, // Permite que o usuário toque em qualquer lugar do cartão para selecionar
-      child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: isSelected ? const Color(0xFFaed513) : Colors.grey[300]!,
-            width: 2,
-          ),
-        ),
-        elevation: 4,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (isPopular) // Destaque para o plano mais popular
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFaed513),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: const Text(
-                    'Mais Popular',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              if (isPopular) const SizedBox(height: 12),
-              Text(
-                plan.nome,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? const Color(0xFFaed513) : Colors.black87,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'R\$ ${plan.valor.toStringAsFixed(2)}/${plan.frequenciaCobranca == 1 ? 'mês' : 'ano'}',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFaed513),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              // Utilize uma lista de widgets para os recursos
-              _buildFeatureRow('Álbuns', plan.quantidadePastas.toString()),
-              _buildFeatureRow(
-                  'Subálbuns por álbum', plan.quantidadeTags.toString()),
-              _buildFeatureRow('Categorias', plan.quantidadeTags.toString()),
-              _buildFeatureRow('Sem anúncios', 'Sim'),
-              _buildFeatureRow('Compartilhamento em redes sociais', 'Sim'),
-              // Adicione os demais recursos
-
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: onCadastrar,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      isSelected ? const Color(0xFFaed513) : Colors.grey[300],
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Assinar Agora',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -820,7 +682,7 @@ Funcionalidades''',
               ),
               const SizedBox(height: 24),
               Text(
-                'Nossa plataforma reúne recursos tecnológicos projetados para maximizar sua produtividade e encantar seus clientes.',
+                'Nossa plataforma reúne soluções desenvolvidas para otimizar sua produtividade e encantar seus clientes.',
                 textAlign: isMobile ? TextAlign.center : TextAlign.start,
                 style: paragraphStyle,
               ),
@@ -859,7 +721,7 @@ Funcionalidades''',
               ),
               const SizedBox(height: 24),
               Text(
-                'Controle, compare e visualize sua evolução de forma inteligente. A ferramenta definitiva para acompanhar seu progresso com precisão e alcançar seus objetivos.',
+                'Comparação de Imagens: Compare imagens com nossa tecnologia de sobreposição e visualização lado a lado',
                 textAlign: isMobile ? TextAlign.center : TextAlign.start,
                 style: paragraphStyle,
               ),
@@ -868,6 +730,45 @@ Funcionalidades''',
         ),
         const SizedBox(height: 30),
         //box 2
+        Container(
+        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+        decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+              Icon(
+              // Este ícone é visualmente similar ao do print
+              Icons.all_inbox,
+              size: 80, // Tamanho grande para destaque
+              color: const Color(0xFFaed513), // Cor da marca
+            ),
+            SizedBox(height: 20,),
+                    Text(
+                'Albuns',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: headlineStyle,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                ' Facilidade e praticidade na organização das suas fotos.',
+                textAlign: isMobile ? TextAlign.center : TextAlign.start,
+                style: paragraphStyle,
+              ),
+            ],
+          )
+        ),
+        const SizedBox(height: 30),
+        //box 3
         Container(
         padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
         decoration: BoxDecoration(
@@ -898,46 +799,7 @@ Funcionalidades''',
               ),
               const SizedBox(height: 24),
               Text(
-                'Crie  marcações especificas e anotações nas imagens para mostrar detalhes importantes.',
-                textAlign: isMobile ? TextAlign.center : TextAlign.start,
-                style: paragraphStyle,
-              ),
-            ],
-          )
-        ),
-        const SizedBox(height: 30),
-         //box 3
-        Container(
-        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
-        decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 20,
-            spreadRadius: 5,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-              Icon(
-              // Este ícone é visualmente similar ao do print
-              Icons.emoji_events_outlined,
-              size: 80, // Tamanho grande para destaque
-              color: const Color(0xFFaed513), // Cor da marca
-            ),
-            SizedBox(height: 20,),
-                    Text(
-                'Gamificação',
-                textAlign: isMobile ? TextAlign.center : TextAlign.start,
-                style: headlineStyle,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Engaje seus clientes com elementos de gamificação que incentivam o acompanhamento continuo',
+                'Crie categorias específicas e anotações nas imagens para mostrar detalhes importantes',
                 textAlign: isMobile ? TextAlign.center : TextAlign.start,
                 style: paragraphStyle,
               ),
@@ -977,7 +839,7 @@ usuários''',
           ),
               const SizedBox(height: 24),
               Text(
-                'Veja como a Comppare está transformando o dia dia de profissionais como você.',
+                'Veja como a Comppare está transformando o dia a dia das pessoas',
                 textAlign: isMobile ? TextAlign.center : TextAlign.center,
                 style: paragraphStyle,
               ),
@@ -1013,8 +875,7 @@ Widget  _featuresTitle ( bool isMobile ) {
         children: [
           // Título Principal
           const Text(
-            '''Planos para todos os
-Perfis   ''',
+            'Planos para todos os Perfis',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 28,
@@ -1037,15 +898,6 @@ Perfis   ''',
             ),
           ),
           const SizedBox(height: 24),
-          // Subtítulo/Parágrafo
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child:               Text(
-                  'Escolhe o plano ideal para o seu negócio e comece a transformar sua comunicação visual.',
-                  textAlign: isMobile ? TextAlign.center : TextAlign.center,
-                  style: paragraphStyle,
-                ),
-          ),
         ],
       ),
     );

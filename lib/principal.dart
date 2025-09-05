@@ -49,6 +49,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     super.initState();
     _checkLoginStatus(); // Verifica o status de login ao iniciar
     _fetchPlansAsync();
+    
+    
   }
 
   @override
@@ -163,75 +165,39 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  Future<void> _addFolder(String folderName) async {
+  // --- FUNÇÃO DE ATUALIZAÇÃO DE ESTADO ---
+  // Esta é a nova função que você deve ter. Ela substitui a sua '_addFolder' antiga.
+  Future<void> _addFolderAndUpdateState(String folderName) async {
     final user = UserHelper().user;
-    if (user == null || user.id == null || user.nome == null) {
-      foundation.debugPrint(
-          '[_addFolder] Tentativa de criar pasta sem usuário ou ID válido. Usuário: $user');
-      _showErrorDialog(
-          'Erro: Usuário não logado ou ID de usuário inválido. Por favor, faça login novamente.');
+    if (user == null || user.id == null) {
+      _showErrorDialog('Usuário não autenticado.');
       _navigateToLogin();
       return;
     }
 
     try {
-      final String folderNameForApi = folderName.trim();
-      foundation.debugPrint(
-          '[_addFolder] Tentando criar pasta com nome: $folderNameForApi, userId: ${user.id}');
-
-      final Map<String, dynamic> response = (await _apiService.createFolder(
+      final Map<String, dynamic> response = await _apiService.createFolder(
         idUsuario: user.id!,
-        folderName: folderNameForApi,
-        parentFolderId: null,
-      )) as Map<String, dynamic>;
-      foundation.debugPrint(
-          '[_addFolder] Resposta bruta da API: ${json.encode(response)}');
+        folderName: folderName.trim(),
+      );
 
-      if (mounted) {
-        final folderId = response['pasta_id'] as int? ?? 0;
-        final folderNameFromApi =
-            response['pasta_nome'] as String? ?? folderNameForApi;
-        final folderPath = response['pasta_caminho'] as String?;
-        final folderStructure =
-            response['estrutura_completa'] as String? ?? folderNameFromApi;
+      final newFolder = Folder(
+        id: response['pasta_id'] as int,
+        nome: response['pasta_nome'] as String,
+        caminho: response['pasta_caminho'] as String,
+        principalPageDisplayName: response['estrutura_completa'] as String,
+      );
 
-        final folderToAdd = Folder(
-          id: folderId,
-          nome: folderNameFromApi,
-          caminho: folderPath!,
-          principalPageDisplayName: folderStructure,
-          idPastaPai: null,
-          imagens: [],
-          tags: [],
-          subpastas: [],
-        );
+      setState(() {
+        _folders.add(newFolder);
+        // _updateStats(); // Se você tiver a função de estatísticas, chame-a aqui
+      });
+      
+      // showSuccessSnackBar(context, 'Álbum "$folderName" criado com sucesso!');
 
-        setState(() {
-          _folders.add(folderToAdd);
-        });
-
-        try {
-          await _fetchFoldersFromApiAndRefreshState();
-          folderNameController.clear();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Álbum "$folderName" criado com sucesso!')),
-          );
-        } catch (e) {
-          foundation
-              .debugPrint('[_addFolder] Erro ao atualizar após criação: $e');
-          if (mounted) {
-            _showErrorDialog('Erro ao atualizar a lista de álbuns.');
-          }
-        }
-      }
     } catch (e) {
-      foundation.debugPrint('[_addFolder] Erro ao criar álbum: $e');
-      if (e is ApiException && mounted) {
-        _showErrorDialog('Falha ao criar o álbum: ${e.message}');
-        if (e.statusCode == 401) {
-          _navigateToLogin();
-        }
-      }
+      foundation.debugPrint('Erro ao criar álbum: $e');
+      _showErrorDialog('Erro ao criar álbum: ${e.toString()}');
     }
   }
 
@@ -241,21 +207,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
       _isLoading = true;
     });
 
-    foundation.debugPrint(
-        'PrincipalPage: Token no início de _fetchFoldersFromApiAndRefreshState: ${TokenHelper().token}');
-
     try {
-      final user = UserHelper().user;
-      if (user == null || user.id == null) {
-        foundation
-            .debugPrint('Usuário não autenticado. Redirecionando para login.');
-        _navigateToLogin();
-        return;
-      }
+      await _apiService.refreshUserData();
 
-      final List<Folder> updatedFolders =
-          await _apiService.getAllFoldersForUser();
       if (mounted) {
+        final user = UserHelper().user;
+        final List<Folder> updatedFolders = user?.pastas ?? [];
+
         setState(() {
           _folders = updatedFolders;
           if (_folders.isNotEmpty && _selectedFolderId == null) {
@@ -263,21 +221,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
           }
         });
       }
-    } on ApiException catch (e) {
-      foundation.debugPrint('Erro ao atualizar pastas da API: ${e.message}');
-      if (mounted) {
-        _showErrorDialog(
-            'Não foi possível atualizar seus álbuns. ${e.message}');
-        if (e.statusCode == 401) {
-          _navigateToLogin();
-        }
-      }
     } catch (e) {
-      foundation.debugPrint('Erro inesperado ao atualizar pastas da API: $e');
-      if (mounted) {
-        _showErrorDialog(
-            'Ocorreu um erro inesperado ao atualizar seus álbuns.');
-      }
+      //... seu tratamento de erro
     } finally {
       if (mounted) {
         setState(() {
@@ -286,6 +231,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       }
     }
   }
+
 
   Future<void> _confirmAndDeleteFolder(Folder folder) async {
     final user = UserHelper().user;
@@ -327,17 +273,18 @@ class _PrincipalPageState extends State<PrincipalPage> {
           setState(() {
             _folders.removeWhere((f) => f.id == folder.id);
           });
+         // showSuccessSnackBar(context, 'Album "${folder.principalPageDisplayName}" excluída com sucesso!');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
-                    'Pasta "${folder.principalPageDisplayName}" excluída com sucesso!')),
+                    'Album "${folder.principalPageDisplayName}" excluído com sucesso!')),
           );
           await _fetchFoldersFromApiAndRefreshState();
         }
       } on ApiException catch (e) {
         foundation.debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
         if (mounted) {
-          _showErrorDialog('Não foi possível excluir a pasta: ${e.message}');
+          _showErrorDialog('Não foi possível excluir o Album: ${e.message}');
           if (e.statusCode == 401) {
             _navigateToLogin();
           }
@@ -345,7 +292,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       } catch (e) {
         foundation.debugPrint('Erro inesperado em _confirmAndDeleteFolder: $e');
         if (mounted) {
-          _showErrorDialog('Ocorreu um erro inesperado ao excluir a pasta.');
+          _showErrorDialog('Ocorreu um erro inesperado ao excluir o Album.');
         }
       } finally {
         if (mounted) {
@@ -605,6 +552,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
+  // --- FUNÇÃO ATUALIZADA ---
+  // Agora ela chama a nova função _addFolderAndUpdateState.
   Future<void> _handleCreateAlbum(Function setDialogState,
       BuildContext dialogContext, bool isDialogLoading) async {
     String folderName = folderNameController.text.trim();
@@ -623,7 +572,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
     });
 
     try {
-      await _addFolder(folderName);
+      // Chama a nova função que já cuida da API e do setState
+      await _addFolderAndUpdateState(folderName);
+
       if (context.mounted) {
         Navigator.of(dialogContext).pop();
         folderNameController.clear();
@@ -631,18 +582,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
     } catch (e) {
       foundation.debugPrint('Erro no modal de criar álbum: $e');
       if (context.mounted) {
+         Navigator.of(dialogContext).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao criar álbum: $e'),
             backgroundColor: Colors.red,
           ),
         );
-      }
-    } finally {
-      if (context.mounted) {
-        setDialogState(() {
-          isDialogLoading = false;
-        });
       }
     }
   }
@@ -912,7 +858,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       Text(
                         folder.pageDisplayName.isNotEmpty
                             ? folder.pageDisplayName
-                            : 'Pasta sem nome',
+                            : 'Album sem nome',
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 16,
@@ -984,6 +930,41 @@ class _PrincipalPageState extends State<PrincipalPage> {
       ),
     );
   }
+
+  // Novo design  para as mesnsagens 
+ /* void showSuccessSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+  // Exibe a nova SnackBar com um estilo mais elaborado.
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.check_circle_outline, color: Colors.white),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: const Color(0xFFaed513), // Um tom de verde mais escuro e sólido
+      behavior: SnackBarBehavior.floating, // Estilo flutuante que combina com a UI
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      margin: const EdgeInsets.all(16.0),
+      duration: const Duration(seconds: 4), // Tempo que a notificação fica visível
+      elevation: 6.0,
+    ),
+  );
+}*/
 
   @override
   Widget build(BuildContext context) {
@@ -1188,7 +1169,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         showDialog(
                           context: context,
                           builder: (context) =>
-                              const UserDashboardScreen(folders: []),
+                              UserDashboardScreen(folders: _folders), // <-- CORRIGIDO: Passando a lista de Albuns
                         );
                       },
                     ),
