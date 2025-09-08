@@ -1455,11 +1455,15 @@ try {
     // Não exibe erro para o usuário se não houver comparação, apenas prossegue
   }
 
-  // Define categorias dinâmicas independentemente de comparação
-  categoriasDinamicas = ['Data']
-    ..addAll(widget.categorias.isNotEmpty
-        ? widget.categorias.where((cat) => tagIds.containsKey(cat))
-        : tagIds.keys.where((cat) => tagIds.containsKey(cat)));
+  // Se a pasta não tiver nenhuma tag associada, exibe apenas o campo de data
+  if (tagIds.isEmpty) {
+    categoriasDinamicas = ['Data'];
+  } else {
+    categoriasDinamicas = ['Data']
+      ..addAll(widget.categorias.isNotEmpty
+          ? widget.categorias.where((cat) => tagIds.containsKey(cat))
+          : tagIds.keys.where((cat) => tagIds.containsKey(cat)));
+  }
   print("Categorias dinâmicas: $categoriasDinamicas");
 
   // Pega a data atual e formata para "dia/mês/ano"
