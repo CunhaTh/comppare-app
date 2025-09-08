@@ -3,10 +3,12 @@ import 'dart:developer';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart';
 import 'package:application_progress/models/folder_model.dart';
+import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/pagamento_page.dart';
 import 'package:application_progress/views/pagemconstrucao.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'helpers/helpers.dart';
 import 'infra/api_endponts.dart';
@@ -37,6 +39,7 @@ class CadastroScreenState extends State<CadastroScreen> {
 
   DateTime? _nascimentoDate;
   bool _isLoading = false;
+  bool _termsAccepted = false;
   //final String _baseUrl = 'https://api.comppare.com.br/api';
 
   // Método para mostrar o seletor de data
@@ -346,7 +349,94 @@ class CadastroScreenState extends State<CadastroScreen> {
     }
   }
 
+  // Função auxiliar para abrir o PDF em uma nova aba
+Future<void> _launchPDF(String pdfFileName) async {
+  // Monta a URL relativa ao seu site
+  final Uri url = Uri.parse('assets/$pdfFileName');
+
+  try {
+    // Para assets locais da web, podemos tentar abrir diretamente.
+    // O 'webOnlyWindowName' garante que abrirá em uma nova aba.
+    await launchUrl(
+      url,
+      webOnlyWindowName: '_blank',
+    );
+  } catch (e) {
+    // Se ainda assim falhar, o erro será capturado aqui.
+    debugPrint('Erro ao tentar abrir o PDF: $e');
+    // Aqui você pode mostrar um SnackBar de erro para o usuário se desejar.
+  }
+}
+
+    Widget _buildPrivacyLink(String title, String fileName) {
+  return TextButton(
+    onPressed: () => _launchPDF(fileName),
+    child: Text(
+      title,
+      style: const TextStyle(
+        color: Colors.black87,
+        decoration: TextDecoration.underline,
+      ),
+    ),
+  );
+}
+
+  Widget _buildCopyrightsPrivacy(BuildContext context) {
+  return Container(
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+    color: Colors.grey[200], // Uma cor de fundo sutil para o rodapé
+    child: Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16.0,
+        runSpacing: 8.0,
+        children: [
+          // Texto de Direitos Autorais
+          Text(
+            '© ${DateTime.now().year} Comppare. Todos os direitos reservados.',
+            style: TextStyle(color: Colors.grey[700]),
+          ),
+
+          // Link para Políticas de Privacidade
+          // ATENÇÃO: Confirme se 'politica_de_privacidade.pdf' é o nome correto do seu arquivo.
+          _buildPrivacyLink(
+            'Políticas de Privacidade',
+            'politica_privacidade.pdf',
+          ),
+
+          // Link para Termos de Uso
+          // ATENÇÃO: Confirme se 'termos_de_uso.pdf' é o nome correto do seu arquivo.
+          _buildPrivacyLink(
+            'Termos de Uso',
+            'termos_de_uso.pdf',
+          ),
+
+          // Link para Politica de Cookies (usando o nome do arquivo que você forneceu)
+          _buildPrivacyLink(
+            'Política de Cookies',
+            'politica_cookies_comppare.pdf',
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
   void _sendCadastroData() async {
+    // 1. A verificação agora é a primeira coisa que acontece.
+    if (!_termsAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Você deve aceitar os termos de uso para continuar.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // 2. O 'return' aqui impede que o resto da função execute.
+      return;
+    }
+
     if (!mounted) return;
 
     setState(() {
@@ -417,10 +507,26 @@ class CadastroScreenState extends State<CadastroScreen> {
       await _cadastrarUsuario(
           nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
     } catch (e) {
-      _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
-      setState(() => _isLoading = false);
+      // --- INÍCIO DA MODIFICAÇÃO ---
+      // Converte o erro para String para verificar a mensagem
+      String errorMessage = e.toString();
+
+      // Verifica se o erro é de conflito (409), que indica dados duplicados (CPF/email)
+      if (errorMessage.contains('409') || errorMessage.contains('Conflict')) {
+        _showErrorDialog(
+            'Este CPF ou e-mail já está cadastrado. Tente fazer o login.');
+      } else {
+        // Para outros erros, exibe uma mensagem genérica
+        _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
+      }
+      // --- FIM DA MODIFICAÇÃO ---
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
+
 
   @override
   void dispose() {
@@ -453,29 +559,30 @@ class CadastroScreenState extends State<CadastroScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Center(
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const MyHomePage(title: '',)),
+                            (Route<dynamic> route) => true,
+                          );
+                        },
+                        child: Center(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 100),
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => /*Pagemconstrucao()*/
-                                      const MyHomePage(
-                                    title: '',
-                                  ),
-                                ),
-                              );
+                          padding: const EdgeInsets.only(bottom: 25, top: 20),
+                          child: Image.asset(
+                            "assets/logo_cortada.png",
+                            width: 150,
+                            height: 50,
+                            // Adicione um fallback caso a imagem não carregue
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.image_not_supported,
+                                  size: 50);
                             },
-                            child: Image.asset(
-                              "assets/logo_cortada.png",
-                              width: 150,
-                              height: 50,
-                            ),
                           ),
                         ),
                       ),
+                    ),
                       const Text(
                         'Registre-se!',
                         style: TextStyle(
@@ -483,7 +590,7 @@ class CadastroScreenState extends State<CadastroScreen> {
                             fontWeight: FontWeight.bold,
                             color: Colors.black),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 20),
                       _buildTextField(_nameController, 'Nome'),
                       const SizedBox(height: 15),
                       _buildTextField(_surnameController, 'Sobrenome'),
@@ -510,19 +617,75 @@ class CadastroScreenState extends State<CadastroScreen> {
                       _buildTextField(
                           _confirmPasswordController, 'Confirmar Senha',
                           obscureText: true),
+                      const SizedBox(height: 15),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Checkbox(
+                            value: _termsAccepted,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                _termsAccepted = value ?? false;
+                              });
+                            },
+                            activeColor: const Color(0xFFaed513),
+                          ),
+                          Flexible(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _termsAccepted = !_termsAccepted;
+                                });
+                              },
+                              child: const Text(
+                                'Li e estou de acordo com o Termo de Uso e Política de Privacidade',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // --- INÍCIO DA MODIFICAÇÃO ---
+                      // Usando Wrap para um layout responsivo dos links
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 16.0, // Espaçamento horizontal
+                        runSpacing: 8.0, // Espaçamento vertical
+                        children: [
+                          _buildPrivacyLink(
+                            'Políticas de Privacidade',
+                            'politica_privacidade.pdf',
+                          ),
+                          _buildPrivacyLink(
+                            'Termos de Uso',
+                            'termos_de_uso.pdf',
+                          ),
+                          _buildPrivacyLink(
+                            'Política de Cookies',
+                            'politica_cookies_comppare.pdf',
+                          ),
+                        ],
+                      ),
+                      // --- FIM DA MODIFICAÇÃO ---
                       _isLoading
                           ? const CircularProgressIndicator()
                           : Padding(
                               padding: const EdgeInsets.only(top: 15),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: Color(0xFFaed513),
-                                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 100),
-                                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12)), // Arredondamento
-                                  ),
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: const Color(0xFFaed513),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 20, horizontal: 100),
+                                  textStyle: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          12)), // Arredondamento
+                                ),
                                 onPressed: _sendCadastroData,
                                 child: const Text('Avançar',
                                     style: TextStyle(color: Colors.white)),
@@ -538,6 +701,7 @@ class CadastroScreenState extends State<CadastroScreen> {
       ),
     );
   }
+
 
   Widget _buildTextField(TextEditingController controller, String label,
       {bool obscureText = false}) {

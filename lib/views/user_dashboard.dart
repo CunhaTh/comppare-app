@@ -506,7 +506,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     children: [
                       _buildPlanFeature(
                         icon: Icons.folder,
-                        value: '${plan.quantidadePastas} álbuns',
+                        value: '${plan.quantidadePastas} álbum',
                       ),
                       const SizedBox(width: 16),
                       _buildPlanFeature(

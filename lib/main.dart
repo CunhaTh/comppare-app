@@ -1514,7 +1514,7 @@ class _PlanCardState extends State<PlanCard> {
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
-                    _buildFeatureChip('📁 ${widget.plan.quantidadePastas} Álbuns'),
+                    _buildFeatureChip('📁 ${widget.plan.quantidadePastas} Álbum'),
                     _buildFeatureChip('🏷️ ${widget.plan.quantidadeTags} Categorias'),
                     if (widget.plan.valor > 0) ...[
                       _buildFeatureChip('🏆 Ranking'),
