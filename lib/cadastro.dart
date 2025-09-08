@@ -43,7 +43,7 @@ class CadastroScreenState extends State<CadastroScreen> {
   Future<void> _selectDataNascimento(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _nascimentoDate ?? DateTime(2000, 1, 1),
+      initialDate: _nascimentoDate ?? DateTime(2000, 1, 1), 
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );

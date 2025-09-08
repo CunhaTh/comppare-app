@@ -346,7 +346,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             bool isDialogLoading = false;
-
             return Dialog(
               backgroundColor: Colors.transparent,
               child: ConstrainedBox(

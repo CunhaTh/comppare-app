@@ -13,6 +13,7 @@ import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:http/http.dart' as httpClient;
 import '../models/models.dart'; // Para o modelo Folder
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Uma classe de serviço para interagir com a API do seu backend.
 class ApiService {
@@ -43,50 +44,28 @@ class ApiService {
     return headers;
   }
 
-  /// lib/infra/api_services.dart
-  /// Função para atualizar uma pasta existente (renomear ou alterar tags).
-  ///
-  /// Requer o ID da pasta a ser atualizada, o ID do usuário,
-  /// o novo nome da pasta (opcional) e uma lista de tags (opcional).
-  ///
-  /// O novo endpoint para esta requisição deve ser definido em `ApiEndpoints`
-  /// como, por exemplo: `static const String updateFolder = '/pastas/atualizar';`
-  Future<Future> updateFolder({
-    required int folderId,
-    required int idUsuario,
-    String? folderName,
-    List<String>? tags,
-  }) async {
-    // Verifica se pelo menos o nome ou as tags foram fornecidos para a atualização.
-    if (folderName == null && (tags == null || tags.isEmpty)) {
-      throw ApiException(
-          'É necessário fornecer um novo nome de pasta ou tags para a atualização.',
-          statusCode: 400);
-    }
+// Esta função é para ATUALIZAR um subálbum existente
+Future<void> updateFolder({
+  required int folderId,
+  required int idUsuario,
+  required String folderName, // <-- MUDANÇA: Tornou-se obrigatório
+  List<int>? tagIds,
+}) async {
+  final url = Uri.parse(ApiEndpoints.updateFolders); 
 
-    final url = Uri.parse(ApiEndpoints.authenticateUser);
-    foundation.debugPrint(
-        '[updateFolder] Requisição para atualizar pasta em: $url com ID: $folderId, nome: $folderName, tags: $tags');
+  final body = {
+    'idUsuario': idUsuario, 
+    'idPasta': folderId,
+    'novoNome': folderName, // <-- MUDANÇA: Agora sempre envia o nome
+    if (tagIds != null) 'tags': tagIds,
+  };
 
-    // Constrói o corpo da requisição com os dados a serem atualizados.
-    final body = {
-      'idUsuario': idUsuario,
-      'idPasta': folderId,
-      if (folderName != null) 'nomePasta': folderName,
-      if (tags != null) 'tags': tags,
-    };
-
-    return sendRequest(
-      () => _httpClient.post(
-        // Usando o método PUT para atualizar a pasta.
-        url,
-        headers: getHeaders(includeContentType: true),
-        body: jsonEncode(body),
-      ),
-      successMessage: 'Pasta atualizada com sucesso.',
-      errorMessage: 'Falha ao atualizar a pasta.',
-    );
-  }
+  await sendRequest(
+    () => _httpClient.post(url, headers: getHeaders(includeContentType: true), body: jsonEncode(body)),
+    successMessage: 'Subálbum atualizado com sucesso.',
+    errorMessage: 'Falha ao atualizar o subálbum.',
+  );
+}
 
   /// lib/infra/api_services.dart
   /// Função para carregar tags de uma pasta específica.
@@ -115,91 +94,102 @@ class ApiService {
     }
   }
 
-  Future<dynamic> sendRequest(
-    Future<http.Response> Function() requestFunction, {
-    String? successMessage,
-    String? errorMessage,
-    bool decodeJson = true,
-  }) async {
-    try {
-      final response =
-          await requestFunction().timeout(const Duration(seconds: 20));
-      foundation.debugPrint(
-          '[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
+Future<dynamic> sendRequest(
+  Future<http.Response> Function() requestFunction, {
+  String? successMessage,
+  String? errorMessage,
+  bool decodeJson = true,
+}) async {
+  try {
+    final response =
+        await requestFunction().timeout(const Duration(seconds: 20));
+    foundation.debugPrint(
+        '[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (decodeJson) {
-          final dynamic responseBody = json.decode(response.body);
-          foundation.debugPrint(
-              '[sendRequest] Decoded responseBody type: ${responseBody.runtimeType}');
-          if (responseBody is Map<String, dynamic>) {
-            if (responseBody.containsKey('codRetorno') &&
-                (responseBody['codRetorno'] == 200 ||
-                    responseBody['codRetorno'] == 201)) {
-              return responseBody;
-            } else {
-              throw ApiException(
-                responseBody['message'] ??
-                    (successMessage ?? 'Erro desconhecido na API.'),
-                statusCode: response.statusCode,
-                body: response.body,
-              );
-            }
-          } else if (responseBody is List<dynamic> && responseBody.isNotEmpty) {
-            // Assume que uma lista não vazia é uma resposta válida para comparações
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      // Adicionada verificação para corpo vazio antes de tentar decodificar
+      if (decodeJson && response.body.isNotEmpty) {
+        final dynamic responseBody = json.decode(response.body);
+        foundation.debugPrint(
+            '[sendRequest] Decoded responseBody type: ${responseBody.runtimeType}');
+            
+        if (responseBody is Map<String, dynamic>) {
+
+          // --- INÍCIO DA CORREÇÃO ---
+
+          // Condição 1: A resposta tem um 'codRetorno' de sucesso.
+          bool hasSuccessCode = responseBody.containsKey('codRetorno') &&
+              (responseBody['codRetorno'] == 200 ||
+                  responseBody['codRetorno'] == 201);
+
+          // Condição 2 (NOVA): A resposta é um sucesso simples, com 'message' mas sem 'codRetorno'.
+          bool isSimpleSuccess = responseBody.containsKey('message') &&
+                               !responseBody.containsKey('codRetorno');
+
+          // Se qualquer uma das condições de sucesso for verdadeira, retorne o corpo.
+          if (hasSuccessCode || isSimpleSuccess) {
             return responseBody;
-          } else {
+          } 
+          // Se for um status 200 mas o corpo indicar um erro (ex: codRetorno 400)
+          else {
             throw ApiException(
-              'Resposta inválida do servidor: formato inesperado.',
+              responseBody['message'] ?? errorMessage ?? 'A API retornou um erro inesperado.',
               statusCode: response.statusCode,
               body: response.body,
             );
           }
+          // --- FIM DA CORREÇÃO ---
+
+        } else if (responseBody is List<dynamic>) { // Mantido o suporte para respostas em lista
+          return responseBody;
         } else {
-          return {
-            'status': 'success',
-            'statusCode': response.statusCode,
-            'body': response.body
-          };
+          // Se for um tipo de JSON inesperado (nem Mapa, nem Lista)
+           throw ApiException(
+            'Resposta inválida do servidor: formato inesperado.',
+            statusCode: response.statusCode,
+            body: response.body,
+          );
         }
-      } else if (response.statusCode == 401) {
-        throw ApiException(
-          'Não autorizado: Token inválido ou expirado.',
-          statusCode: 401,
-          body: response.body,
-        );
       } else {
-        String serverMessage = 'Falha na requisição.';
-        try {
-          final errorBody = json.decode(response.body) as Map<String, dynamic>;
-          serverMessage = errorBody['message'] ??
-              errorBody['errors']?.toString() ??
-              serverMessage;
-        } catch (_) {
-          serverMessage =
-              response.body.isNotEmpty ? response.body : serverMessage;
-        }
-        throw ApiException(
-          errorMessage ??
-              'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
-          statusCode: response.statusCode,
-          body: response.body,
-        );
+        // Retorna um sucesso genérico se não for para decodificar ou o corpo for vazio
+        return {
+          'status': 'success',
+          'statusCode': response.statusCode,
+          'body': response.body
+        };
       }
-    } on http.ClientException catch (e) {
-      throw ApiException('Erro de conexão: ${e.message}',
-          statusCode: 0, body: '');
-    } on FormatException {
-      throw ApiException('Resposta inválida do servidor.',
-          statusCode: 0, body: '');
-    } catch (e) {
-      if (e is ApiException) {
-        rethrow;
+    } else {
+      // O resto da sua lógica de tratamento de erro continua aqui
+      String serverMessage = 'Falha na requisição.';
+      try {
+        final errorBody = json.decode(response.body) as Map<String, dynamic>;
+        serverMessage = errorBody['message'] ??
+            errorBody['errors']?.toString() ??
+            serverMessage;
+      } catch (_) {
+        serverMessage =
+            response.body.isNotEmpty ? response.body : serverMessage;
       }
-      throw ApiException('Erro inesperado: ${e.toString()}',
-          statusCode: 0, body: '');
+      throw ApiException(
+        errorMessage ?? 'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
+        statusCode: response.statusCode,
+        body: response.body,
+      );
     }
+  } on http.ClientException catch (e) {
+    throw ApiException('Erro de conexão: ${e.message}',
+        statusCode: 0, body: '');
+  } on FormatException {
+    throw ApiException('Resposta inválida do servidor.',
+        statusCode: 0, body: '');
+  } catch (e) {
+    if (e is ApiException) {
+      rethrow;
+    }
+    throw ApiException('Erro inesperado: ${e.toString()}',
+        statusCode: 0, body: '');
   }
+}
 
   // MÉTODO fetchUserStats CORRIGIDO
   Future<UserStats> fetchUserStats() async {
@@ -512,32 +502,27 @@ class ApiService {
     }
     return user.pastas!;
   }
+Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
+  final url = Uri.parse(
+      '${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
+  
+  final response = await sendRequest(
+    () => _httpClient.get(url, headers: getHeaders()),
+    errorMessage: 'Falha ao carregar subpastas.',
+  );
 
-  Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
-    final url = Uri.parse(
-        '${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
-    log("URL DA SUBPASTA em fetchSubfolders: $url");
-    final response = await sendRequest(
-      () => _httpClient.get(url, headers: getHeaders()),
-      successMessage: 'Subpastas carregadas com sucesso.',
-      errorMessage: 'Falha ao carregar subpastas.',
-    );
-
-    final data = response['data'] as Map<String, dynamic>? ?? {};
-    final List<dynamic> subfolders = data['subpastas'] as List<dynamic>? ?? [];
-    debugPrint('[_fetchSubfolders] Subpastas retornadas pela API: $subfolders');
-
-    return subfolders.map((subfolder) {
-      return Folder.fromMap({
-        'id': subfolder['id'],
-        'nome': subfolder['nome'],
-        'caminho': subfolder['path'] ?? subfolder['pasta_caminho'],
-        'idPastaPai': parentFolderId,
-        'imagens': subfolder['imagens'] ?? [],
-        'subpastas': [],
-      });
-    }).toList();
-  }
+  final data = response['data'] as Map<String, dynamic>? ?? {};
+  final List<dynamic> subfoldersJson = data['subpastas'] as List<dynamic>? ?? [];
+  
+  // A CORREÇÃO ESTÁ AQUI:
+  // Agora passamos o mapa 'subfolder' inteiro diretamente para o Folder.fromMap.
+  // O fromMap que já corrigimos saberá como processar todos os campos, incluindo as 'tags'.
+  return subfoldersJson.map((subfolder) {
+    // Adicionamos o idPastaPai manualmente, pois ele não vem na resposta da API
+    (subfolder as Map<String, dynamic>)['idPastaPai'] = parentFolderId;
+    return Folder.fromMap(subfolder);
+  }).toList();
+}
 
   /// Função para fazer upload de imagens para uma pasta específica.
   Future<List<ImageModel>> uploadImages({
@@ -643,43 +628,40 @@ class ApiService {
     }
   }
 
-  // FUNÇÃO CORRIGIDA
-  Future<Map<String, dynamic>> createSubFolder({
-    required int parentFolderId,
-    required int idUsuario,
-    required String folderName,
-    required String parentFolderPath,
-    List<String>? tags,
-  }) async {
-    final url = Uri.parse(ApiEndpoints.createFolder);
-    String nomePasta = folderName.trim();
+// Esta função é para CRIAR um novo subálbum
+Future<Map<String, dynamic>> createSubFolder({
+  required int parentFolderId,
+  required int idUsuario,
+  required String folderName, // Nome do novo subálbum
+  required String parentFolderName, // Nome da pasta PAI
+  List<String>? tags,
+}) async {
+  final url = Uri.parse(ApiEndpoints.createFolder);
 
-    // ... (sua lógica para construir o nomePasta)
-    if (parentFolderPath.isNotEmpty) {
-      final parentName = parentFolderPath.split('/').last;
-      nomePasta = '$parentName/$folderName';
-    }
-    
-    final body = {
-      'idUsuario': idUsuario,
-      'nomePasta': nomePasta,
-      if (tags != null && tags.isNotEmpty) 'tags': tags,
-    };
+  // Lógica corrigida e simplificada para criar o nome no formato "PastaPai/Subpasta"
+  final String nomePasta = '$parentFolderName/$folderName'.trim();
 
-    // A CORREÇÃO ESTÁ AQUI:
-    // 1. Usamos 'await' para esperar a resposta da API.
-    // 2. O retorno de 'sendRequest' é um 'dynamic', então fazemos um cast para o tipo esperado.
-    final response = await sendRequest(
-      () => _httpClient.post(
-        url,
-        headers: getHeaders(includeContentType: true),
-        body: jsonEncode(body),
-      ),
-      successMessage: 'Subálbum criado com sucesso.',
-      errorMessage: 'Você atingiu o limite de subálbuns criados.',
-    );
-    return response as Map<String, dynamic>;
-  }
+  final body = {
+    'idUsuario': idUsuario,
+    'nomePasta': nomePasta,
+    // O backend já identifica a pasta pai pelo formato do nome,
+    // mas enviar o ID é uma boa prática se a API o suportar.
+    'parentFolderId': parentFolderId, 
+    if (tags != null && tags.isNotEmpty) 'tags': tags,
+  };
+
+  final response = await sendRequest(
+    () => _httpClient.post(
+      url,
+      headers: getHeaders(includeContentType: true),
+      body: jsonEncode(body),
+    ),
+    successMessage: 'Subálbum criado com sucesso.',
+    errorMessage: 'Falha ao criar subálbum.',
+  );
+  return response as Map<String, dynamic>;
+}
+
 
   Future<String?> refreshTokenIfNeeded() async {
     final tokenHelper = TokenHelper();
@@ -787,64 +769,88 @@ class ApiService {
   }
 
   /// Função para salvar tags no servidor.
-  Future<Future> saveTags({
-    required String nomeTag,
-    required int usuario,
-  }) async {
-    final url = Uri.parse(ApiEndpoints.cadastraTags);
-    foundation.debugPrint(
-        '[_saveTags] Requisição para salvar tags em: $url, nomeTag: $nomeTag, usuario: $usuario');
+Future<Map<String, dynamic>> saveTags({ // DEPOIS: Apenas um Future
+  required String nomeTag,
+  required int usuario,
+}) async {
+  final url = Uri.parse(ApiEndpoints.cadastraTags);
+  foundation.debugPrint(
+      '[_saveTags] Requisição para salvar tags em: $url, nomeTag: $nomeTag, usuario: $usuario');
 
-    final body = {
-      'nomeTag': nomeTag,
-      'usuario': usuario,
-    };
+  final body = {
+    'nomeTag': nomeTag,
+    'usuario': usuario,
+  };
 
-    return sendRequest(
-      () => _httpClient.post(
-        url,
-        headers: getHeaders(includeContentType: true),
-        body: jsonEncode(body),
-      ),
-      successMessage: 'Tags salvas com sucesso.',
-      errorMessage: 'Falha ao salvar tags.',
-    );
-  }
+ 
+  // Adicionamos 'await' para esperar a resposta e 'return' para devolvê-la.
+  final response = await sendRequest(
+    () => _httpClient.post(
+      url,
+      headers: getHeaders(includeContentType: true),
+      body: jsonEncode(body),
+    ),
+    successMessage: 'Tags salvas com sucesso.',
+    errorMessage: 'Falha ao salvar tags.',
+  );
+  return response as Map<String, dynamic>;
+}
 
-  // lib/infra/api_services.dart
-  // CORREÇÃO: Função getTags que retorna a lista de objetos TagModel.
-  Future<List<TagModel>> getTags(int usuario) async {
-    final User? user = UserHelper().user;
-    if (user == null || user.id == null) {
-      throw ApiException('Usuário não autenticado.', statusCode: 401);
-    }
+
+
+Future<List<TagModel>> getTags(int usuario) async {
+  final prefs = await SharedPreferences.getInstance();
+  final cacheKey = 'user_${usuario}_tags_cache';
+
+  try {
+    // 1. Tenta buscar da API primeiro para ter os dados mais recentes
     final url = Uri.parse(ApiEndpoints.listarTags);
-    final body = {
-      'usuario': user.id,
-    };
+    final body = {'usuario': usuario};
+
     final responseBody = await sendRequest(
       () => _httpClient.post(
         url,
         headers: getHeaders(includeContentType: true),
         body: jsonEncode(body),
       ),
-      successMessage: 'Tags carregadas com sucesso.',
-      errorMessage: 'Falha ao carregar tags.',
     );
 
     if (responseBody.containsKey('data') && responseBody['data'] is List) {
       final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
-      foundation.debugPrint(
-          'Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
-      // CORREÇÃO AQUI: Mapeia para objetos TagModel
-      return tagsJson
+      final tags = tagsJson
           .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
           .toList();
-    } else {
-      foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
-      return [];
+      
+      // 2. Se a busca na API foi bem-sucedida, SALVA no cache
+      //    Convertemos os objetos TagModel para uma lista de Mapas e depois para String
+      final List<Map<String, dynamic>> tagsToCache = tags.map((t) => t.toMap()).toList();
+      await prefs.setString(cacheKey, jsonEncode(tagsToCache));
+      
+      debugPrint('Tags carregadas da API e salvas no cache.');
+      return tags;
     }
+    
+    return [];
+
+  } catch (e) {
+    debugPrint('Falha ao buscar tags da API: $e. Tentando carregar do cache...');
+    
+    // 3. Se a API falhar, TENTA carregar do cache
+    final cachedTagsString = prefs.getString(cacheKey);
+    if (cachedTagsString != null) {
+      final List<dynamic> tagsJson = jsonDecode(cachedTagsString);
+      final tags = tagsJson
+          .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+      debugPrint('Tags carregadas com sucesso do cache.');
+      return tags;
+    }
+
+    // 4. Se a API e o cache falharem, lança o erro ou retorna uma lista vazia
+    debugPrint('Cache de tags também está vazio.');
+    throw ApiException('Não foi possível carregar as categorias.');
   }
+}
 
   Future<ComparacaoModel> getComparacaoSave(int idPhoto) async {
     final User? user = UserHelper().user;

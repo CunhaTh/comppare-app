@@ -72,7 +72,8 @@ class AlbumState extends ChangeNotifier {
         folderName: fullFolderNameForApi,
         tags: tags,
         parentFolderId: parentFolderId, 
-        idUsuario: userId!, parentFolderPath: parentPath,
+        idUsuario: userId!, 
+        parentFolderName: '',
       );
 
       ScaffoldMessenger.of(context).showSnackBar(

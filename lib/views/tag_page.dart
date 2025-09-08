@@ -32,68 +32,35 @@ class _CreateTagsPageState extends State<CreateTagsPage> {
   }
 
   
-  Future<void> _loadTags() async {
-    final user = UserHelper().user;
-    if (user == null || user.id == null) {
-      _navigateToLogin();
-      return;
+Future<void> _loadTags() async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) {
+    _navigateToLogin();
+    return;
+  }
+
+  if (!mounted) return;
+  setState(() => _isLoading = true);
+  try {
+    // Apenas chame a função. O ApiService cuida de API e cache.
+    final tagsFromApi = await _apiService.getTags(user.id!);
+    
+    if (mounted) {
+      setState(() {
+        _tags = tagsFromApi;
+      });
     }
-
-    if (!mounted) return;
-    setState(() => _isLoading = true);
-    try {
-      // getTags agora deve retornar uma List<TagModel>
-      final tagsFromApi = await _apiService.getTags(user.id!);
-      
-      // Armazena a lista de TagModel no estado
-      if (mounted) {
-        setState(() {
-          _tags = tagsFromApi.cast<TagModel>();
-          debugPrint('Tags carregadas do servidor: ${_tags.map((t) => t.nomeTag).toList()}');
-        });
-      }
-      
-      // Salva a lista de objetos TagModel, convertendo para JSON antes de salvar.
-      final tagsJsonList = tagsFromApi.map((tag) => jsonEncode({'id': tag, 'nomeTag': tag})).toList();
-      await _saveTagsLocally('user_${user.id}_tags', tagsJsonList);
-      await _saveGlobalTags(tagsJsonList);
-      await UserHelper().setUserTags(tagsFromApi.map((t) => t).cast<String>().toList());
-
-    } catch (e) {
-      debugPrint('Erro ao carregar tags: $e');
-      // Tentativa de carregar do cache local em caso de falha na API
-      final prefs = await SharedPreferences.getInstance();
-      final tagsKey = 'user_${user.id}_tags';
-      final tagsString = prefs.getString(tagsKey);
-      if (tagsString != null && mounted) {
-        try {
-          final localTags = (jsonDecode(tagsString) as List<dynamic>).map((e) => TagModel.fromJson(jsonDecode(e))).toList();
-          setState(() {
-            _tags = localTags;
-            debugPrint('Tags carregadas do cache local (fallback): ${_tags.map((t) => t.nomeTag).toList()}');
-          });
-        } catch (e) {
-           debugPrint('Erro ao parsear tags do cache local: $e');
-        }
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  } catch (e) {
+    if (mounted) {
+      _showErrorDialog(e.toString());
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
-  Future<void> _saveTagsLocally(String key, List<String> tagsJson) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(key, jsonEncode(tagsJson));
-    debugPrint('Tags salvas localmente para chave $key: ${tagsJson.join(",")}');
-  }
-  
-  Future<void> _saveGlobalTags(List<String> tagsJson) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('global_tags', jsonEncode(tagsJson));
-    debugPrint('Tags globais salvas: ${tagsJson.join(",")}');
-  }
 
 Future<void> _createTagsOnApi(String nomeTag) async {
   final user = UserHelper().user;

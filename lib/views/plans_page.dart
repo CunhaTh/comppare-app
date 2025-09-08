@@ -549,7 +549,7 @@ class PlanCard extends StatelessWidget {
                       // _buildFeatureChip('📸 ${plan.quantidadeFotos} Fotos'),
                       _buildFeatureChip(
                           '🏷️ ${plan.quantidadeTags} Categorias'),
-                      _buildFeatureChip('📁 ${plan.quantidadePastas} Álbuns'),
+                      _buildFeatureChip('📁 ${plan.quantidadePastas} Álbum'),
 
                       ///Todo(Thiago): Verificar plan.quantidadeConvites que está dando erro
                       // _buildFeatureChip(

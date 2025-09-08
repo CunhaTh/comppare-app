@@ -1,14 +1,14 @@
-import 'package:application_progress/models/image_model.dart'; // Nova ImageModel
+import 'package:application_progress/models/image_model.dart';
 
 class Folder {
   final int id;
-  String nome; // Tornado obrigatório com valor padrão
-  final String caminho; // Caminho físico da pasta no servidor
+  String nome;
+  final String caminho;
   String? principalPageDisplayName;
   final int? idPastaPai;
-  List<ImageModel>? imagens; // Substituído por List<ImageModel>
+  List<ImageModel>? imagens;
   List<String>? tags;
-  List<Folder>? subpastas; // Alterado para List<Folder>
+  List<Folder>? subpastas;
 
   Folder({
     required this.id,
@@ -21,39 +21,57 @@ class Folder {
     this.subpastas,
   });
 
-  // Getter para o nome a ser exibido na PrincipalPage (nome da pasta raiz)
   String get pageDisplayName {
     if (nome.isEmpty) return 'Pasta sem nome';
     final parts = nome.split('/');
-    if (parts.length <= 1) return nome; // Retorna o nome completo se não houver hierarquia
-    return parts[1]; // Retorna o primeiro nome após o usuário (pasta raiz)
+    if (parts.length <= 1) return nome;
+    return parts[1];
   }
 
   String? get albunsCriadosPageDisplayName {
     if (nome.isEmpty) return 'SubPasta sem nome';
     final parts = nome.split('/');
-    return parts.last; // Remove a condição idPastaPai para teste
+    return parts.last;
   }
 
   factory Folder.fromMap(Map<String, dynamic> map) {
-    final folderId = map['id'] as int? ?? 0; // Alinhado com 'id' da API
-    final folderName = map['nome'] as String? ?? 'Pasta sem nome'; // Alinhado com 'nome'
-    final folderPath = map['path'] as String? ?? ''; // Alinhado com 'path'
+    List<String> loadedTags = [];
+    if (map['tags'] != null && map['tags'] is List) {
+      for (var tagJson in map['tags']) {
+        if (tagJson is Map<String, dynamic>) {
+          // =======================================================================
+          // AJUSTE FINAL AQUI: Procura por 'nome' ou 'nomeTag'
+          // =======================================================================
+          final tagName = tagJson['nome'] ?? tagJson['nomeTag'];
+          if (tagName != null) {
+            loadedTags.add(tagName as String);
+          }
+          // =======================================================================
+        }
+      }
+    }
+
     return Folder(
-      id: folderId,
-      nome: folderName.isNotEmpty ? folderName : 'Pasta sem nome',
-      caminho: folderPath,
-      principalPageDisplayName: folderName, // Usa 'nome' como base
+      id: map['id'] as int? ?? 0,
+      nome: map['nome'] as String? ?? 'Pasta sem nome',
+      caminho: map['path'] as String? ?? '',
+      principalPageDisplayName: map['nome'] as String?,
       idPastaPai: map['idPastaPai'] as int?,
-      imagens: (map['imagens'] as List<dynamic>?)?.map((img) {
-        if (img is Map<String, dynamic>) return ImageModel.fromMap(img);
-        return null;
-      }).whereType<ImageModel>().toList(),
-      tags: (map['tags'] as List<dynamic>?)?.map((tag) => tag.toString()).toList(),
-      subpastas: (map['subpastas'] as List<dynamic>?)?.map((sub) {
-        if (sub is Map<String, dynamic>) return Folder.fromMap(sub);
-        return null;
-      }).whereType<Folder>().toList(),
+      imagens: (map['imagens'] as List<dynamic>?)
+          ?.map((img) {
+            if (img is Map<String, dynamic>) return ImageModel.fromMap(img);
+            return null;
+          })
+          .whereType<ImageModel>()
+          .toList(),
+      tags: loadedTags,
+      subpastas: (map['subpastas'] as List<dynamic>?)
+          ?.map((sub) {
+            if (sub is Map<String, dynamic>) return Folder.fromMap(sub);
+            return null;
+          })
+          .whereType<Folder>()
+          .toList(),
     );
   }
 

@@ -533,169 +533,86 @@ Future<List<ImageModel>> _prepareImageItems() async {
     );
   }
 
-/*  Widget _buildImageCard(ImageModel imageItem, int index, bool isLargeScreen,
-      double screenWidth, double screenHeight) {
-        print("BATEU ImageCard metadata: ${imageItem.metadata}");
-    return AnimatedBuilder(
-      animation: _fadeAnimation,
-      builder: (context, child) {
-        return FadeTransition(
-          opacity: _fadeAnimation,
-          child: Container(
-            margin: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8.0,
-                  offset: const Offset(0, 4),
-                ), 
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        imageItem.isSelected = !imageItem.isSelected;
-                      });
-                      _scaleController.forward().then((_) {
-                        _scaleController.reverse();
-                      });
-                    },
-                    child: AnimatedBuilder(
-                      animation: _scaleAnimation,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: imageItem.isSelected
-                              ? _scaleAnimation.value
-                              : 1.0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16.0),
-                              border: Border.all(
-                                color: imageItem.isSelected
-                                    ? const Color(0xFFaed513)
-                                    : Colors.grey.withOpacity(0.3),
-                                width: imageItem.isSelected ? 3.0 : 1.0,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(15.0),
-                              child: Stack(
-                                children: [
-                                  Image.memory(
-                                    imageItem.imageData!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      debugPrint(
-                                          'Erro ao renderizar imagem do GridView: $error');
-                                      return Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.error,
-                                                  color: Colors.red, size: 40),
-                                              SizedBox(height: 8),
-                                              Text('Erro de imagem',
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  if (imageItem.isSelected)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFaed513),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.check,
-                                          color: Colors.black,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isLargeScreen ? 12.0 : 8.0,
-                    vertical: isLargeScreen ? 8.0 : 6.0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              _showEditDialog(context, imageItem, index),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isLargeScreen ? 12.0 : 8.0,
-                              vertical: isLargeScreen ? 8.0 : 6.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.edit,
-                                  color: Colors.black,
-                                  size: isLargeScreen ? 16.0 : 14.0,
-                                ),
-                                SizedBox(width: isLargeScreen ? 6.0 : 4.0),
-                                Text(
-                                  'Editar',
-                                  style: TextStyle(
-                                    fontSize: isLargeScreen ? 14.0 : 12.0,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }*/
+  // Esta é a nova função para editar a data
+Future<void> _editDateForImage(BuildContext context, ImageModel imageItem, int index) async {
+  // 1. ABRE O SELETOR DE DATAS
+  final DateTime? pickedDate = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(), // Data inicial do calendário
+    firstDate: DateTime(2000),   // Primeira data selecionável
+    lastDate: DateTime(2101),    // Última data selecionável
+  );
 
-  Widget _buildImageCard(ImageModel imageItem, int index, bool isLargeScreen,
+  // Se o usuário cancelou o seletor de data, não faz nada
+  if (pickedDate == null || !mounted) return;
+
+  // Mostra um indicador de carregamento
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => const Center(child: CircularProgressIndicator()),
+  );
+
+  try {
+    // 2. PREPARA OS DADOS PARA SALVAR (reutilizando sua lógica)
+    final String newDateString = DateFormat('dd/MM/yyyy').format(pickedDate);
+
+    // Cria uma cópia dos metadados existentes da imagem
+    final Map<String, String> updatedMetadata = Map.from(imageItem.metadata);
+    // Atualiza apenas o campo 'Data'
+    updatedMetadata['Data'] = newDateString;
+
+    // Prepara a lista de 'tags' para a API, como na sua função original
+    final List<TagModel> allTags = await ApiService().getTags(UserHelper().user!.id!);
+    final Map<String, int> tagIds = {for (var tag in allTags) tag.nomeTag: tag.id};
+
+    final tagsParaAPI = updatedMetadata.entries
+        .map((entry) {
+          final tagId = tagIds[entry.key];
+          if (tagId != null) {
+            return {'id_tag': tagId, 'valor': entry.value};
+          }
+          return null;
+        })
+        .whereType<Map<String, dynamic>>()
+        .toList();
+
+    // 3. CHAMA A SUA FUNÇÃO DE SALVAR EXISTENTE
+    final result = await _saveChangesAndReturnItem(
+      imageItem,
+      updatedMetadata,
+      tagsParaAPI,
+    );
+
+    final updatedItem = result['newItem'] as ImageModel?;
+    
+    // 4. ATUALIZA A TELA COM A NOVA IMAGEM (com a data atualizada)
+    if (updatedItem != null && _imageItems != null && index < _imageItems!.length) {
+      setState(() {
+        _imageItems![index] = updatedItem;
+        _imageItemsFuture = Future.value(List.from(_imageItems!));
+      });
+    }
+
+  } catch (e) {
+    debugPrint("Erro ao salvar a data: $e");
+    if(mounted) {
+      print('Não foi possível salvar a nova data.');
+    }
+  } finally {
+    // Fecha o indicador de carregamento
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+}
+
+
+Widget _buildImageCard(ImageModel imageItem, int index, bool isLargeScreen,
     double screenWidth, double screenHeight) {
+  // 1. Usar a data dos metadados como a fonte principal e única da verdade.
+  final String dateString = imageItem.metadata['Data'] ?? 'Sem data';
+
   return AnimatedBuilder(
     animation: _fadeAnimation,
     builder: (context, child) {
@@ -716,7 +633,37 @@ Future<List<ImageModel>> _prepareImageItems() async {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // --- NENHUMA MUDANÇA NA PARTE DA IMAGEM ---
+              // --- AJUSTE PARA TORNAR A DATA CLICÁVEL ---
+              Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 16.0,
+                    top: 16.0,
+                    right: 16.0,
+                    bottom: 8.0,
+                  ),
+                  // 2. Envolvemos o Text com InkWell
+                  child: InkWell(
+                    onTap: () {
+                      // 3. Chamamos a função para editar a data, que já criamos
+                      _editDateForImage(context, imageItem, index);
+                    },
+                    borderRadius: BorderRadius.circular(8.0), // Efeito visual no clique
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      child: Text(
+                        dateString, // Usando a variável correta
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 14.0 : 12.0,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: GestureDetector(
                   onTap: () {
@@ -755,42 +702,42 @@ Future<List<ImageModel>> _prepareImageItems() async {
                                   height: double.infinity,
                                   errorBuilder: (context, error, stackTrace) {
                                     debugPrint(
-                                          'Erro ao renderizar imagem do GridView: $error');
-                                      return Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.error,
-                                                  color: Colors.red, size: 40),
-                                              SizedBox(height: 8),
-                                              Text('Erro de imagem',
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                ),
-                                if (imageItem.isSelected)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFaed513),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.check,
-                                          color: Colors.black,
-                                          size: 16,
+                                        'Erro ao renderizar imagem do GridView: $error');
+                                    return Container(
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.error,
+                                                color: Colors.red, size: 40),
+                                            SizedBox(height: 8),
+                                            Text('Erro de imagem',
+                                                style: TextStyle(
+                                                    color: Colors.red)),
+                                          ],
                                         ),
                                       ),
+                                    );
+                                  },
+                                ),
+                                if (imageItem.isSelected)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFaed513),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.black,
+                                        size: 16,
+                                      ),
+                                    ),
                                   ),
                               ],
                             ),
@@ -806,11 +753,11 @@ Future<List<ImageModel>> _prepareImageItems() async {
               // --- INÍCIO DA MUDANÇA: BARRA DE AÇÕES ---
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isLargeScreen ? 8.0 : 4.0, // Reduzido para caber os botões
+                  horizontal: isLargeScreen ? 8.0 : 4.0,
                   vertical: isLargeScreen ? 8.0 : 6.0,
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Espaçamento entre botões
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Botão Editar (envolvido por Expanded)
                     Expanded(
@@ -849,7 +796,7 @@ Future<List<ImageModel>> _prepareImageItems() async {
                       ),
                     ),
 
-                    SizedBox(width: isLargeScreen ? 8.0 : 4.0), // Espaço entre os botões
+                    SizedBox(width: isLargeScreen ? 8.0 : 4.0),
 
                     // NOVO: Botão Deletar (apenas o ícone)
                     GestureDetector(
@@ -870,7 +817,6 @@ Future<List<ImageModel>> _prepareImageItems() async {
                   ],
                 ),
               ),
-              // --- FIM DA MUDANÇA ---
             ],
           ),
         ),
@@ -1554,7 +1500,6 @@ Future<ImageModel?> _showEditDialog(BuildContext context, ImageModel imageItem, 
   }
 
 // DENTRO DE: _showEditDialog
-// ...
 final updatedItem = await _openEditDialog(context, imageItem, index, tagIds, apiValues, controllers, categoriasDinamicas);
 
 if (updatedItem != null) {
@@ -1571,7 +1516,6 @@ if (updatedItem != null) {
     });
   }
 }
-// ...
   return updatedItem;
 }
 
@@ -1948,24 +1892,28 @@ Future<ImageModel?> _openEditDialog(
   return updatedItem;
 }
 
+// Função corrigida - substitua a sua por esta
 Future<Map<String, dynamic>> _saveChangesAndReturnItem(
   ImageModel originalItem,
   Map<String, String> updatedMetadata,
   List<Map<String, dynamic>> tagsParaAPI,
 ) async {
   final User? user = UserHelper().user;
-  if (user == null || user.id == null || user.token == null) {
+  if (user == null || user.id == null) { // A verificação de token não é necessária aqui
     throw Exception('Usuário não autenticado.');
   }
 
+  // Salvar localmente (esta parte está correta)
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('image_tags_${originalItem.id}', jsonEncode(updatedMetadata));
   print("Metadados salvos localmente: $updatedMetadata");
 
+  // Preparar o corpo da requisição (esta parte está correta)
   String dataComparacao = DateFormat('dd/MM/yyyy').format(DateTime.now());
   if (updatedMetadata['Data']?.isNotEmpty == true) {
     try {
-      dataComparacao = DateFormat('dd/MM/yyyy').format(DateFormat('dd/MM/yyyy').parse(updatedMetadata['Data']!));
+      dataComparacao = DateFormat('dd/MM/yyyy')
+          .format(DateFormat('dd/MM/yyyy').parse(updatedMetadata['Data']!));
     } catch (e) {
       print("Erro ao formatar data: $e, usando data atual: $dataComparacao");
     }
@@ -1980,7 +1928,11 @@ Future<Map<String, dynamic>> _saveChangesAndReturnItem(
 
   print("Corpo enviado à API: $body");
 
-  final response = await ApiService().sendRequest(
+  // --- INÍCIO DA CORREÇÃO ---
+
+  // 1. sendRequest já retorna o Map<String, dynamic> do body em caso de sucesso.
+  //    Vamos chamar a variável de 'responseBody' para ficar mais claro.
+  final responseBody = await ApiService().sendRequest(
     () => http.post(
       Uri.parse(ApiEndpoints.salvaComparacao),
       headers: ApiService().getHeaders(includeContentType: true),
@@ -1990,32 +1942,34 @@ Future<Map<String, dynamic>> _saveChangesAndReturnItem(
     errorMessage: 'Falha ao salvar as alterações.',
   );
 
-  print("Resposta da API: ${response['statusCode']} - ${response['body']}");
+  print("Resposta da API (corpo JSON): $responseBody");
 
-  Map<String, String> syncedMetadata = Map.from(updatedMetadata);
-  if (response['statusCode'] == 200 && response['body'] != null) {
-    try {
-      final bodyResponse = jsonDecode(response['body'] as String) as Map<String, dynamic>;
-      if (bodyResponse['data'] != null && bodyResponse['data'] is List && bodyResponse['data'].isNotEmpty) {
-        final tagsFromApi = bodyResponse['data'][0]['tags'] as List<dynamic>? ?? [];
-        final List<TagModel> tags = await ApiService().getTags(user.id!);
-        for (var tag in tagsFromApi) {
-          final tagId = tag['id_tag'] as int?;
-          final valor = tag['valor']?.toString() ?? '';
-          if (tagId != null) {
-            final category = tags.firstWhere((t) => t.id == tagId, orElse: () => null!)?.nomeTag;
-            if (category != null) {
-              syncedMetadata[category] = valor;
-            }
+  // 2. Não precisamos mais verificar 'statusCode' ou 'body', pois sendRequest já fez isso.
+  //    Agora trabalhamos diretamente com a resposta decodificada.
+  final Map<String, String> syncedMetadata = Map.from(updatedMetadata);
+  
+  // A lógica abaixo para sincronizar com a resposta da API é opcional,
+  // mas é uma boa prática para garantir que o estado do app reflita 100% o que está no servidor.
+  try {
+    if (responseBody['data'] != null && responseBody['data'] is List && responseBody['data'].isNotEmpty) {
+      final tagsFromApi = responseBody['data'][0]['tags'] as List<dynamic>? ?? [];
+      final List<TagModel> tags = await ApiService().getTags(user.id!);
+      for (var tag in tagsFromApi) {
+        final tagId = tag['id_tag'] as int?;
+        final valor = tag['valor']?.toString() ?? '';
+        if (tagId != null) {
+          final category = tags.firstWhere((t) => t.id == tagId, orElse: () => null!)?.nomeTag;
+          if (category != null) {
+            syncedMetadata[category] = valor;
           }
         }
       }
-    } catch (e) {
-      print("Erro ao processar metadados da API: $e, usando updatedMetadata");
     }
-  } else {
-    print("Resposta não 200, mantendo updatedMetadata: ${response['statusCode']} - ${response['body']}");
+  } catch (e) {
+    print("Erro ao processar metadados da API: $e, usando updatedMetadata");
   }
+  
+  // --- FIM DA CORREÇÃO ---
 
   final newItem = ImageModel(
     id: originalItem.id,
@@ -2024,8 +1978,11 @@ Future<Map<String, dynamic>> _saveChangesAndReturnItem(
     isSelected: originalItem.isSelected,
     metadata: syncedMetadata,
   );
+
   print("newItem metadata retornado: ${newItem.metadata}");
-  return {'newItem': newItem, 'response': response};
+  
+  // Mantemos a estrutura de retorno para não quebrar as outras funções
+  return {'newItem': newItem, 'response': responseBody};
 }
 
   // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
@@ -2192,7 +2149,7 @@ final Map<String, List<TextEditingController>> controllers = {
     }
 
 
-  Future<void> shareSaveImages() async {
+Future<void> shareSaveImages() async {
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -2397,7 +2354,8 @@ final Map<String, List<TextEditingController>> controllers = {
   );
 }
 
-    Future<void> shareImages() async {
+
+Future<void> shareImages() async {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -2799,6 +2757,8 @@ final Map<String, List<TextEditingController>> controllers = {
         },
       );
     }
+
+
 Future<void> saveCard() async {
   // Cria uma chave local para a RepaintBoundary deste dialog específico
   final GlobalKey savePreviewKey = GlobalKey();

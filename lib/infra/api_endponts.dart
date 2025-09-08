@@ -11,8 +11,11 @@ class ApiEndpoints {
         ? apiEndpoint
         : 'https://api.comppare.com.br/api';
   }
-
+  // recupera os valores dos albuns
   static const String recoverFolder = '/pasta/recuperar'; // Remover '/api' daqui
+
+  // atualiza os albuns
+  static String get updateFolders => '$baseUrl/pasta/atualizar'; 
 
   /// Endpoint para criar uma assinatura de vendas (admin).
   static String get createSignature => '$baseUrl/admin/vendas/criar-assinatura';

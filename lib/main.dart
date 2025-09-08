@@ -5,6 +5,7 @@ import 'package:application_progress/login.dart';
 import 'package:application_progress/principal.dart' hide LoginScreen;
 import 'package:application_progress/views/SplashScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:convert';
@@ -15,6 +16,7 @@ import 'chat_button.dart';
 import 'infra/api_endponts.dart';
 import 'models/plan_model.dart';
 import 'views/awaiting_payment.dart';
+
 
 // Placeholder Plano class (replace with your actual Plano class)
 
@@ -44,6 +46,16 @@ class MyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
+          localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'), // Português do Brasil
+        // ... outros idiomas que você queira suportar
+      ],
+      locale: const Locale('pt', 'BR'), 
           navigatorKey: navigatorKey,
           title: 'comppare',
           theme: ThemeData(
@@ -90,6 +102,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  
   bool isLoading = false;
   int? selectedQuestionIndex;
   List<PlanModel> plans = [];
@@ -103,6 +116,25 @@ class _MyHomePageState extends State<MyHomePage> {
 
     fetchPlans();
   }
+
+// Função auxiliar para abrir o PDF em uma nova aba
+Future<void> _launchPDF(String pdfFileName) async {
+  // Monta a URL relativa ao seu site
+  final Uri url = Uri.parse('assets/$pdfFileName');
+
+  try {
+    // Para assets locais da web, podemos tentar abrir diretamente.
+    // O 'webOnlyWindowName' garante que abrirá em uma nova aba.
+    await launchUrl(
+      url,
+      webOnlyWindowName: '_blank',
+    );
+  } catch (e) {
+    // Se ainda assim falhar, o erro será capturado aqui.
+    debugPrint('Erro ao tentar abrir o PDF: $e');
+    // Aqui você pode mostrar um SnackBar de erro para o usuário se desejar.
+  }
+}
 
   // Função para abrir URLs em uma nova aba
   Future<void> _launchURL(String url) async {
@@ -1229,57 +1261,61 @@ Widget _buildTextFooter( bool isMobile ) {
     );
   }
 
-Widget _buildCopyrightsPrivacy(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
-      color: Colors.grey[200], // Uma cor de fundo sutil para o rodapé
-      child: Center(
-        child: Wrap(
-          alignment: WrapAlignment.center, // Centraliza os itens
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 16.0, // Espaçamento horizontal entre os itens
-          runSpacing: 8.0, // Espaçamento vertical quando os itens quebram a linha
-          children: [
-            // Texto de Direitos Autorais
-            Text(
-              '© ${DateTime.now().year} Comppare. Todos os direitos reservados.',
-              style: TextStyle(color: Colors.grey[700]),
-            ),
-
-            // Link para Políticas de Privacidade
-            TextButton(
-              onPressed: () {
-               
-                _launchURL('http://comppare.com/');
-              },
-              child: const Text(
-                'Políticas de Privacidade',
-                style: TextStyle(
-                  color: Colors.black87,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-
-            // Link para Termos de Uso
-            TextButton(
-              onPressed: () {
-                
-                _launchURL('http://comppare.com/');
-              },
-              child: const Text(
-                'Termos de Uso',
-                style: TextStyle(
-                  color: Colors.black87,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ],
-        ),
+  Widget _buildPrivacyLink(String title, String fileName) {
+  return TextButton(
+    onPressed: () => _launchPDF(fileName),
+    child: Text(
+      title,
+      style: const TextStyle(
+        color: Colors.black87,
+        decoration: TextDecoration.underline,
       ),
-    );
-  }
+    ),
+  );
+}
+
+
+Widget _buildCopyrightsPrivacy(BuildContext context) {
+  return Container(
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+    color: Colors.grey[200], // Uma cor de fundo sutil para o rodapé
+    child: Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16.0,
+        runSpacing: 8.0,
+        children: [
+          // Texto de Direitos Autorais
+          Text(
+            '© ${DateTime.now().year} Comppare. Todos os direitos reservados.',
+            style: TextStyle(color: Colors.grey[700]),
+          ),
+
+          // Link para Políticas de Privacidade
+          // ATENÇÃO: Confirme se 'politica_de_privacidade.pdf' é o nome correto do seu arquivo.
+          _buildPrivacyLink(
+            'Políticas de Privacidade',
+            'politica_privacidade.pdf',
+          ),
+
+          // Link para Termos de Uso
+          // ATENÇÃO: Confirme se 'termos_de_uso.pdf' é o nome correto do seu arquivo.
+          _buildPrivacyLink(
+            'Termos de Uso',
+            'termos_de_uso.pdf',
+          ),
+
+          // Link para Politica de Cookies (usando o nome do arquivo que você forneceu)
+          _buildPrivacyLink(
+            'Política de Cookies',
+            'politica_cookies_comppare.pdf',
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
     /// Constrói a linha de estrelas de avaliação.
   Widget _buildRatingStars() {

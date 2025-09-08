@@ -65,14 +65,17 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
   String? _selectedTag;
   bool _isLoading = true;
 
+  Map<String, int> _availableTagsMap = {};
+
   final ApiService _apiService = ApiService(httpClient: http.Client());
   
 
   @override
   void initState() {
     super.initState();
-    _loadAvailableTags();
-    _fetchSubfoldersFromApiAndRefreshState();
+   // _loadAvailableTags();
+   // _fetchSubfoldersFromApiAndRefreshState();
+    _initializeData();
   }
 
   @override
@@ -82,10 +85,80 @@ class _AlbunsCriadosState extends State<AlbunsCriadosPage> {
     super.dispose();
   }
 
+Future<void> _initializeData() async {
+  // Primeiro, ESPERA o mapa de tags ser carregado e preparado
+  await _loadAllAvailableTags();
+  
+  // SÓ DEPOIS, busca e exibe os subálbuns
+  await _fetchSubfoldersFromApiAndRefreshState();
+}
+
+// 3. Função que busca todas as tags e prepara o mapa
+Future<void> _loadAllAvailableTags() async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) return;
+  try {
+    // Apenas chame a função. O ApiService cuida de API e cache.
+    final tagsFromApi = await _apiService.getTags(user.id!);
+    if (mounted) {
+      setState(() {
+        _availableTagsMap = {for (var tag in tagsFromApi) tag.nomeTag: tag.id};
+      });
+    }
+  } catch (e) {
+    debugPrint('Erro ao carregar tags disponíveis: $e');
+  }
+}
+
+
+// 5. Função que REMOVE a tag e CHAMA a função de persistência
+void _removeTag(Folder group, String tagName) {
+  setState(() {
+    group.tags?.remove(tagName);
+  });
+  _persistUpdatedTagsForGroup(group);
+}
+
+// 6. A função MESTRA que monta os dados e efetivamente chama a API
+Future<void> _persistUpdatedTagsForGroup(Folder group) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null) return;
+
+  debugPrint('----------------- INICIANDO DEPURAÇÃO -----------------');
+  debugPrint('DEBUG: Tags atualmente no objeto group: ${group.tags}');
+  debugPrint('DEBUG: Conteúdo do mapa de consulta _availableTagsMap: $_availableTagsMap');
+
+  final List<int> tagIds = (group.tags ?? [])
+      .map((tagName) => _availableTagsMap[tagName])
+      .where((id) => id != null)
+      .cast<int>()
+      .toList();
+  
+  debugPrint('>>> Enviando para API a atualização da pasta ${group.id}. IDs das tags: $tagIds');
+
+  try {
+    await _apiService.updateFolder(
+      folderId: group.id,
+      idUsuario: user.id!,
+      folderName: group.nome,
+      tagIds: tagIds,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Categorias salvas na nuvem!'), duration: Duration(seconds: 2)),
+      );
+    }
+  } catch (e) {
+    _showErrorDialog('Não foi possível salvar as categorias.');
+    _fetchSubfoldersFromApiAndRefreshState(); 
+  }
+}
+
   // 1. Crie uma função unificada para carregar as tags
 // Esta função irá carregar as tags do cache ou da API, garantindo que
 // os dados estejam prontos antes de serem usados.
-Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
+ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
   final prefs = await SharedPreferences.getInstance();
   final tagsKey = 'user_${userId}_tags';
 
@@ -141,15 +214,15 @@ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
 
 
     // Método para salvar tags no shared_preferences
-  Future<void> _saveTags(int folderId, List<String> tags) async {
+  /*Future<void> _saveTags(int folderId, List<String> tags) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('tags_$folderId', jsonEncode(tags));
     debugPrint(
         'Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
-  }
+  }*/
 
   
-  void _removeTagDaPasta(Folder folder, String tag) {
+  /*void _removeTagDaPasta(Folder folder, String tag) {
     setState(() {
       final currentTags = folder.tags ?? [];
       if (currentTags.contains(tag)) {
@@ -157,79 +230,29 @@ Future<List<TagModel>> loadAllTags(String userId, ApiService apiService) async {
         _saveTags(folder.id, folder.tags!);
       }
     });
-  }
+  }*/
 
   // Método para remover tags ao deletar Subalbum
-  Future<void> _removeTags(int folderId) async {
+/*  Future<void> _removeTags(int folderId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('tags_$folderId');
     debugPrint('Tags removidas localmente para folderId $folderId');
-  }
+  }*/
 
-// Função para REMOVER uma tag
-Future<void> _removeTag(Folder folder, String tag) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null) return;
 
-  final currentTags = List<String>.from(folder.tags ?? []);
-  if (currentTags.contains(tag)) {
-    final newTags = currentTags.where((t) => t != tag).toList();
 
-    setState(() {
-      folder.tags = newTags;
-    });
 
-    try {
-      await _apiService.updateFolder(
-        folderId: folder.id,
-        idUsuario: user.id!,
-        folderName: folder.nome, // <-- ADICIONADO: Enviando o nome da pasta
-        tags: newTags,
-      );
-      await _saveTags(folder.id, newTags);
-    } catch (e) {
-      setState(() {
-        folder.tags = currentTags;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao remover categoria: ${e.toString()}')),
-      );
+// 4. Função que ADICIONA a tag e CHAMA a função de persistência
+void _addTagToFolder(Folder group, TagModel tag) {
+  setState(() {
+    final currentTags = group.tags ?? [];
+    if (!currentTags.contains(tag.nomeTag)) {
+      group.tags = [...currentTags, tag.nomeTag];
     }
-  }
+  });
+  _persistUpdatedTagsForGroup(group);
 }
 
-
-// Função para ADICIONAR uma tag
-void _addTagToFolder(Folder folder, String tag) async {
-  final user = UserHelper().user;
-  if (user == null || user.id == null) return;
-
-  final currentTags = List<String>.from(folder.tags ?? []);
-  if (!currentTags.contains(tag)) {
-    final newTags = [...currentTags, tag];
-
-    setState(() {
-      folder.tags = newTags;
-    });
-
-    try {
-      await _apiService.updateFolder(
-        folderId: folder.id,
-        idUsuario: user.id!,
-        folderName: folder.nome, // <-- ADICIONADO: Enviando o nome da pasta
-        tags: newTags,
-      );
-      await _saveTags(folder.id, newTags);
-    } catch (e) {
-      setState(() {
-        folder.tags = currentTags;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao salvar categoria: ${e.toString()}')),
-      );
-    }
-  }
-}
 
   // FUNÇÃO DE ATUALIZAÇÃO PRINCIPAL - Busca a lista mais recente da API
   Future<void> _fetchSubfoldersFromApiAndRefreshState() async {
@@ -265,13 +288,15 @@ void _addTagToFolder(Folder folder, String tag) async {
       return;
     }
 
-    try {
-      final Map<String, dynamic> response = await _apiService.createSubFolder(
-        parentFolderId: widget.initialFolderId,
-        idUsuario: user.id!,
-        folderName: subfolderName,
-        parentFolderPath: widget.folderApiPath,
-      );
+  try {
+    // A MUDANÇA ESTÁ AQUI:
+    final Map<String, dynamic> response = await _apiService.createSubFolder(
+      parentFolderId: widget.initialFolderId,
+      idUsuario: user.id!,
+      folderName: subfolderName,
+      // Antes: parentFolderPath: widget.folderApiPath,
+      parentFolderName: widget.initialFolderName, // DEPOIS: Passando o nome da pasta pai
+    );
 
       // Cria o objeto Folder com os dados retornados pela API
       final newSubfolder = Folder.fromMap({
@@ -342,40 +367,208 @@ void _addTagToFolder(Folder folder, String tag) async {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             bool isDialogLoading = false;
-            return AlertDialog(
-              title: const Text('Criar Novo Subálbum'),
-              content: TextField(
-                controller: _subalbumNameController,
-                decoration: const InputDecoration(hintText: 'Nome do subálbum'),
-                enabled: !isDialogLoading,
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 400,
+                  minWidth: 320,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFaed513).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFaed513)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.add_photo_alternate,
+                              color: Color(0xFFaed513),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Criar Novo Subálbum',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Dê um nome para seu Subálbum',
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: TextField(
+                          controller: _subalbumNameController,
+                          enabled: !isDialogLoading,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Ex: Meu SubAlbum',
+                            hintStyle: TextStyle(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              fontSize: 16,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.folder,
+                              color: Colors.black.withValues(alpha: 0.7),
+                              size: 20,
+                            ),
+                          ),
+                          onSubmitted: (value) async {
+                            isDialogLoading ? null : () => Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                      ),
+                      // ignore: dead_code
+                      if (isDialogLoading) ...[
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFaed513)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Criando álbum...',
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.8),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: isDialogLoading ? null : () => Navigator.of(dialogContext).pop(),
+                              style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Cancelar',
+                                style: TextStyle(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: isDialogLoading
+                                        ? null
+                                        : () async {
+                                            final subalbumName = _subalbumNameController.text.trim();
+                                            if (subalbumName.isEmpty) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('O nome não pode ser vazio.')),
+                                              );
+                                              return;
+                                            }
+                                            
+                                            setDialogState(() => isDialogLoading = true);
+                                            // Chama a nova função unificada
+                                            await _addSubfolderAndUpdateState(subalbumName);
+                                            if (mounted) {
+                                              Navigator.of(dialogContext).pop();
+                                            }
+                                          },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFaed513),
+                                foregroundColor: Colors.black,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                isDialogLoading ? 'Criando...' : 'Criar Subálbum',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: isDialogLoading ? null : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  child: isDialogLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salvar'),
-                  onPressed: isDialogLoading
-                      ? null
-                      : () async {
-                          final subalbumName = _subalbumNameController.text.trim();
-                          if (subalbumName.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('O nome não pode ser vazio.')),
-                            );
-                            return;
-                          }
-                          
-                          setDialogState(() => isDialogLoading = true);
-                          // Chama a nova função unificada
-                          await _addSubfolderAndUpdateState(subalbumName);
-                          if (mounted) {
-                            Navigator.of(dialogContext).pop();
-                          }
-                        },
-                ),
-              ],
             );
           },
         );
@@ -672,7 +865,7 @@ void _addTagToFolder(Folder folder, String tag) async {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Visualize e gerencie os sub álbuns',
+                    'Visualize e gerencie os subálbuns',
                     style: TextStyle(
                       color: Colors.black.withValues(alpha: 0.7),
                       fontSize: 14,
@@ -793,25 +986,26 @@ void _addTagToFolder(Folder folder, String tag) async {
     );
   }
 
-  // Subalbums List
-  Widget _buildSubalbumsList() {
-    return RefreshIndicator(
-      onRefresh: _fetchSubfoldersFromApiAndRefreshState,
-      color: const Color(0xFFaed513),
-      child: ListView.builder(
-        padding: const EdgeInsets.only(top: 8),
-        itemCount: _subfolders.length,
-        itemBuilder: (context, index) {
-          final group = _subfolders[index];
-          final tags = group.tags ?? [];
-          return _buildSubalbumCard(group, tags);
-        },
-      ),
-    );
-  }
+// 1. Widget que constrói a lista de subálbuns
+Widget _buildSubalbumsList() {
+  return RefreshIndicator(
+    onRefresh: _fetchSubfoldersFromApiAndRefreshState,
+    color: const Color(0xFFaed513),
+    child: ListView.builder(
+      padding: const EdgeInsets.only(top: 8),
+      itemCount: _subfolders.length,
+      itemBuilder: (context, index) {
+        final group = _subfolders[index];
+        // AJUSTE AQUI: Passamos apenas o objeto 'group' completo.
+        return _buildSubalbumCard(group);
+      },
+    ),
+  );
+}
 
   // Subalbum Card
-  Widget _buildSubalbumCard(Folder group, List<String> tags) {
+  Widget _buildSubalbumCard(Folder group) {
+    final List<String> tags = group.tags ?? [];
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -839,9 +1033,9 @@ void _addTagToFolder(Folder folder, String tag) async {
               MaterialPageRoute(
                 builder: (context) => ImagemDetalhesPage(
                   images: group.imagens ?? [],
-                  categorias: tags,
-                  subAlbumName:
-                      group.albunsCriadosPageDisplayName ?? 'Sem nome',
+                // AJUSTE AQUI: Passa a lista de tags correta para a próxima tela
+                categorias: tags, 
+                subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
                 ),
               ),
             );
@@ -1055,44 +1249,23 @@ void _addTagToFolder(Folder folder, String tag) async {
     );
   }
 
-  // Tag Chip
-  Widget _buildTagChip(Folder group, String tag) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFaed513).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFaed513).withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              tag,
-              style: const TextStyle(
-                color: Color(0xFFaed513),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: () => _removeTag(group, tag),
-              child: Icon(
-                Icons.close,
-                color: const Color(0xFFaed513),
-                size: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  
+// Não se esqueça de ter esta função auxiliar também
+Widget _buildTagChip(Folder group, String tagName) {
+  return Chip(
+    label: Text(tagName, style: const TextStyle(color: Colors.black)),
+    backgroundColor: const Color(0xFFaed513).withOpacity(0.2),
+    deleteIcon: const Icon(Icons.close, size: 16),
+    onDeleted: () {
+      _removeTag(group, tagName);
+    },
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+      side: BorderSide(color: Colors.grey.shade300),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  );
+}
 
 // A função que se comunica com a API para criar a tag, baseada no seu exemplo
 Future<void> _createTagsOnApi(String nomeTag, ApiService _apiService, VoidCallback _loadTags) async {
@@ -1209,9 +1382,6 @@ void _showAddTagDialog(Folder group) {
           style: TextStyle(color: Colors.black),
         ),
         content: FutureBuilder<List<TagModel>>(
-          // A correção está aqui: passamos o id do usuário diretamente como int,
-          // usando a sintaxe `user.id!` para garantir que não seja nulo,
-          // pois já fizemos essa verificação acima.
           future: _apiService.getTags(user.id!),
           builder: (context, snapshot) {
             // Estado de Carregamento: mostra um indicador circular enquanto espera
@@ -1258,7 +1428,8 @@ void _showAddTagDialog(Folder group) {
                 }).toList(),
                 onChanged: (tag) {
                   if (tag != null) {
-                    _addTagToFolder(group, tag.nomeTag);
+                   // _addTagToFolder(group, tag.nomeTag);
+                   _addTagToFolder(group, tag);
                     Navigator.of(context).pop();
                   }
                 },
@@ -1279,6 +1450,4 @@ void _showAddTagDialog(Folder group) {
     },
   );
 }
-
-
 }
