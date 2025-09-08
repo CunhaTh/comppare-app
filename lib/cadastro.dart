@@ -638,7 +638,7 @@ Future<void> _launchPDF(String pdfFileName) async {
                                 });
                               },
                               child: const Text(
-                                'Li e estou de acordo com o Termo de Uso e Política de Privacidade',
+                                'Li e estou de acordo com o Termo de uso, Políticas de Privacidade e Política de Cookies.',
                                 style: TextStyle(
                                     fontSize: 12, color: Colors.grey),
                               ),
