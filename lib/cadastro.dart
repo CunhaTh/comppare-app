@@ -155,49 +155,10 @@ class CadastroScreenState extends State<CadastroScreen> {
       } else {
         appSnackBar(
           context: context,
-          message: 'Erro ao cadastrar usuário, tente novamente mais tarde',
+          message: 'Erro ao cadastrar usuário, tente novamente mais tarde $response "BATEU AQUI" ',
         );
       }
 
-      ///TODO(Abimael): Verificar este fluxo com o Andrew - Sugestão para criar o usuário inicialmente setando com plano gratúito
-      // if (response.statusCode == 200) {
-      //   final responseData = jsonDecode(response.body);
-      //   if (responseData['sucesso'] == true ||
-      //       responseData['codigoRetorno'] == 200) {
-      //     if (![1, 2].contains(widget.idPlano)) {
-      //       final userId = responseData['idUser'];
-      //       final redirected = await launchUrl(
-      //         Uri.parse(
-      //             'https://dev.comppare.com.br/payment.php?pid=${widget.idPlano}&uid=$userId'),
-      //       );
-      //       if (redirected && mounted) {
-      //         Navigator.pushNamed(context, AwaitingPayment.route);
-      //       }
-      //     } else {
-      //       final success = await _loginAfterCadastro(cpf, senha);
-      //       if (success && mounted) {
-      //         if (mounted) {
-      //           Navigator.pushReplacement(
-      //             context,
-      //             MaterialPageRoute(
-      //                 builder: (context) => const PrincipalPage()),
-      //           );
-      //         }
-      //       }
-      //     }
-      //   } else {
-      //     _showErrorDialog(responseData['mensagem'] ?? 'Erro ao cadastrar.');
-      //   }
-      // } else {
-      //   final errResponse = jsonDecode(response.body);
-      //   late String msg = '';
-      //   if (errResponse["codRetorno"] == 201) {
-      //     msg = '''Cadastro concluido com sucesso''';
-      //   } else {
-      //     msg = 'falha';
-      //   }
-      //   _showErrorDialog(msg);
-      // }
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
     } finally {
@@ -611,10 +572,10 @@ Future<void> _launchPDF(String pdfFileName) async {
                       const SizedBox(height: 15),
                       _buildTextField(_phoneController, 'Celular'),
                       const SizedBox(height: 15),
-                      _buildTextField(_passwordController, 'Senha',
+                      buildTextFieldPassWord(_passwordController, 'Senha',
                           obscureText: true),
                       const SizedBox(height: 15),
-                      _buildTextField(
+                      buildTextFieldPassWord(
                           _confirmPasswordController, 'Confirmar Senha',
                           obscureText: true),
                       const SizedBox(height: 15),
@@ -721,4 +682,28 @@ Future<void> _launchPDF(String pdfFileName) async {
       ),
     );
   }
+
+Widget buildTextFieldPassWord(TextEditingController controller, String label,
+    {bool obscureText = false}) {
+  return Padding(
+    padding: const EdgeInsets.only(top: 20),
+    child: TextField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.black),
+        hintText: '123Test*@', // Dica de senha adicionada aqui
+        hintStyle: TextStyle(
+          color: Colors.black.withOpacity(0.5),
+          fontStyle: FontStyle.italic,
+        ),
+        border: const OutlineInputBorder(),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.black),
+        ),
+      ),
+    ),
+  );
+}
 }

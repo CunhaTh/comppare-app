@@ -1036,7 +1036,6 @@ Widget _buildSubalbumsList() {
                 // AJUSTE AQUI: Passa a lista de tags correta para a próxima tela
                 categorias: tags, 
                 subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
-                folderId: 0,
                 ),
               ),
             );
