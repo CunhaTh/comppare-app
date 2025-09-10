@@ -91,7 +91,7 @@ class CadastroScreenState extends State<CadastroScreen> {
         return responseData['codRetorno'] == 200 &&
             responseData['message'] == 'OK';
       } else {
-        _showErrorDialog(responseData['message']);
+        _showErrorDialog('Erro ao verificar CPF. Tente novamente.');
         return false;
       }
     } catch (e) {
