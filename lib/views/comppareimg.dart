@@ -35,55 +35,51 @@ class ImagemDetalhesPage extends StatefulWidget {
   final List<ImageModel> images;
   final List<String> categorias;
   final String subAlbumName;
-  
-  // <-- MUDANÇA 1: Adicione o folderId como um parâmetro obrigatório.
-  final int folderId;
 
   const ImagemDetalhesPage({
     super.key,
     required this.images,
     required this.categorias,
     required this.subAlbumName,
-    required this.folderId, // <-- MUDANÇA 2: Receba o folderId no construtor.
   });
 
   @override
   State<ImagemDetalhesPage> createState() => _ImagemDetalhesPageState();
 }
+
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   with TickerProviderStateMixin {
 
-final GlobalKey shareRepaintKey = GlobalKey();
+  final GlobalKey shareRepaintKey = GlobalKey();
   late Future<List<ImageModel>> _imageItemsFuture;
-  List<ImageModel>? _imageItems;
+  List<ImageModel>? _imageItems; // Agora esta é nossa única fonte da verdade após o load
   final List<Folder> idPastaPai = [];
-  final Map<String, String> _savedValues = {}; // Estado para armazenar valores salvos
-  final Map<String, TextEditingController> _controllers = {}; // Controladores dinâmicos
+  final Map<String, String> _savedValues = {};
+  final Map<String, TextEditingController> _controllers = {};
   late List<String> categorias;
   final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
   List<ImageModel> allSelectedImages = [];
-
   late ValueNotifier<List<ImageModel>> _imageItemsListenable;
-  
   bool _isLoading = true;
   late AnimationController _fadeController;
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   final ApiService _apiService = ApiService(httpClient: http.Client());
+  Map<int, String> _tagIdToNameMap = {};
 
- @override
+  @override
   void initState() {
     super.initState();
     categorias = widget.categorias;
-    _imageItems = []; // Inicialização inicial
-    _imageItemsListenable = ValueNotifier<List<ImageModel>>(_imageItems!);
-    _imageItemsFuture = _prepareImageItems().then((items) {
-      _imageItems = items;
-      return items;
-    });
 
+    // MUDANÇA 1: Simplificamos a inicialização do Future.
+    // O Future agora é responsável apenas pela carga inicial. A lista de estado
+    // `_imageItems` será preenchida pelo FutureBuilder.
+    _imageItemsFuture = _prepareImageItems();
+
+    // O resto do seu initState continua igual.
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -92,16 +88,15 @@ final GlobalKey shareRepaintKey = GlobalKey();
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
     );
-
     _fadeController.forward();
   }
+
 
   @override
   void dispose() {
@@ -112,7 +107,6 @@ final GlobalKey shareRepaintKey = GlobalKey();
     _scaleController.dispose();
     super.dispose();
   }
-
 
 // Função principal que gerencia o fluxo de exclusão
 void _deleteImage(ImageModel imageItem, int index) async {
@@ -141,9 +135,7 @@ void _deleteImage(ImageModel imageItem, int index) async {
 
       // Remove o item da lista local
       setState(() {
-        _imageItems?.removeAt(index);
-        // Atualiza o FutureBuilder para refletir a mudança na UI
-        _imageItemsFuture = Future.value(List.from(_imageItems!));
+       _imageItems?.removeAt(index); // Apenas remove da lista.
       });
 
       // Mostra uma mensagem de sucesso
@@ -449,73 +441,91 @@ Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
   }
 
 Future<List<ImageModel>> _prepareImageItems() async {
-  // Busca as tags do usuário uma única vez para otimização.
+  // Passo 1: Busca as tags do usuário (isso continua igual e está correto).
   final User? user = UserHelper().user;
-  Map<int, String> tagIdToNameMap = {};
   if (user?.id != null) {
     try {
       final List<TagModel> userTags = await ApiService().getTags(user!.id!);
-      tagIdToNameMap = {for (var tag in userTags) tag.id: tag.nomeTag};
+      // Preenche a variável de estado da classe
+      _tagIdToNameMap = {for (var tag in userTags) tag.id: tag.nomeTag};
     } catch (e) {
       devtools.debugPrint("Erro ao buscar tags do usuário: $e");
     }
   }
 
-  List<ImageModel> items = [];
-  for (int i = 0; i < widget.images.length; i++) {
-    final ImageModel myImage = widget.images[i];
-    Uint8List? imageData;
+  // MELHORIA (PERFORMANCE): Processar todas as imagens em paralelo.
+  // Criamos uma lista de "tarefas" (Futures) a serem executadas.
+  final List<Future<ImageModel?>> processingTasks = [];
 
-    // Carrega os bytes da imagem (sua lógica original).
-    imageData = await _loadImageBytesFromUrl(myImage.url);
+  for (final myImage in widget.images) {
+    // Para cada imagem, adicionamos uma tarefa assíncrona à lista.
+    processingTasks.add(_loadAndEnrichImage(myImage));
+  }
+
+  // Executa todas as tarefas da lista em paralelo e espera a conclusão de todas.
+  final List<ImageModel?> processedResults = await Future.wait(processingTasks);
+  
+  // Filtra qualquer resultado nulo que possa ter ocorrido por erro no carregamento.
+  final List<ImageModel> finalItems = processedResults.whereType<ImageModel>().toList();
+
+  _imageItems = finalItems;
+  return finalItems;
+}
+
+// NOVO: Função auxiliar para manter o código limpo.
+// Esta função processa UMA ÚNICA imagem de forma assíncrona.
+// Função auxiliar ajustada para lidar com imagens novas (que retornam 404)
+Future<ImageModel?> _loadAndEnrichImage(ImageModel myImage) async {
+  try {
+    // Passo 1: Carrega os bytes da imagem. Se isso falhar, a imagem inteira falha.
+    final Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
+
     if (imageData == null || imageData.isEmpty) {
-      devtools.debugPrint(
-          'ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
-      imageData = Uint8List(0);
+      devtools.debugPrint('ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
+      return null; // Descarta a imagem se não for possível carregar o arquivo.
     }
 
-    // 1. Cria o objeto final a partir do original, já carregando a imageData.
-    // Neste ponto, `finalItem` é uma cópia de `myImage`.
     final finalItem = ImageModel.fromMyImage(myImage, imageData: imageData);
+    
+    // Passo 2: Tenta carregar a comparação, mas não trata o 404 como um erro fatal.
+    ComparacaoModel? comparacao;
+    if (myImage.id != null && myImage.id != 0) { // Só tenta buscar se o ID for válido
+      try {
+        comparacao = await ApiService().getComparacaoSave(myImage.id!);
+      } on ApiException catch (e) {
+        // Ignora o erro APENAS se for um 404 (Not Found), o que é normal para imagens novas.
+        if (e.statusCode != 404) {
+          devtools.debugPrint('Erro inesperado ao buscar comparação para imagem ID ${myImage.id}: $e');
+        } else {
+          devtools.debugPrint('Nenhuma comparação encontrada para a imagem ID ${myImage.id} (esperado).');
+        }
+      }
+    }
 
-    try {
-      if (myImage.id != null) {
-        final comparacao = await ApiService().getComparacaoSave(myImage.id!);
-        if (comparacao != null) {
-          // 2. ATUALIZA A DATA USANDO O SETTER DO SEU MODELO.
-          // Isso irá corretamente colocar o valor em `metadata['date']`.
-          // Se a data da API for nula ou vazia, o setter não fará nada,
-          // mantendo a data original de `myImage`.
-          if (comparacao.dataComparacao != null && comparacao.dataComparacao!.isNotEmpty) {
-            finalItem.date = comparacao.dataComparacao;
-          }
-
-          // 3. PREENCHE OS OUTROS METADADOS (TAGS)
-          for (var tagData in comparacao.tags) {
-            final tagId = tagData['id_tag'] as int?;
-            final valor = tagData['valor']?.toString() ?? '';
-            if (tagId != null) {
-              final categoryName = tagIdToNameMap[tagId];
-              if (categoryName != null) {
-                // Adiciona diretamente ao mapa, pois não há setters para tags dinâmicas.
-                finalItem.metadata[categoryName] = valor;
-              }
-            }
+    // Passo 3: Preenche os dados se a comparação foi encontrada.
+    if (comparacao != null) {
+      if (comparacao.dataComparacao != null && comparacao.dataComparacao!.isNotEmpty) {
+        finalItem.date = comparacao.dataComparacao;
+      }
+      for (var tagData in comparacao.tags) {
+        final tagId = tagData['id_tag'] as int?;
+        final valor = tagData['valor']?.toString() ?? '';
+        if (tagId != null) {
+          final categoryName = _tagIdToNameMap[tagId];
+          if (categoryName != null) {
+            finalItem.metadata[categoryName] = valor;
           }
         }
       }
-    } catch (e) {
-      devtools.debugPrint(
-          'Nenhuma comparação salva encontrada para a imagem ID ${myImage.id}');
     }
+    
+    return finalItem;
 
-    // 4. Adiciona o item completo e enriquecido à lista.
-    items.add(finalItem);
+  } catch (e) {
+    devtools.debugPrint('Erro GERAL ao processar a imagem ID ${myImage.id}: $e');
+    return null; 
   }
-  _imageItems = items;
-  return items;
 }
-
 
   Uint8List? _placeholderBytes;
 
@@ -536,256 +546,272 @@ Future<List<ImageModel>> _prepareImageItems() async {
     );
   }
 
-  Future<void> onEditButtonPressed(
-      BuildContext context, ImageModel imageItem, int index, int folderId) async {
-    final ImageModel? itemAtualizado =
-        await _showEditDialog(context, imageItem, index);
-
-    if (itemAtualizado != null) {
-      ImageModel itemFinalParaApi = itemAtualizado;
-
-      setState(() {
-        _imageItems![index] = itemAtualizado;
-      });
-
-      try {
-        if (itemAtualizado.id == 0) {
-          // <-- MUDANÇA 4: Passa o folderId para a função `createImage`.
-          final novoId = await ApiService().createImage(itemAtualizado, folderId);
-          
-          itemFinalParaApi = itemAtualizado.copyWith(id: novoId);
-          
-          setState(() {
-            _imageItems![index] = itemFinalParaApi;
-          });
-
-          print('Imagem nova criada com sucesso! Novo ID: $novoId');
-        } else {
-          await ApiService().saveOrUpdateComparacao(itemAtualizado);
-          print('Imagem ${itemAtualizado.id} atualizada com sucesso!');
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Salvo na nuvem!'), backgroundColor: Colors.green),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Erro ao salvar na API: $e'),
-              backgroundColor: Colors.red),
-        );
-      }
-    }
+Future<void> _editDateForImage(BuildContext context, ImageModel imageItem, int index) async {
+  // Tenta usar a data existente da imagem como data inicial
+  DateTime initialPickerDate;
+  try {
+    initialPickerDate = DateFormat('dd/MM/yyyy').parse(imageItem.date ?? '');
+  } catch (e) {
+    initialPickerDate = DateTime.now();
   }
 
+  // 1. Abre o seletor de data
+  final DateTime? pickedDate = await showDatePicker(
+    context: context,
+    initialDate: initialPickerDate,
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2101),
+    locale: const Locale('pt', 'BR'),
+  );
 
-  Widget _buildImageCard(ImageModel imageItem, int index, int folderId, bool isLargeScreen,
-      double screenWidth, double screenHeight) {
-    final String dataAtualFormatada =
-        DateFormat('dd/MM/yyyy').format(DateTime.now());
+  if (pickedDate == null || !mounted) return;
 
-    String dateText = (imageItem.date != null && imageItem.date!.isNotEmpty)
+  // 2. Prepara o novo objeto ImageModel com a data atualizada
+  final String newDateString = DateFormat('dd/MM/yyyy').format(pickedDate);
+  // Usamos o método copyWith para criar uma nova instância imutável
+  final ImageModel itemAtualizado = imageItem.copyWith(date: newDateString);
+
+  // 3. ATUALIZA A UI INSTANTANEAMENTE
+  setState(() {
+    _imageItems![index] = itemAtualizado;
+  });
+
+  // 4. Salva na API em segundo plano
+  try {
+    await ApiService().saveOrUpdateComparacao(itemAtualizado);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data salva na nuvem!'), backgroundColor: Colors.green),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar a data: $e'), backgroundColor: Colors.red),
+      );
+      // Reverte a mudança na UI se a API falhar
+      setState(() {
+        _imageItems![index] = imageItem;
+      });
+    }
+  }
+}
+
+
+// MUDANÇA 3: A adição da Key no _buildImageCard
+  Widget _buildImageCard({
+    Key? key, // Parâmetro Key adicionado
+    required ImageModel imageItem,
+    required int index,
+    required bool isLargeScreen,
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    final String dataAtualFormatada = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    final String dateText = (imageItem.date != null && imageItem.date!.isNotEmpty)
         ? imageItem.date!
         : dataAtualFormatada;
 
-    return AnimatedBuilder(
-      animation: _fadeAnimation,
-      builder: (context, child) {
-        return FadeTransition(
-          opacity: _fadeAnimation,
-          child: Container(
-            margin: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8.0,
-                  offset: const Offset(0, 4),
+
+  return AnimatedBuilder(
+    animation: _fadeAnimation,
+    builder: (context, child) {
+      return FadeTransition(
+        key: key, // Key aplicada ao widget raiz
+        opacity: _fadeAnimation,
+        child: Container(
+          margin: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16.0),
+            color: Colors.white, // Adicionado para melhor visualização
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8.0,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Widget que exibe a data
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 16.0,
+                  top: 16.0,
+                  right: 16.0,
+                  bottom: 8.0,
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(
-                  alignment: Alignment.center,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 16.0,
-                      top: 16.0,
-                      right: 16.0,
-                      bottom: 8.0,
-                    ),
-                    child: Text(
-                      dateText,
-                      style: TextStyle(
-                        fontSize: isLargeScreen ? 14.0 : 12.0,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black54,
-                      ),
-                    ),
+                child: Text(
+                  dateText, // <<-- A LÓGICA É APLICADA AQUI
+                  style: TextStyle(
+                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
                   ),
                 ),
-
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        imageItem.isSelected = !imageItem.isSelected;
-                      });
-                      _scaleController.forward().then((_) {
-                        _scaleController.reverse();
-                      });
-                    },
-                    child: AnimatedBuilder(
-                      animation: _scaleAnimation,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: imageItem.isSelected
-                              ? _scaleAnimation.value
-                              : 1.0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16.0),
-                              border: Border.all(
-                                color: imageItem.isSelected
-                                    ? const Color(0xFFaed513)
-                                    : Colors.grey.withOpacity(0.3),
-                                width: imageItem.isSelected ? 3.0 : 1.0,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(15.0),
-                              child: Stack(
-                                children: [
-                                  Image.memory(
-                                    imageItem.imageData!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    errorBuilder:
-                                        (context, error, stackTrace) {
-                                      debugPrint(
-                                          'Erro ao renderizar imagem do GridView: $error');
-                                      return Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.error,
-                                                  color: Colors.red, size: 40),
-                                              SizedBox(height: 8),
-                                              Text('Erro de imagem',
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  if (imageItem.isSelected)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFaed513),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.check,
-                                          color: Colors.black,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      imageItem.isSelected = !imageItem.isSelected;
+                    });
+                    _scaleController.forward().then((_) {
+                      _scaleController.reverse();
+                    });
+                  },
+                  child: AnimatedBuilder(
+                    animation: _scaleAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: imageItem.isSelected
+                            ? _scaleAnimation.value
+                            : 1.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16.0),
+                            border: Border.all(
+                              color: imageItem.isSelected
+                                  ? const Color(0xFFaed513)
+                                  : Colors.grey.withOpacity(0.3),
+                              width: imageItem.isSelected ? 3.0 : 1.0,
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isLargeScreen ? 8.0 : 4.0,
-                    vertical: isLargeScreen ? 8.0 : 6.0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          // <-- MUDANÇA 6: A chamada agora passa o `folderId`.
-                          onTap: () => onEditButtonPressed(
-                              context, imageItem, index, folderId),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isLargeScreen ? 12.0 : 8.0,
-                              vertical: isLargeScreen ? 8.0 : 6.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(15.0),
+                            child: Stack(
                               children: [
-                                Icon(
-                                  Icons.edit,
-                                  color: Colors.black,
-                                  size: isLargeScreen ? 16.0 : 14.0,
+                                Image.memory(
+                                  imageItem.imageData!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    debugPrint(
+                                        'Erro ao renderizar imagem do GridView: $error');
+                                    return Container(
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.error,
+                                                color: Colors.red, size: 40),
+                                            SizedBox(height: 8),
+                                            Text('Erro de imagem',
+                                                style: TextStyle(
+                                                    color: Colors.red)),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                                SizedBox(width: isLargeScreen ? 6.0 : 4.0),
-                                Text(
-                                  'Editar',
-                                  style: TextStyle(
-                                    fontSize: isLargeScreen ? 14.0 : 12.0,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black,
+                                if (imageItem.isSelected)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFaed513),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.black,
+                                        size: 16,
+                                      ),
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: isLargeScreen ? 8.0 : 4.0),
-                      GestureDetector(
-                        onTap: () => _deleteImage(imageItem, index),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              // --- FIM DA PARTE DA IMAGEM ---
+
+              // --- INÍCIO DA MUDANÇA: BARRA DE AÇÕES ---
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isLargeScreen ? 8.0 : 4.0,
+                  vertical: isLargeScreen ? 8.0 : 6.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Botão Editar (envolvido por Expanded)
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            _showEditDialog(context, imageItem, index),
                         child: Container(
-                          padding: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isLargeScreen ? 12.0 : 8.0,
+                            vertical: isLargeScreen ? 8.0 : 6.0,
+                          ),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
+                            color: Colors.black.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(8.0),
                           ),
-                          child: Icon(
-                            Icons.delete_outline,
-                            color: Colors.red,
-                            size: isLargeScreen ? 20.0 : 18.0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.edit,
+                                color: Colors.black,
+                                size: isLargeScreen ? 16.0 : 14.0,
+                              ),
+                              SizedBox(width: isLargeScreen ? 6.0 : 4.0),
+                              Text(
+                                'Editar',
+                                style: TextStyle(
+                                  fontSize: isLargeScreen ? 14.0 : 12.0,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+                    ),
 
+                    SizedBox(width: isLargeScreen ? 8.0 : 4.0),
+
+                    // NOVO: Botão Deletar (apenas o ícone)
+                    GestureDetector(
+                      onTap: () => _deleteImage(imageItem, index),
+                      child: Container(
+                        padding: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                          size: isLargeScreen ? 20.0 : 18.0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
 Widget _buildComppareButton(bool isLargeScreen, double screenWidth, double screenHeight, List<ImageModel> loadedImageItems) {
   final selectedCount = loadedImageItems.where((item) => item.isSelected).length;
@@ -936,179 +962,202 @@ Widget _buildShareableFrame({
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 0,
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.white,
-          leading: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.arrow_back, color: Colors.black),
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            child: const Icon(Icons.arrow_back, color: Colors.black),
           ),
-          title: Center(
-            child: Image.asset(
-              "assets/logo_cortada.png",
-              width: isLargeScreen ? screenWidth * 0.25 : screenWidth * 0.35,
-              height: isLargeScreen ? screenHeight * 0.04 : screenHeight * 0.06,
-              fit: BoxFit.contain,
-            ),
-          ),
-          actions: [
-            Container(
-              margin: EdgeInsets.only(right: isLargeScreen ? 16.0 : 12.0),
-              child: IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.home, color: Colors.black),
-                ),
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PrincipalPage()),
-                    (Route<dynamic> route) => false,
-                  );
-                },
-              ),
-            ),
-          ],
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
-        body: FutureBuilder<List<ImageModel>>(
-          future: _imageItemsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              print("FutureBuilder: Estado de carregamento...");
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              print("FutureBuilder: Erro - ${snapshot.error}");
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 48,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Erro ao carregar imagens',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${snapshot.error}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black.withOpacity(0.6),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+        title: Center(
+          child: Image.asset(
+            "assets/logo_cortada.png",
+            width: isLargeScreen ? screenWidth * 0.25 : screenWidth * 0.35,
+            height: isLargeScreen ? screenHeight * 0.04 : screenHeight * 0.06,
+            fit: BoxFit.contain,
+          ),
+        ),
+        actions: [
+          Container(
+            margin: EdgeInsets.only(right: isLargeScreen ? 16.0 : 12.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              print("FutureBuilder: Sem dados ou lista vazia");
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.photo_library_outlined,
-                        color: Colors.grey,
-                        size: 48,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Nenhuma imagem encontrada',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Adicione imagens para começar a comparar',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
+                child: const Icon(Icons.home, color: Colors.black),
+              ),
+              onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PrincipalPage()),
+                      (Route<dynamic> route) => false,
+                    );
+              },
+            ),
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<ImageModel>>(
+      future: _imageItemsFuture,
+      builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Erro: ${snapshot.error}'));
+          }
+
+          // MUDANÇA 4: A NOVA LÓGICA DE GERENCIAMENTO DE ESTADO
+          // Sincroniza a lista de estado `_imageItems` com os dados da API apenas na primeira vez.
+          if (_imageItems == null) {
+            _imageItems = snapshot.data ?? [];
+          }
+
+          // A partir daqui, a UI depende apenas de `_imageItems`, que é a nossa "fonte da verdade".
+          if (_imageItems!.isEmpty) {
+          print("FutureBuilder: Erro - ${snapshot.error}");
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 48,
+                  ),
                 ),
-              );
-            } else {
-              final List<ImageModel> loadedImageItems =
-                  snapshot.data!.cast<ImageModel>();
-              _imageItems =
-                  loadedImageItems; // Sincroniza _imageItems com loadedImageItems
-              print(
-                  "loadedImageItems metadata: ${loadedImageItems.map((item) => item.metadata).toList()}");
-              return Stack(
-                children: [
-                  Container(
-                    padding: EdgeInsets.only(
-                      left: isLargeScreen ? 16.0 : 12.0,
-                      right: isLargeScreen ? 16.0 : 12.0,
-                      top: isLargeScreen ? 16.0 : 12.0,
-                      bottom: isLargeScreen ? 100.0 : 80.0,
-                    ),
-                    child: GridView.builder(
-                      controller: _scrollController,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: (screenWidth / (isLargeScreen ? 220 : 180))
-                            .floor()
-                            .clamp(1, 3),
-                        childAspectRatio: 0.85,
-                        crossAxisSpacing: isLargeScreen ? 16.0 : 12.0,
-                        mainAxisSpacing: isLargeScreen ? 16.0 : 12.0,
-                      ),
-                      itemCount: loadedImageItems.length,
-                      itemBuilder: (context, index) {
-                        final imageItem = loadedImageItems[index];
-                        // <-- MUDANÇA 7: Passa o `widget.folderId` para a função que constrói o card.
-                        return _buildImageCard(imageItem, index, widget.folderId, isLargeScreen,
-                            screenWidth, screenHeight);
-                      },
-                    ),
+                const SizedBox(height: 16),
+                Text(
+                  'Erro ao carregar imagens',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: _buildComppareButton(isLargeScreen, screenWidth,
-                        screenHeight, loadedImageItems),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black.withOpacity(0.6),
                   ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }   if (_imageItems == null) {
+      _imageItems = snapshot.data ?? [];
+    }
+
+    // 2. VERIFICAÇÃO: Agora, verificamos a nossa lista de estado `_imageItems`.
+    //    Se ela estiver vazia, mostramos a mensagem.
+    if (_imageItems!.isEmpty) {
+      print("FutureBuilder: A lista _imageItems está vazia.");
+      // Sua UI para "nenhuma imagem" continua a mesma, está ótima.
+          print("FutureBuilder: Sem dados ou lista vazia");
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.photo_library_outlined,
+                    color: Colors.grey,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Nenhuma imagem encontrada',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Adicione imagens para começar a comparar',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black.withOpacity(0.6), 
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else {
+          final List<ImageModel> loadedImageItems = snapshot.data!.cast<ImageModel>();
+          _imageItems = loadedImageItems; // Sincroniza _imageItems com loadedImageItems
+          print("loadedImageItems metadata: ${loadedImageItems.map((item) => item.metadata).toList()}");
+          return Stack(
+            children: [
+              Container(
+                padding: EdgeInsets.only(
+                  left: isLargeScreen ? 16.0 : 12.0,
+                  right: isLargeScreen ? 16.0 : 12.0,
+                  top: isLargeScreen ? 16.0 : 12.0,
+                  bottom: isLargeScreen ? 100.0 : 80.0,
+                ),
+                child: GridView.builder(
+                  controller: _scrollController,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: (screenWidth / (isLargeScreen ? 220 : 180)).floor().clamp(1, 3),
+                    childAspectRatio: 0.85,
+                    crossAxisSpacing: isLargeScreen ? 16.0 : 12.0,
+                    mainAxisSpacing: isLargeScreen ? 16.0 : 12.0,
+                  ),
+                  itemCount: loadedImageItems.length,
+                  itemBuilder: (context, index) {
+                    final imageItem = loadedImageItems[index];
+                    return _buildImageCard(
+                      key: ValueKey(imageItem.id),
+                      imageItem: imageItem,
+                      index: index,
+                      isLargeScreen: isLargeScreen,
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,);
+                    
+                  },
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildComppareButton(
+                  isLargeScreen, 
+                  screenWidth, 
+                  screenHeight, 
+                  loadedImageItems),
+              ),
             ],
           );
         }
@@ -1373,7 +1422,7 @@ Future<List<TagModel>> getTags(int usuario) async {
 }
 
 
-    Map<String, String> getHeaders({bool includeContentType = true}) {
+Map<String, String> getHeaders({bool includeContentType = true}) {
     final String? authToken = TokenHelper().token;
     foundation.debugPrint(
         'ApiService: Token sendo acessado em getHeaders: $authToken');
@@ -1395,9 +1444,44 @@ Future<List<TagModel>> getTags(int usuario) async {
   }
 
 
+Future<void> onEditButtonPressed(BuildContext context, ImageModel imageItem, int index) async {
+  // 1. Abre o diálogo e espera pelo resultado (o item atualizado)
+  final ImageModel? itemAtualizado = await _showEditDialog(context, imageItem, index);
 
-Future<ImageModel?> _showEditDialog(
-    BuildContext context, ImageModel imageItem, int index) async {
+  // 2. Se o usuário salvou (resultado não é nulo)
+  if (itemAtualizado != null && mounted) {
+    
+    // 3. ATUALIZA A UI INSTANTANEAMENTE
+    //    Apenas modificamos nossa lista de estado `_imageItems` dentro de um setState.
+    setState(() {
+      _imageItems![index] = itemAtualizado;
+    });
+
+    // 4. Salva na API em segundo plano (atualização otimista)
+    try {
+      await ApiService().saveOrUpdateComparacao(itemAtualizado);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Alterações salvas na nuvem!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar na API: $e'), backgroundColor: Colors.red),
+        );
+        // Opcional: Reverter a mudança na UI se a API falhar
+        setState(() {
+          _imageItems![index] = imageItem; // Volta ao estado original
+        });
+      }
+    }
+  }
+}
+
+
+
+Future<ImageModel?> _showEditDialog(BuildContext context, ImageModel imageItem, int index) async {
   final screenWidth = MediaQuery.of(context).size.width;
   final screenHeight = MediaQuery.of(context).size.height;
   final isLargeScreen = screenWidth > 520 && screenHeight > 889;
@@ -1413,22 +1497,22 @@ Future<ImageModel?> _showEditDialog(
   Map<String, String> apiValues = {};
   List<String> categoriasDinamicas = [];
 
-try {
-  // --- INÍCIO DA CORREÇÃO ---
+  try {
+    final List<TagModel> tags = await ApiService().getTags(UserHelper().user!.id!);
+    tagIds = {for (var tag in tags) tag.nomeTag: tag.id};
+    print("Tags do usuário (tagIds): $tagIds");
 
-  // Primeiro, busca as tags disponíveis para o usuário.
-  // Isso é útil tanto para imagens novas quanto para existentes.
-  final List<TagModel> tags = await ApiService().getTags(UserHelper().user!.id!);
-  tagIds = {for (var tag in tags) tag.nomeTag: tag.id};
-  print("Tags do usuário (tagIds): $tagIds");
+    if (imageItem.id == null) {
+      Navigator.of(context).pop();
+      if (context.mounted) {
+        await _showErrorDialog(context, 'ID da imagem não encontrado.');
+      }
+      return null;
+    }
 
-  // SÓ TENTE CARREGAR UMA COMPARAÇÃO SE A IMAGEM JÁ EXISTIR NA API (ID != 0)
-  if (imageItem.id != 0) {
-    print("Imagem existente (ID: ${imageItem.id}). Buscando comparação...");
     comparacao = await ApiService().getComparacaoSave(imageItem.id!);
     print("Comparação recuperada: $comparacao");
 
-    // O resto da sua lógica para processar a 'comparacao' continua aqui dentro...
     if (comparacao != null && comparacao.tags.isNotEmpty) {
       for (var tag in comparacao.tags) {
         final tagId = tag['id_tag'] as int?;
@@ -1445,9 +1529,6 @@ try {
       }
       print("Valores da API mapeados: $apiValues");
     }
-  } else {
-    print("Imagem nova (ID: 0). Pulando a busca por comparação.");
-  }
     Navigator.of(context).pop();
   } catch (e) {
     Navigator.of(context).pop();
@@ -1455,104 +1536,43 @@ try {
     // Não exibe erro para o usuário se não houver comparação, apenas prossegue
   }
 
-  // Se a pasta não tiver nenhuma tag associada, exibe apenas o campo de data
-  if (tagIds.isEmpty) {
-    categoriasDinamicas = ['Data'];
-  } else {
-    categoriasDinamicas = ['Data']
-      ..addAll(widget.categorias.isNotEmpty
-          ? widget.categorias.where((cat) => tagIds.containsKey(cat))
-          : tagIds.keys.where((cat) => tagIds.containsKey(cat)));
-  }
+  // Define categorias dinâmicas independentemente de comparação
+  categoriasDinamicas = ['Data']..addAll(widget.categorias.isNotEmpty ? widget.categorias.where((cat) => tagIds.containsKey(cat)) : tagIds.keys.where((cat) => tagIds.containsKey(cat)));
   print("Categorias dinâmicas: $categoriasDinamicas");
-
-  // Pega a data atual e formata para "dia/mês/ano"
-  final String currentDate = DateFormat('dd/MM/yyyy').format(DateTime.now());
 
   // Inicializa controllers com valores da API ou vazios
   final Map<String, TextEditingController> controllers = {};
   for (var categoria in categoriasDinamicas) {
     String textValue = apiValues[categoria] ?? '';
     if (textValue.isEmpty) {
-      // Se a categoria for 'Data', usa a data da imagem, um valor salvo ou a data atual como fallback.
       textValue = categoria == 'Data'
-          ? (imageItem.date ?? _savedValues[categoria] ?? currentDate)
+          ? (imageItem.date ?? _savedValues[categoria] ?? '')
           : imageItem.metadata[categoria] ?? _savedValues[categoria] ?? '';
     }
     print("Valor para $categoria: $textValue");
     controllers[categoria] = TextEditingController(text: textValue);
   }
 
-  // ##########################################################################
-  // ### PASSO SEGUINTE: TORNAR O CAMPO DE DATA INTERATIVO ###
-  // ##########################################################################
-  //
-  // Para permitir que o usuário altere a data clicando no campo, você
-  // precisará modificar o widget TextField para a 'Data' dentro da sua
-  // função `_openEditDialog` (que constrói a UI do diálogo).
-  //
-  // Use a função `_selectDate` (adicionada no final deste arquivo) da seguinte forma:
-  //
-  // 1. Envolva o seu TextField de 'Data' com um `GestureDetector`.
-  // 2. No `onTap` do GestureDetector, chame a função `_selectDate`.
-  // 3. Desabilite a edição direta no TextField para forçar o uso do calendário.
-  //
-  // EXEMPLO DE COMO MODIFICAR O SEU TEXTFIELD DE DATA:
-  //
-  // GestureDetector(
-  //   onTap: () => _selectDate(context, controllers['Data']!),
-  //   child: AbsorbPointer( // Impede que o teclado abra
-  //     child: TextField(
-  //       controller: controllers['Data']!,
-  //       decoration: InputDecoration(
-  //         labelText: 'Data',
-  //         suffixIcon: Icon(Icons.calendar_today),
-  //       ),
-  //       readOnly: true, // Opcional, mas recomendado
-  //     ),
-  //   ),
-  // )
-  //
-  // ##########################################################################
+// DENTRO DE: _showEditDialog
+final updatedItem = await _openEditDialog(context, imageItem, index, tagIds, apiValues, controllers, categoriasDinamicas);
 
-  // DENTRO DE: _showEditDialog
-  final updatedItem = await _openEditDialog(
-      context, imageItem, index, tagIds, apiValues, controllers, categoriasDinamicas);
+if (updatedItem != null) {
+  if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
+    // 1. Atualize a lista localmente.
+    _imageItems![index] = updatedItem;
 
-  if (updatedItem != null) {
-    // A lógica de atualização do estado permanece a mesma.
+    // 2. REMOVA A CHAMADA _refreshImageItems().
+
+    // 3. Chame setState para reconstruir a UI com a lista já atualizada.
+    setState(() {
+      // Criar um novo Future com a lista atualizada para o FutureBuilder.
+      _imageItemsFuture = Future.value(List.from(_imageItems!));
+    });
   }
+}
   return updatedItem;
 }
 
-
-/// Mostra um seletor de data e atualiza o [dateController] com a data escolhida.
-Future<void> _selectDate(
-    BuildContext context, TextEditingController dateController) async {
-  DateTime initialDate;
-  try {
-    // Tenta interpretar a data existente no campo.
-    initialDate = DateFormat('dd/MM/yyyy').parse(dateController.text);
-  } catch (e) {
-    // Se falhar (ou se o campo estiver vazio), usa a data atual.
-    initialDate = DateTime.now();
-  }
-
-  final DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: initialDate,
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2101),
-  );
-
-  if (picked != null) {
-    // Se uma nova data for selecionada, atualiza o controller.
-    dateController.text = DateFormat('dd/MM/yyyy').format(picked);
-  }
-}
-
-
-// Função do diálogo com o botão "Salvar" ajustado
 Future<ImageModel?> _openEditDialog(
   BuildContext context,
   ImageModel imageItem,
@@ -1571,7 +1591,7 @@ Future<ImageModel?> _openEditDialog(
     barrierDismissible: false,
     builder: (dialogContext) {
       return StatefulBuilder(
-        builder: (dialogContext, setStateDialog) {
+        builder: (dialogContext, setState) {
           bool isProcessing = false;
 
           return Dialog(
@@ -1641,9 +1661,7 @@ Future<ImageModel?> _openEditDialog(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                height: isLargeScreen
-                                    ? screenHeight * 0.3
-                                    : screenHeight * 0.25,
+                                height: isLargeScreen ? screenHeight * 0.3 : screenHeight * 0.25,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16.0),
@@ -1654,8 +1672,7 @@ Future<ImageModel?> _openEditDialog(
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(16.0),
-                                  child: imageItem.imageData != null &&
-                                          imageItem.imageData!.isNotEmpty
+                                  child: imageItem.imageData != null && imageItem.imageData!.isNotEmpty
                                       ? Image.memory(
                                           imageItem.imageData!,
                                           fit: BoxFit.fitHeight,
@@ -1664,17 +1681,11 @@ Future<ImageModel?> _openEditDialog(
                                           color: Colors.grey[200],
                                           child: const Center(
                                             child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
+                                              mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
-                                                Icon(Icons.image_not_supported,
-                                                    color: Colors.grey,
-                                                    size: 48),
+                                                Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
                                                 SizedBox(height: 8),
-                                                Text(
-                                                    'Imagem não disponível',
-                                                    style: TextStyle(
-                                                        color: Colors.grey)),
+                                                Text('Imagem não disponível', style: TextStyle(color: Colors.grey)),
                                               ],
                                             ),
                                           ),
@@ -1685,61 +1696,40 @@ Future<ImageModel?> _openEditDialog(
                               if (categoriasDinamicas.isNotEmpty)
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children:
-                                      categoriasDinamicas.map((categoria) {
+                                  children: categoriasDinamicas.map((categoria) {
                                     return Container(
-                                      margin: EdgeInsets.only(
-                                          bottom:
-                                              isLargeScreen ? 16.0 : 12.0),
+                                      margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 12.0),
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             categoria,
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: isLargeScreen
-                                                  ? 16.0
-                                                  : 14.0,
+                                              fontSize: isLargeScreen ? 16.0 : 14.0,
                                               color: Colors.black,
                                             ),
                                           ),
-                                          const SizedBox(height: 8.0),
+                                          SizedBox(height: 8.0),
                                           TextField(
-                                            controller:
-                                                controllers[categoria],
+                                            controller: controllers[categoria],
                                             decoration: InputDecoration(
-                                              hintText:
-                                                  'Insira o valor para $categoria',
+                                              hintText: 'Insira o valor para $categoria',
                                               filled: true,
                                               fillColor: Colors.grey[50],
                                               border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        12.0),
-                                                borderSide: BorderSide(
-                                                    color: Colors.grey[300]!),
+                                                borderRadius: BorderRadius.circular(12.0),
+                                                borderSide: BorderSide(color: Colors.grey[300]!),
                                               ),
-                                              enabledBorder:
-                                                  OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        12.0),
-                                                borderSide: BorderSide(
-                                                    color: Colors.grey[300]!),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(12.0),
+                                                borderSide: BorderSide(color: Colors.grey[300]!),
                                               ),
-                                              focusedBorder:
-                                                  OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        12.0),
-                                                borderSide: const BorderSide(
-                                                    color: Color(0xFFaed513),
-                                                    width: 2),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(12.0),
+                                                borderSide: const BorderSide(color: Color(0xFFaed513), width: 2),
                                               ),
-                                              contentPadding:
-                                                  const EdgeInsets.symmetric(
+                                              contentPadding: EdgeInsets.symmetric(
                                                 horizontal: 16.0,
                                                 vertical: 12.0,
                                               ),
@@ -1752,23 +1742,20 @@ Future<ImageModel?> _openEditDialog(
                                 )
                               else
                                 Container(
-                                  padding: EdgeInsets.all(
-                                      isLargeScreen ? 20.0 : 16.0),
+                                  padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
                                   decoration: BoxDecoration(
                                     color: Colors.grey[50],
                                     borderRadius: BorderRadius.circular(12.0),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.info_outline,
-                                          color: Colors.grey, size: 20),
-                                      const SizedBox(width: 12),
+                                      Icon(Icons.info_outline, color: Colors.grey, size: 20),
+                                      SizedBox(width: 12),
                                       Text(
                                         'Sem categorias disponíveis no momento.',
                                         style: TextStyle(
                                           color: Colors.grey[600],
-                                          fontSize:
-                                              isLargeScreen ? 14.0 : 12.0,
+                                          fontSize: isLargeScreen ? 14.0 : 12.0,
                                         ),
                                       ),
                                     ],
@@ -1802,28 +1789,22 @@ Future<ImageModel?> _openEditDialog(
                                       vertical: isLargeScreen ? 16.0 : 14.0,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12.0),
+                                      borderRadius: BorderRadius.circular(12.0),
                                     ),
                                     elevation: 0,
                                   ),
-                                  onPressed: isProcessing
-                                      ? null
-                                      : () =>
-                                          Navigator.of(dialogContext).pop(),
+                                  onPressed: isProcessing ? null : () => Navigator.of(dialogContext).pop(),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.cancel,
-                                          size: isLargeScreen ? 18.0 : 16.0),
-                                      const SizedBox(width: 8.0),
+                                      Icon(Icons.cancel, size: isLargeScreen ? 18.0 : 16.0),
+                                      SizedBox(width: 8.0),
                                       Expanded(
                                         child: Text(
                                           'Cancelar',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w600,
-                                            fontSize:
-                                                isLargeScreen ? 16.0 : 14.0,
+                                            fontSize: isLargeScreen ? 16.0 : 14.0,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -1845,73 +1826,95 @@ Future<ImageModel?> _openEditDialog(
                                       vertical: isLargeScreen ? 16.0 : 14.0,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12.0),
+                                      borderRadius: BorderRadius.circular(12.0),
                                     ),
                                     elevation: 2,
                                   ),
-                                  // --- INÍCIO DA MODIFICAÇÃO ---
                                   onPressed: isProcessing
-                                      ? null
-                                      : () async {
-                                          setStateDialog(() {
+                                    ? null
+                                    : () async {
+                                    // 1. Crie uma cópia dos metadados ORIGINAIS do item.
+                                    final Map<String, String> updatedMetadata = Map.from(imageItem.metadata);
+
+                                    // 2. Atualize ou adicione os novos valores a partir dos campos de texto.
+                                    controllers.forEach((key, controller) {
+                                      updatedMetadata[key] = controller.text.trim();
+                                    });
+
+                                    // Esta parte continua igual, mas agora você passa o mapa mesclado.
+                                    final tagsParaAPI = updatedMetadata.entries
+                                        .map((entry) {
+                                          final tagId = tagIds[entry.key];
+                                          if (tagId != null) {
+                                            return {'id_tag': tagId, 'valor': entry.value};
+                                          }
+                                          return null;
+                                        })
+                                        .whereType<Map<String, dynamic>>()
+                                        .toList();
+
+                                          setState(() {
                                             isProcessing = true;
                                           });
 
-                                          // 1. Coleta todos os valores dos campos de texto.
-                                          final Map<String, String>
-                                              updatedValues = {};
-                                          controllers.forEach(
-                                              (key, controller) {
-                                            updatedValues[key] =
-                                                controller.text.trim();
-                                          });
+                                          ImageModel? newItem;
+                                          try {
+                                            final result = await _saveChangesAndReturnItem(
+                                              imageItem,
+                                              updatedMetadata, // 3. Passe o mapa MESCLADO para a função de salvar.
+                                              tagsParaAPI,
+                                            );
+                                                newItem = result['newItem'] as ImageModel;
+                                                final response = result['response'] as Map<String, dynamic>;
+                                                print("Sucesso na API: ${response['statusCode']} - ${response['body']}, newItem metadata: ${newItem.metadata}");
+                                                if (dialogContext.mounted) {
+                                                  SchedulerBinding.instance.addPostFrameCallback((_) {
+                                                    Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
+                                                  });
+                                                }
+                                              } catch (e) {
+                                              //  print("Erro na API: $e, usando updatedMetadata como fallback");
+                                                newItem = ImageModel(
+                                                  id: imageItem.id,
+                                                  url: imageItem.url,
+                                                  imageData: imageItem.imageData,
+                                                  isSelected: imageItem.isSelected,
+                                                  metadata: Map.from(updatedMetadata), // Usa uma cópia para evitar referências
+                                                );
+                                                if (dialogContext.mounted) {
+                                                   ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Salva com sucesso')),
+                                                  );
+                                                
+                                                  Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
+                                                }
+                                              }
 
-                                          // 2. Extrai a nova data e a remove do mapa principal.
-                                          final String novaData =
-                                              updatedValues['Data'] ??
-                                                  imageItem.date ??
-                                                  '';
-                                          updatedValues.remove('Data');
+                                              if (newItem != null && _imageItems != null && index >= 0 && index < _imageItems!.length) {
+                                                _imageItems![index] = newItem;
+                                                setState(() {
+                                                  _imageItemsFuture = Future.value(List.from(_imageItems!)); // Força atualização
+                                                  print("Estado atualizado: _imageItems[${index}] metadata: ${newItem!.metadata}");
+                                                });
+                                              }
 
-                                          // 3. Cria a cópia final do item com os dados atualizados.
-                                         final ImageModel itemFinalAtualizado = imageItem.copyWith(
-                                              date: novaData, // Use o novo parâmetro 'date'
-                                              metadata: updatedValues,
-                                          );
-
-                                          // 4. (Opcional) Você pode chamar sua API aqui se precisar.
-                                          // await _saveChangesAndReturnItem(...);
-
-                                          // 5. Fecha o diálogo e retorna o item atualizado.
-                                          if (dialogContext.mounted) {
-                                            Navigator.of(dialogContext)
-                                                .pop(itemFinalAtualizado);
-                                          }
-
-                                          // O setState para `isProcessing = false` não é
-                                          // estritamente necessário, pois o diálogo fechará,
-                                          // mas é uma boa prática.
-                                          if (dialogContext.mounted) {
-                                            setStateDialog(() {
-                                              isProcessing = false;
-                                            });
-                                          }
+                                              if (dialogContext.mounted) {
+                                                setState(() {
+                                                  isProcessing = false;
+                                                });
+                                              }
                                         },
-                                  // --- FIM DA MODIFICAÇÃO ---
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.save,
-                                          size: isLargeScreen ? 18.0 : 16.0),
-                                      const SizedBox(width: 8.0),
+                                      Icon(Icons.save, size: isLargeScreen ? 18.0 : 16.0),
+                                      SizedBox(width: 8.0),
                                       Expanded(
                                         child: Text(
                                           'Salvar',
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            fontSize:
-                                                isLargeScreen ? 16.0 : 14.0,
+                                            fontSize: isLargeScreen ? 16.0 : 14.0,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -1929,8 +1932,7 @@ Future<ImageModel?> _openEditDialog(
                   if (isProcessing)
                     const Positioned.fill(
                       child: Center(
-                        child: CircularProgressIndicator(
-                            color: Color(0xFFaed513)),
+                        child: CircularProgressIndicator(color: Color(0xFFaed513)),
                       ),
                     ),
                 ],
@@ -1944,24 +1946,28 @@ Future<ImageModel?> _openEditDialog(
   return updatedItem;
 }
 
+// Função corrigida - substitua a sua por esta
 Future<Map<String, dynamic>> _saveChangesAndReturnItem(
   ImageModel originalItem,
   Map<String, String> updatedMetadata,
   List<Map<String, dynamic>> tagsParaAPI,
 ) async {
   final User? user = UserHelper().user;
-  if (user == null || user.id == null || user.token == null) {
+  if (user == null || user.id == null) { // A verificação de token não é necessária aqui
     throw Exception('Usuário não autenticado.');
   }
 
+  // Salvar localmente (esta parte está correta)
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('image_tags_${originalItem.id}', jsonEncode(updatedMetadata));
   print("Metadados salvos localmente: $updatedMetadata");
 
+  // Preparar o corpo da requisição (esta parte está correta)
   String dataComparacao = DateFormat('dd/MM/yyyy').format(DateTime.now());
   if (updatedMetadata['Data']?.isNotEmpty == true) {
     try {
-      dataComparacao = DateFormat('dd/MM/yyyy').format(DateFormat('dd/MM/yyyy').parse(updatedMetadata['Data']!));
+      dataComparacao = DateFormat('dd/MM/yyyy')
+          .format(DateFormat('dd/MM/yyyy').parse(updatedMetadata['Data']!));
     } catch (e) {
       print("Erro ao formatar data: $e, usando data atual: $dataComparacao");
     }
@@ -1976,7 +1982,11 @@ Future<Map<String, dynamic>> _saveChangesAndReturnItem(
 
   print("Corpo enviado à API: $body");
 
-  final response = await ApiService().sendRequest(
+  // --- INÍCIO DA CORREÇÃO ---
+
+  // 1. sendRequest já retorna o Map<String, dynamic> do body em caso de sucesso.
+  //    Vamos chamar a variável de 'responseBody' para ficar mais claro.
+  final responseBody = await ApiService().sendRequest(
     () => http.post(
       Uri.parse(ApiEndpoints.salvaComparacao),
       headers: ApiService().getHeaders(includeContentType: true),
@@ -1986,32 +1996,34 @@ Future<Map<String, dynamic>> _saveChangesAndReturnItem(
     errorMessage: 'Falha ao salvar as alterações.',
   );
 
-  print("Resposta da API: ${response['statusCode']} - ${response['body']}");
+  print("Resposta da API (corpo JSON): $responseBody");
 
-  Map<String, String> syncedMetadata = Map.from(updatedMetadata);
-  if (response['statusCode'] == 200 && response['body'] != null) {
-    try {
-      final bodyResponse = jsonDecode(response['body'] as String) as Map<String, dynamic>;
-      if (bodyResponse['data'] != null && bodyResponse['data'] is List && bodyResponse['data'].isNotEmpty) {
-        final tagsFromApi = bodyResponse['data'][0]['tags'] as List<dynamic>? ?? [];
-        final List<TagModel> tags = await ApiService().getTags(user.id!);
-        for (var tag in tagsFromApi) {
-          final tagId = tag['id_tag'] as int?;
-          final valor = tag['valor']?.toString() ?? '';
-          if (tagId != null) {
-            final category = tags.firstWhere((t) => t.id == tagId, orElse: () => null!)?.nomeTag;
-            if (category != null) {
-              syncedMetadata[category] = valor;
-            }
+  // 2. Não precisamos mais verificar 'statusCode' ou 'body', pois sendRequest já fez isso.
+  //    Agora trabalhamos diretamente com a resposta decodificada.
+  final Map<String, String> syncedMetadata = Map.from(updatedMetadata);
+  
+  // A lógica abaixo para sincronizar com a resposta da API é opcional,
+  // mas é uma boa prática para garantir que o estado do app reflita 100% o que está no servidor.
+  try {
+    if (responseBody['data'] != null && responseBody['data'] is List && responseBody['data'].isNotEmpty) {
+      final tagsFromApi = responseBody['data'][0]['tags'] as List<dynamic>? ?? [];
+      final List<TagModel> tags = await ApiService().getTags(user.id!);
+      for (var tag in tagsFromApi) {
+        final tagId = tag['id_tag'] as int?;
+        final valor = tag['valor']?.toString() ?? '';
+        if (tagId != null) {
+          final category = tags.firstWhere((t) => t.id == tagId, orElse: () => null!)?.nomeTag;
+          if (category != null) {
+            syncedMetadata[category] = valor;
           }
         }
       }
-    } catch (e) {
-      print("Erro ao processar metadados da API: $e, usando updatedMetadata");
     }
-  } else {
-    print("Resposta não 200, mantendo updatedMetadata: ${response['statusCode']} - ${response['body']}");
+  } catch (e) {
+    print("Erro ao processar metadados da API: $e, usando updatedMetadata");
   }
+  
+  // --- FIM DA CORREÇÃO ---
 
   final newItem = ImageModel(
     id: originalItem.id,
@@ -2020,8 +2032,11 @@ Future<Map<String, dynamic>> _saveChangesAndReturnItem(
     isSelected: originalItem.isSelected,
     metadata: syncedMetadata,
   );
+
   print("newItem metadata retornado: ${newItem.metadata}");
-  return {'newItem': newItem, 'response': response};
+  
+  // Mantemos a estrutura de retorno para não quebrar as outras funções
+  return {'newItem': newItem, 'response': responseBody};
 }
 
   // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart

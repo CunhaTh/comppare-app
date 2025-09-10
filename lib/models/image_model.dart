@@ -25,45 +25,6 @@ class ImageModel {
     Map<String, String>? metadata,
   }) : this.metadata = metadata ?? {};
 
-  /// Cria uma cópia do objeto `ImageModel`, permitindo a substituição
-  /// de valores específicos. Essencial para a atualização de estado.
-  ///
-  /// COMO FUNCIONA:
-  /// 1. Cria um novo mapa (`newMetadata`) baseado nos dados existentes para não perder nada.
-  /// 2. Mescla (`addAll`) quaisquer novos metadados que sejam passados.
-  /// 3. Atualiza campos específicos como a `date`, que tem prioridade.
-  /// 4. Retorna uma instância COMPLETAMENTE NOVA de `ImageModel` com os dados combinados.
-  ImageModel copyWith({
-    int? id,
-    String? url,
-    Uint8List? imageData,
-    bool? isSelected,
-    Map<String, String>? metadata,
-    String? date, // Parâmetro para atualizar a data diretamente.
-  }) {
-    // Começa com uma cópia dos metadados atuais para não perder dados.
-    final newMetadata = Map<String, String>.from(this.metadata);
-
-    // Se um novo mapa de metadados for fornecido, mescla os valores.
-    if (metadata != null) {
-      newMetadata.addAll(metadata);
-    }
-
-    // Se uma data específica for fornecida, ela tem prioridade.
-    if (date != null) {
-      newMetadata['date'] = date;
-    }
-
-    return ImageModel(
-      id: id ?? this.id,
-      url: url ?? this.url,
-      imageData: imageData ?? this.imageData,
-      isSelected: isSelected ?? this.isSelected,
-      metadata: newMetadata,
-    );
-  }
-
-
   // Propriedades convenientes para acesso aos metadados, mantendo
   // a compatibilidade e a clareza.
   String? get date => metadata['date'];
@@ -226,7 +187,37 @@ class ImageModel {
       imageData = Uint8List(0);
     }
   }
-  
+
+  // =======================================================================
+  // ## NOVO MÉTODO ADICIONADO ##
+  // =======================================================================
+  /// Cria uma cópia deste objeto `ImageModel`, permitindo a substituição
+  /// de valores específicos de forma imutável.
+  ImageModel copyWith({
+    int? id,
+    String? url,
+    Uint8List? imageData,
+    bool? isSelected,
+    Map<String, String>? metadata,
+    String? date, // Parâmetro especial para facilitar a atualização da data
+  }) {
+    // Cria uma cópia do mapa de metadados atual para não modificar o original
+    final newMetadata = Map<String, String>.from(this.metadata);
+
+    // Se uma nova data for fornecida, atualiza o mapa de metadados
+    if (date != null) {
+      newMetadata['date'] = date;
+    }
+
+    return ImageModel(
+      id: id ?? this.id,
+      url: url ?? this.url,
+      imageData: imageData ?? this.imageData,
+      isSelected: isSelected ?? this.isSelected,
+      // Usa os metadados atualizados. Se um novo mapa for passado, ele tem prioridade.
+      metadata: metadata ?? newMetadata,
+    );
+  }
 }
 
 // Função auxiliar (deve estar em um lugar acessível, ex.: um util ou service)

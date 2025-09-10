@@ -44,9 +44,6 @@ class ApiService {
     return headers;
   }
 
-
-  
-
 // Esta função é para ATUALIZAR um subálbum existente
 Future<void> updateFolder({
   required int folderId,
@@ -67,6 +64,51 @@ Future<void> updateFolder({
     () => _httpClient.post(url, headers: getHeaders(includeContentType: true), body: jsonEncode(body)),
     successMessage: 'Subálbum atualizado com sucesso.',
     errorMessage: 'Falha ao atualizar o subálbum.',
+  );
+}
+
+// Dentro da sua classe ApiService
+
+Future<void> saveOrUpdateComparacao(ImageModel item) async {
+  final User? user = UserHelper().user;
+  if (user == null || user.id == null) {
+    throw ApiException('Usuário não autenticado.', statusCode: 401);
+  }
+
+  // Busca todas as tags para obter os IDs a partir dos nomes
+  final List<TagModel> allTags = await getTags(user.id!);
+  final Map<String, int> tagNameToIdMap = {for (var tag in allTags) tag.nomeTag: tag.id};
+
+  // Prepara a lista de 'tags' para a API, como na sua função original
+  final tagsParaAPI = item.metadata.entries
+      .map((entry) {
+        final tagId = tagNameToIdMap[entry.key];
+        if (tagId != null) {
+          return {'id_tag': tagId, 'valor': entry.value};
+        }
+        return null;
+      })
+      .whereType<Map<String, dynamic>>()
+      .toList();
+
+  // Monta o corpo da requisição
+  final body = {
+    'id_usuario': user.id,
+    'id_photo': item.id,
+    'data_comparacao': item.date, // Usa a data diretamente do ImageModel
+    'tags': tagsParaAPI,
+  };
+
+  // Envia a requisição para o endpoint correto
+  // Assumindo que ApiEndpoints.salvaComparacao é a sua URL para salvar
+  await sendRequest(
+    () => http.post(
+      Uri.parse(ApiEndpoints.salvaComparacao),
+      headers: getHeaders(includeContentType: true),
+      body: jsonEncode(body),
+    ),
+    successMessage: 'Comparação salva com sucesso.',
+    errorMessage: 'Falha ao salvar a comparação.',
   );
 }
 
@@ -854,98 +896,6 @@ Future<List<TagModel>> getTags(int usuario) async {
     throw ApiException('Não foi possível carregar as categorias.');
   }
 }
-
-// Adicione esta nova função dentro da sua classe ApiService
-
-  Future<int> createImage(ImageModel image, int folderId) async {
-    final url = Uri.parse(ApiEndpoints.uploadImages);
-    final String? authToken = TokenHelper().token;
-
-    if (authToken == null || authToken.isEmpty) {
-      throw ApiException('Usuário não autenticado.', statusCode: 401);
-    }
-
-    final request = http.MultipartRequest('POST', url)
-      ..headers['Authorization'] = 'Bearer $authToken';
-
-    // A requisição agora só precisa do ID da pasta.
-    request.fields['idPasta'] = folderId.toString();
-
-    // Adiciona apenas os dados da imagem (os bytes).
-    if (image.imageData != null && image.imageData!.isNotEmpty) {
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'image[]', // O nome do campo deve ser o que sua API espera.
-          image.imageData!,
-          filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ),
-      );
-    } else {
-      throw ApiException('Dados da imagem estão ausentes.', statusCode: 400);
-    }
-
-    // Envia a requisição
-    final streamedResponse = await _httpClient.send(request);
-    final response = await http.Response.fromStream(streamedResponse);
-
-    // Processa a resposta para obter o ID da nova imagem
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final jsonResponse = json.decode(response.body) as Map<String, dynamic>;
-
-      // A API precisa retornar o ID da imagem que acabou de ser criada.
-      // Ajuste esta parte para corresponder à sua resposta real.
-      if (jsonResponse.containsKey('data') &&
-          jsonResponse['data'] is Map &&
-          jsonResponse['data'].containsKey('id')) {
-        return jsonResponse['data']['id'] as int;
-      } else {
-        // Tenta encontrar o ID em um formato alternativo, se a API retornar de forma diferente
-        if (jsonResponse.containsKey('image_id')) {
-           return jsonResponse['image_id'] as int;
-        }
-        throw ApiException('A API não retornou o ID da nova imagem após o upload.');
-      }
-    } else {
-      throw ApiException(
-        'Falha ao criar a imagem na API.',
-        statusCode: response.statusCode,
-        body: response.body,
-      );
-    }
-  }
-
-/// Envia os metadados de uma imagem para salvar ou atualizar na API.
-/// Usa o endpoint de 'Comparacao', mas com o método POST.
-Future<void> saveOrUpdateComparacao(ImageModel image) async {
-  final User? user = UserHelper().user;
-  if (user == null || user.id == null) {
-    throw ApiException('Usuário não autenticado.', statusCode: 401);
-  }
-
-  // Garante que a imagem tenha um ID para ser salva.
-  if (image.id == 0) {
-    throw ApiException('ID da imagem é inválido para salvar.', statusCode: 400);
-  }
-
-  // Usa o mesmo endpoint, mas será chamado com POST.
-  final url = Uri.parse(ApiEndpoints.getComparacao(image.id));
-
-  // Prepara o corpo da requisição com os dados da imagem e do usuário.
-  final body = image.toMap();
-  body['idUsuario'] = user.id;
-
-  // A função `sendRequest` cuida do envio e tratamento de erros.
-  await sendRequest(
-    () => _httpClient.post( // <-- A MUDANÇA PRINCIPAL ESTÁ AQUI
-      url,
-      headers: getHeaders(includeContentType: true),
-      body: jsonEncode(body),
-    ),
-    successMessage: 'Alterações salvas com sucesso.',
-    errorMessage: 'Falha ao salvar alterações na API.',
-  );
-}
-
 
   Future<ComparacaoModel> getComparacaoSave(int idPhoto) async {
     final User? user = UserHelper().user;
