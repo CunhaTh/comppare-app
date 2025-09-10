@@ -1626,18 +1626,23 @@ Future<ImageModel?> _openEditDialog(
                           children: [
                             Expanded(
                               child: Text(
-                                'Editar Imagem',
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 20.0 : 18.0,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () => Navigator.of(dialogContext).pop(),
-                              child: Container(
+                        ComparacaoModel? comparacao;
+                        Map<String, String> apiValues = {};
+                        List<String> categoriasDinamicas = [];
+        
+                        // Busca as tags associadas à pasta usando o endpoint recoverFolder
+                        final folderId = widget.folderId;
+                        final folderResponse = await ApiService().fetchFolderDetails(folderId);
+                        List<TagModel> tags = [];
+                        if (folderResponse is Map<String, dynamic> && folderResponse.containsKey('data')) {
+                          final data = folderResponse['data'];
+                          if (data is Map<String, dynamic> && data.containsKey('tags')) {
+                            final tagsJson = data['tags'] as List<dynamic>;
+                            tags = tagsJson.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
+                          }
+                        }
+                        tagIds = {for (var tag in tags) tag.nomeTag: tag.id};
+                        print("Tags da pasta (tagIds): $tagIds");
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.1),
