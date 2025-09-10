@@ -211,50 +211,51 @@ class _PagamentoPageState extends State<PagamentoPage>
 
                     // Preço com destaque
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'R\$',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: _getPlanColor(),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'R\$',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: _getPlanColor(),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        widget.plano.valor
+                            .toStringAsFixed(2)
+                            .replaceAll('.', ','),
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: _getPlanColor(),
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          // Adicione a verificação aqui
+                          widget.plano.nome.toLowerCase().contains('anual') ? '/ano' : '/mês',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black54,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.plano.valor
-                              .toStringAsFixed(2)
-                              .replaceAll('.', ','),
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: _getPlanColor(),
-                            height: 1.0,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            '/mês',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                   ],
                 ),
               ),
@@ -268,8 +269,8 @@ class _PagamentoPageState extends State<PagamentoPage>
                       '🏷️ ${widget.plano.quantidadeTags} categorias'),
                   _buildFeatureChip(
                       '📁 ${widget.plano.quantidadePastas} pastas'),
-                  _buildFeatureChip(
-                      '👥 ${widget.plano.quantidadeConvites} convites'),
+                 /* _buildFeatureChip(
+                      '👥 ${widget.plano.quantidadeConvites} convites'),*/
                 ],
               ),
               const SizedBox(height: 20),
@@ -279,6 +280,7 @@ class _PagamentoPageState extends State<PagamentoPage>
       ),
     );
   }
+  
 
   Widget _buildFeatureChip(String text) {
     return Container(

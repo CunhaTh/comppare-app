@@ -18,6 +18,7 @@ import 'package:flutter/material.dart' as foundation;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:http/http.dart' as _httpClient;
+import 'package:http_parser/http_parser.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -1554,23 +1555,42 @@ Future<ImageModel?> _showEditDialog(BuildContext context, ImageModel imageItem, 
   }
 
 // DENTRO DE: _showEditDialog
-final updatedItem = await _openEditDialog(context, imageItem, index, tagIds, apiValues, controllers, categoriasDinamicas);
+  // 1. Abre o diálogo e aguarda o resultado. 
+  //    Ele só retornará um `ImageModel` se a API salvar com sucesso.
+  //    Caso contrário (cancelamento ou erro), retornará `null`.
+  final ImageModel? itemConfirmadoPelaAPI = await _openEditDialog(
+    context, 
+    imageItem, 
+    index, 
+    tagIds, 
+    apiValues, 
+    controllers, 
+    categoriasDinamicas
+  );
 
-if (updatedItem != null) {
-  if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
-    // 1. Atualize a lista localmente.
-    _imageItems![index] = updatedItem;
+  // 2. Se o resultado NÃO for nulo, significa que a API confirmou o salvamento.
+  //    Agora sim, é seguro atualizar o estado da tela principal.
+  if (itemConfirmadoPelaAPI != null) {
+    if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
+      
+      // 3. Chama o setState para reconstruir a UI com o dado já confirmado.
+      setState(() {
+        // Atualiza a lista local
+        _imageItems![index] = itemConfirmadoPelaAPI;
 
-    // 2. REMOVA A CHAMADA _refreshImageItems().
+        // Recria o Future para que o FutureBuilder reconstrua a grade de imagens.
+        _imageItemsFuture = Future.value(List.from(_imageItems!));
+      });
 
-    // 3. Chame setState para reconstruir a UI com a lista já atualizada.
-    setState(() {
-      // Criar um novo Future com a lista atualizada para o FutureBuilder.
-      _imageItemsFuture = Future.value(List.from(_imageItems!));
-    });
+      // Opcional: Mostrar uma mensagem de sucesso na tela principal
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Colors.green),
+        );
+      }
+    }
   }
-}
-  return updatedItem;
+  // Se `itemConfirmadoPelaAPI` for nulo, não fazemos nada, pois o usuário cancelou ou a API falhou.
 }
 
 Future<ImageModel?> _openEditDialog(
@@ -1830,80 +1850,73 @@ Future<ImageModel?> _openEditDialog(
                                     ),
                                     elevation: 2,
                                   ),
-                                  onPressed: isProcessing
-                                    ? null
-                                    : () async {
-                                    // 1. Crie uma cópia dos metadados ORIGINAIS do item.
-                                    final Map<String, String> updatedMetadata = Map.from(imageItem.metadata);
+                                 
+onPressed: isProcessing
+  ? null // Botão desabilitado enquanto estiver processando
+  : () async {
+      // 1. Inicia o estado de carregamento DENTRO do diálogo
+      //    (O `setState` aqui é do StatefulBuilder do seu diálogo)
+      setState(() {
+        isProcessing = true;
+      });
+      
 
-                                    // 2. Atualize ou adicione os novos valores a partir dos campos de texto.
-                                    controllers.forEach((key, controller) {
-                                      updatedMetadata[key] = controller.text.trim();
-                                    });
+      try {
+        // Prepara os dados para a API (seu código original, que está correto)
+        final Map<String, String> updatedMetadata = Map.from(imageItem.metadata);
+        controllers.forEach((key, controller) {
+          updatedMetadata[key] = controller.text.trim();
+        });
 
-                                    // Esta parte continua igual, mas agora você passa o mapa mesclado.
-                                    final tagsParaAPI = updatedMetadata.entries
-                                        .map((entry) {
-                                          final tagId = tagIds[entry.key];
-                                          if (tagId != null) {
-                                            return {'id_tag': tagId, 'valor': entry.value};
-                                          }
-                                          return null;
-                                        })
-                                        .whereType<Map<String, dynamic>>()
-                                        .toList();
+        final tagsParaAPI = updatedMetadata.entries
+            .map((entry) {
+              final tagId = tagIds[entry.key];
+              if (tagId != null) {
+                return {'id_tag': tagId, 'valor': entry.value};
+              }
+              return null;
+            })
+            .whereType<Map<String, dynamic>>()
+            .toList();
+        
+        // 2. Tenta salvar os dados na API
+        final result = await _saveChangesAndReturnItem(
+          imageItem,
+          updatedMetadata,
+          tagsParaAPI,
+        );
 
-                                          setState(() {
-                                            isProcessing = true;
-                                          });
+        final ImageModel? itemConfirmado = result['newItem'] as ImageModel?;
 
-                                          ImageModel? newItem;
-                                          try {
-                                            final result = await _saveChangesAndReturnItem(
-                                              imageItem,
-                                              updatedMetadata, // 3. Passe o mapa MESCLADO para a função de salvar.
-                                              tagsParaAPI,
-                                            );
-                                                newItem = result['newItem'] as ImageModel;
-                                                final response = result['response'] as Map<String, dynamic>;
-                                                print("Sucesso na API: ${response['statusCode']} - ${response['body']}, newItem metadata: ${newItem.metadata}");
-                                                if (dialogContext.mounted) {
-                                                  SchedulerBinding.instance.addPostFrameCallback((_) {
-                                                    Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
-                                                  });
-                                                }
-                                              } catch (e) {
-                                              //  print("Erro na API: $e, usando updatedMetadata como fallback");
-                                                newItem = ImageModel(
-                                                  id: imageItem.id,
-                                                  url: imageItem.url,
-                                                  imageData: imageItem.imageData,
-                                                  isSelected: imageItem.isSelected,
-                                                  metadata: Map.from(updatedMetadata), // Usa uma cópia para evitar referências
-                                                );
-                                                if (dialogContext.mounted) {
-                                                   ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(content: Text('Salva com sucesso')),
-                                                  );
-                                                
-                                                  Navigator.of(dialogContext, rootNavigator: true).pop(newItem);
-                                                }
-                                              }
+        // 3. SUCESSO: Fecha o diálogo e retorna o item ATUALIZADO pela API.
+        //    Este valor será capturado pelo `await _openEditDialog(...)` na sua função principal.
+        if (dialogContext.mounted && itemConfirmado != null) {
+          Navigator.of(dialogContext).pop(itemConfirmado);
+        }
 
-                                              if (newItem != null && _imageItems != null && index >= 0 && index < _imageItems!.length) {
-                                                _imageItems![index] = newItem;
-                                                setState(() {
-                                                  _imageItemsFuture = Future.value(List.from(_imageItems!)); // Força atualização
-                                                  print("Estado atualizado: _imageItems[${index}] metadata: ${newItem!.metadata}");
-                                                });
-                                              }
-
-                                              if (dialogContext.mounted) {
-                                                setState(() {
-                                                  isProcessing = false;
-                                                });
-                                              }
-                                        },
+      } catch (e) {
+        // 4. FALHA: Mostra um erro para o usuário e NÃO fecha o diálogo.
+        print("Erro ao salvar alterações: $e");
+        if (dialogContext.mounted) {
+          ScaffoldMessenger.of(dialogContext).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao salvar: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        // IMPORTANTE: Não chamamos Navigator.pop() aqui em caso de erro.
+      
+      } finally {
+        // 5. Garante que o indicador de carregamento seja desativado no final,
+        //    seja em caso de sucesso ou falha.
+        if (dialogContext.mounted) {
+          setState(() {
+            isProcessing = false;
+          });
+        }
+      }
+    },
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -1945,6 +1958,52 @@ Future<ImageModel?> _openEditDialog(
   );
   return updatedItem;
 }
+
+
+// Crie esta nova função na sua classe
+Future<ImageModel?> _uploadNewImageWithData(
+  ImageModel newItem,
+  Map<String, String> metadata,
+  List<Map<String, dynamic>> tags,
+) async {
+  final User? user = UserHelper().user;
+  if (user == null) throw Exception('Usuário não autenticado.');
+  if (newItem.imageData == null) throw Exception('Dados da imagem não encontrados.');
+
+  // Crie um endpoint novo na sua API para isso, ex: /api/fotos/criarComDados
+  var request = http.MultipartRequest(
+      'POST', Uri.parse(ApiEndpoints.salvaComparacao)); 
+
+  // Adiciona os campos de texto
+  request.fields['id_usuario'] = user.id.toString();
+  request.fields['data_comparacao'] = metadata['Data'] ?? DateFormat('dd/MM/yyyy').format(DateTime.now());
+  request.fields['tags'] = jsonEncode(tags); // Envia as tags como uma string JSON
+
+  // Adiciona o arquivo da imagem
+  request.files.add(http.MultipartFile.fromBytes(
+    'photo', // O nome do campo que sua API espera para o arquivo
+    newItem.imageData!,
+    filename: 'upload.jpg', // Um nome de arquivo padrão
+    contentType: MediaType('image', 'jpeg'),
+  ));
+
+  // Adiciona os headers de autenticação
+  request.headers.addAll(ApiService().getHeaders(includeContentType: false));
+
+  // Envia a requisição
+  final response = await request.send();
+  final responseBody = await response.stream.bytesToString();
+  final decodedBody = jsonDecode(responseBody);
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    // Assumindo que sua API retorna o objeto da foto criada com o novo ID
+    // Você precisará ajustar o `ImageModel.fromMap` se necessário
+    return ImageModel.fromMap(decodedBody['data']); 
+  } else {
+    throw Exception('Falha ao fazer upload da nova imagem: ${decodedBody["message"]}');
+  }
+}
+
 
 // Função corrigida - substitua a sua por esta
 Future<Map<String, dynamic>> _saveChangesAndReturnItem(

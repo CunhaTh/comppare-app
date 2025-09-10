@@ -488,15 +488,15 @@ class PlanCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      plan.valor.toStringAsFixed(2).replaceAll('.', ','),
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: _getPlanColor(),
-                        height: 1.0,
-                      ),
-                    ),
+                                    Text(
+                                      plan.valor.toStringAsFixed(2).replaceAll('.', ','),
+                                      style: TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: _getPlanColor(),
+                                        height: 1.0,
+                                      ),
+                                    ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -507,9 +507,10 @@ class PlanCard extends StatelessWidget {
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        '/mês',
-                        style: TextStyle(
+                      child: Text(
+                        // Adicione a verificação aqui
+                        plan.nome.toLowerCase().contains('anual') ? '/ano' : '/mês',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: Colors.black54,
