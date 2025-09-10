@@ -545,39 +545,51 @@ Future<void> _launchPDF(String pdfFileName) async {
                       ),
                     ),
                       const Text(
-                        'Registre-se!',
+                        'Cadastre-se',
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.black),
                       ),
                       const SizedBox(height: 20),
-                      _buildTextField(_nameController, 'Nome'),
+                       const Text("Os campos com * são de preenchimento obrigatório.",
+                       style: TextStyle(
+                        fontSize: 11, 
+                        color: Colors.black54),
+                        ),
+                      const SizedBox(height: 10),
+                      _buildTextField(_nameController, 'Nome', isRequired: true),
                       const SizedBox(height: 15),
-                      _buildTextField(_surnameController, 'Sobrenome'),
+                      _buildTextField(_surnameController, 'Sobrenome', isRequired: true),
                       const SizedBox(height: 15),
-                      _buildTextField(_nicknameController, 'Apelido'),
+                      _buildTextField(_nicknameController, 'Apelido', isRequired: false),
                       const SizedBox(height: 15),
-                      _buildTextField(_cpfController, 'CPF'),
+                      _buildTextField(_cpfController, 'CPF', isRequired: true),
                       const SizedBox(height: 15),
-                      _buildTextField(_emailController, 'E-mail'),
+                      _buildTextField(_emailController, 'E-mail', isRequired: true),
                       const SizedBox(height: 15),
                       GestureDetector(
                         onTap: () => _selectDataNascimento(context),
                         child: AbsorbPointer(
                           child: _buildTextField(
-                              _nasciController, 'Data de Nascimento'),
+                              _nasciController, 'Data de Nascimento', isRequired: true),
                         ),
                       ),
                       const SizedBox(height: 15),
-                      _buildTextField(_phoneController, 'Celular'),
+                      _buildTextField(_phoneController, 'Celular', isRequired: true),
                       const SizedBox(height: 15),
-                      buildTextFieldPassWord(_passwordController, 'Senha',
-                          obscureText: true),
-                      const SizedBox(height: 15),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: buildTextFieldPassWord(_passwordController, 'Senha',
+                            obscureText: true,isRequired: true),
+                      ),
+                       Padding(
+                         padding: const EdgeInsets.all(8.0),
+                         child: const Text('A senha deve conter pelo menos: Um número; Um caractere especial (*,#,@,!,etc); Uma letra minúscula; Uma letra maiúscula; Mínimo de 8 caracteres.',style: TextStyle(fontSize: 12, color: Colors.black54),),
+                       ),
                       buildTextFieldPassWord(
                           _confirmPasswordController, 'Confirmar Senha',
-                          obscureText: true),
+                          obscureText: true,isRequired: true),
                       const SizedBox(height: 15),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -664,34 +676,28 @@ Future<void> _launchPDF(String pdfFileName) async {
   }
 
 
-  Widget _buildTextField(TextEditingController controller, String label,
-      {bool obscureText = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20),
-      child: TextField(
-        controller: controller,
-        obscureText: obscureText,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.black),
-          border: const OutlineInputBorder(),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.black),
-          ),
-        ),
+Widget _buildTextField(TextEditingController controller, String labelText,
+    {bool isRequired = false}) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(
+      labelText: isRequired ? '$labelText *' : labelText, // Adiciona o *
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
-    );
-  }
+    ),
+  );
+}
 
 Widget buildTextFieldPassWord(TextEditingController controller, String label,
-    {bool obscureText = false}) {
+    {bool obscureText = false, bool isRequired = false }) {
   return Padding(
-    padding: const EdgeInsets.only(top: 20),
+    padding: const EdgeInsets.only(top: 5),
     child: TextField(
       controller: controller,
       obscureText: obscureText,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: isRequired ? '$label *' : label,
         labelStyle: const TextStyle(color: Colors.black),
         hintText: '123Test*@', // Dica de senha adicionada aqui
         hintStyle: TextStyle(

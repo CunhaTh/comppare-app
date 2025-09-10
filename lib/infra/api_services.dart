@@ -67,6 +67,51 @@ Future<void> updateFolder({
   );
 }
 
+// Dentro da sua classe ApiService
+
+Future<void> saveOrUpdateComparacao(ImageModel item) async {
+  final User? user = UserHelper().user;
+  if (user == null || user.id == null) {
+    throw ApiException('Usuário não autenticado.', statusCode: 401);
+  }
+
+  // Busca todas as tags para obter os IDs a partir dos nomes
+  final List<TagModel> allTags = await getTags(user.id!);
+  final Map<String, int> tagNameToIdMap = {for (var tag in allTags) tag.nomeTag: tag.id};
+
+  // Prepara a lista de 'tags' para a API, como na sua função original
+  final tagsParaAPI = item.metadata.entries
+      .map((entry) {
+        final tagId = tagNameToIdMap[entry.key];
+        if (tagId != null) {
+          return {'id_tag': tagId, 'valor': entry.value};
+        }
+        return null;
+      })
+      .whereType<Map<String, dynamic>>()
+      .toList();
+
+  // Monta o corpo da requisição
+  final body = {
+    'id_usuario': user.id,
+    'id_photo': item.id,
+    'data_comparacao': item.date, // Usa a data diretamente do ImageModel
+    'tags': tagsParaAPI,
+  };
+
+  // Envia a requisição para o endpoint correto
+  // Assumindo que ApiEndpoints.salvaComparacao é a sua URL para salvar
+  await sendRequest(
+    () => http.post(
+      Uri.parse(ApiEndpoints.salvaComparacao),
+      headers: getHeaders(includeContentType: true),
+      body: jsonEncode(body),
+    ),
+    successMessage: 'Comparação salva com sucesso.',
+    errorMessage: 'Falha ao salvar a comparação.',
+  );
+}
+
   /// lib/infra/api_services.dart
   /// Função para carregar tags de uma pasta específica.
   Future<List<TagModel>> loadTags(int folderId) async {

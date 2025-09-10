@@ -187,6 +187,37 @@ class ImageModel {
       imageData = Uint8List(0);
     }
   }
+
+  // =======================================================================
+  // ## NOVO MÉTODO ADICIONADO ##
+  // =======================================================================
+  /// Cria uma cópia deste objeto `ImageModel`, permitindo a substituição
+  /// de valores específicos de forma imutável.
+  ImageModel copyWith({
+    int? id,
+    String? url,
+    Uint8List? imageData,
+    bool? isSelected,
+    Map<String, String>? metadata,
+    String? date, // Parâmetro especial para facilitar a atualização da data
+  }) {
+    // Cria uma cópia do mapa de metadados atual para não modificar o original
+    final newMetadata = Map<String, String>.from(this.metadata);
+
+    // Se uma nova data for fornecida, atualiza o mapa de metadados
+    if (date != null) {
+      newMetadata['date'] = date;
+    }
+
+    return ImageModel(
+      id: id ?? this.id,
+      url: url ?? this.url,
+      imageData: imageData ?? this.imageData,
+      isSelected: isSelected ?? this.isSelected,
+      // Usa os metadados atualizados. Se um novo mapa for passado, ele tem prioridade.
+      metadata: metadata ?? newMetadata,
+    );
+  }
 }
 
 // Função auxiliar (deve estar em um lugar acessível, ex.: um util ou service)

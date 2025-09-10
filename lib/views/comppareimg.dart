@@ -50,37 +50,36 @@ class ImagemDetalhesPage extends StatefulWidget {
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   with TickerProviderStateMixin {
 
-final GlobalKey shareRepaintKey = GlobalKey();
+  final GlobalKey shareRepaintKey = GlobalKey();
   late Future<List<ImageModel>> _imageItemsFuture;
-  List<ImageModel>? _imageItems;
+  List<ImageModel>? _imageItems; // Agora esta é nossa única fonte da verdade após o load
   final List<Folder> idPastaPai = [];
-  final Map<String, String> _savedValues = {}; // Estado para armazenar valores salvos
-  final Map<String, TextEditingController> _controllers = {}; // Controladores dinâmicos
+  final Map<String, String> _savedValues = {};
+  final Map<String, TextEditingController> _controllers = {};
   late List<String> categorias;
   final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
   List<ImageModel> allSelectedImages = [];
-
   late ValueNotifier<List<ImageModel>> _imageItemsListenable;
-  
   bool _isLoading = true;
   late AnimationController _fadeController;
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   final ApiService _apiService = ApiService(httpClient: http.Client());
+  Map<int, String> _tagIdToNameMap = {};
 
-@override
+  @override
   void initState() {
     super.initState();
     categorias = widget.categorias;
-    _imageItems = []; // Inicialização inicial
-    _imageItemsListenable = ValueNotifier<List<ImageModel>>(_imageItems!);
-    _imageItemsFuture = _prepareImageItems().then((items) {
-      _imageItems = items;
-      return items;
-    });
 
+    // MUDANÇA 1: Simplificamos a inicialização do Future.
+    // O Future agora é responsável apenas pela carga inicial. A lista de estado
+    // `_imageItems` será preenchida pelo FutureBuilder.
+    _imageItemsFuture = _prepareImageItems();
+
+    // O resto do seu initState continua igual.
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -89,14 +88,12 @@ final GlobalKey shareRepaintKey = GlobalKey();
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
     );
-
     _fadeController.forward();
   }
 
@@ -138,9 +135,7 @@ void _deleteImage(ImageModel imageItem, int index) async {
 
       // Remove o item da lista local
       setState(() {
-        _imageItems?.removeAt(index);
-        // Atualiza o FutureBuilder para refletir a mudança na UI
-        _imageItemsFuture = Future.value(List.from(_imageItems!));
+       _imageItems?.removeAt(index); // Apenas remove da lista.
       });
 
       // Mostra uma mensagem de sucesso
@@ -446,73 +441,91 @@ Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
   }
 
 Future<List<ImageModel>> _prepareImageItems() async {
-  // Busca as tags do usuário uma única vez para otimização.
+  // Passo 1: Busca as tags do usuário (isso continua igual e está correto).
   final User? user = UserHelper().user;
-  Map<int, String> tagIdToNameMap = {};
   if (user?.id != null) {
     try {
       final List<TagModel> userTags = await ApiService().getTags(user!.id!);
-      tagIdToNameMap = {for (var tag in userTags) tag.id: tag.nomeTag};
+      // Preenche a variável de estado da classe
+      _tagIdToNameMap = {for (var tag in userTags) tag.id: tag.nomeTag};
     } catch (e) {
       devtools.debugPrint("Erro ao buscar tags do usuário: $e");
     }
   }
 
-  List<ImageModel> items = [];
-  for (int i = 0; i < widget.images.length; i++) {
-    final ImageModel myImage = widget.images[i];
-    Uint8List? imageData;
+  // MELHORIA (PERFORMANCE): Processar todas as imagens em paralelo.
+  // Criamos uma lista de "tarefas" (Futures) a serem executadas.
+  final List<Future<ImageModel?>> processingTasks = [];
 
-    // Carrega os bytes da imagem (sua lógica original).
-    imageData = await _loadImageBytesFromUrl(myImage.url);
+  for (final myImage in widget.images) {
+    // Para cada imagem, adicionamos uma tarefa assíncrona à lista.
+    processingTasks.add(_loadAndEnrichImage(myImage));
+  }
+
+  // Executa todas as tarefas da lista em paralelo e espera a conclusão de todas.
+  final List<ImageModel?> processedResults = await Future.wait(processingTasks);
+  
+  // Filtra qualquer resultado nulo que possa ter ocorrido por erro no carregamento.
+  final List<ImageModel> finalItems = processedResults.whereType<ImageModel>().toList();
+
+  _imageItems = finalItems;
+  return finalItems;
+}
+
+// NOVO: Função auxiliar para manter o código limpo.
+// Esta função processa UMA ÚNICA imagem de forma assíncrona.
+// Função auxiliar ajustada para lidar com imagens novas (que retornam 404)
+Future<ImageModel?> _loadAndEnrichImage(ImageModel myImage) async {
+  try {
+    // Passo 1: Carrega os bytes da imagem. Se isso falhar, a imagem inteira falha.
+    final Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
+
     if (imageData == null || imageData.isEmpty) {
-      devtools.debugPrint(
-          'ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
-      imageData = Uint8List(0);
+      devtools.debugPrint('ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
+      return null; // Descarta a imagem se não for possível carregar o arquivo.
     }
 
-    // 1. Cria o objeto final a partir do original, já carregando a imageData.
-    // Neste ponto, `finalItem` é uma cópia de `myImage`.
     final finalItem = ImageModel.fromMyImage(myImage, imageData: imageData);
+    
+    // Passo 2: Tenta carregar a comparação, mas não trata o 404 como um erro fatal.
+    ComparacaoModel? comparacao;
+    if (myImage.id != null && myImage.id != 0) { // Só tenta buscar se o ID for válido
+      try {
+        comparacao = await ApiService().getComparacaoSave(myImage.id!);
+      } on ApiException catch (e) {
+        // Ignora o erro APENAS se for um 404 (Not Found), o que é normal para imagens novas.
+        if (e.statusCode != 404) {
+          devtools.debugPrint('Erro inesperado ao buscar comparação para imagem ID ${myImage.id}: $e');
+        } else {
+          devtools.debugPrint('Nenhuma comparação encontrada para a imagem ID ${myImage.id} (esperado).');
+        }
+      }
+    }
 
-    try {
-      if (myImage.id != null) {
-        final comparacao = await ApiService().getComparacaoSave(myImage.id!);
-        if (comparacao != null) {
-          // 2. ATUALIZA A DATA USANDO O SETTER DO SEU MODELO.
-          // Isso irá corretamente colocar o valor em `metadata['date']`.
-          // Se a data da API for nula ou vazia, o setter não fará nada,
-          // mantendo a data original de `myImage`.
-          if (comparacao.dataComparacao != null && comparacao.dataComparacao!.isNotEmpty) {
-            finalItem.date = comparacao.dataComparacao;
-          }
-
-          // 3. PREENCHE OS OUTROS METADADOS (TAGS)
-          for (var tagData in comparacao.tags) {
-            final tagId = tagData['id_tag'] as int?;
-            final valor = tagData['valor']?.toString() ?? '';
-            if (tagId != null) {
-              final categoryName = tagIdToNameMap[tagId];
-              if (categoryName != null) {
-                // Adiciona diretamente ao mapa, pois não há setters para tags dinâmicas.
-                finalItem.metadata[categoryName] = valor;
-              }
-            }
+    // Passo 3: Preenche os dados se a comparação foi encontrada.
+    if (comparacao != null) {
+      if (comparacao.dataComparacao != null && comparacao.dataComparacao!.isNotEmpty) {
+        finalItem.date = comparacao.dataComparacao;
+      }
+      for (var tagData in comparacao.tags) {
+        final tagId = tagData['id_tag'] as int?;
+        final valor = tagData['valor']?.toString() ?? '';
+        if (tagId != null) {
+          final categoryName = _tagIdToNameMap[tagId];
+          if (categoryName != null) {
+            finalItem.metadata[categoryName] = valor;
           }
         }
       }
-    } catch (e) {
-      devtools.debugPrint(
-          'Nenhuma comparação salva encontrada para a imagem ID ${myImage.id}');
     }
+    
+    return finalItem;
 
-    // 4. Adiciona o item completo e enriquecido à lista.
-    items.add(finalItem);
+  } catch (e) {
+    devtools.debugPrint('Erro GERAL ao processar a imagem ID ${myImage.id}: $e');
+    return null; 
   }
-  _imageItems = items;
-  return items;
 }
-
 
   Uint8List? _placeholderBytes;
 
@@ -533,95 +546,84 @@ Future<List<ImageModel>> _prepareImageItems() async {
     );
   }
 
-  // Esta é a nova função para editar a data
 Future<void> _editDateForImage(BuildContext context, ImageModel imageItem, int index) async {
-  // 1. ABRE O SELETOR DE DATAS
+  // Tenta usar a data existente da imagem como data inicial
+  DateTime initialPickerDate;
+  try {
+    initialPickerDate = DateFormat('dd/MM/yyyy').parse(imageItem.date ?? '');
+  } catch (e) {
+    initialPickerDate = DateTime.now();
+  }
+
+  // 1. Abre o seletor de data
   final DateTime? pickedDate = await showDatePicker(
     context: context,
-    initialDate: DateTime.now(), // Data inicial do calendário
-    firstDate: DateTime(2000),   // Primeira data selecionável
-    lastDate: DateTime(2101),    // Última data selecionável
+    initialDate: initialPickerDate,
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2101),
+    locale: const Locale('pt', 'BR'),
   );
 
-  // Se o usuário cancelou o seletor de data, não faz nada
   if (pickedDate == null || !mounted) return;
 
-  // Mostra um indicador de carregamento
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => const Center(child: CircularProgressIndicator()),
-  );
+  // 2. Prepara o novo objeto ImageModel com a data atualizada
+  final String newDateString = DateFormat('dd/MM/yyyy').format(pickedDate);
+  // Usamos o método copyWith para criar uma nova instância imutável
+  final ImageModel itemAtualizado = imageItem.copyWith(date: newDateString);
 
+  // 3. ATUALIZA A UI INSTANTANEAMENTE
+  setState(() {
+    _imageItems![index] = itemAtualizado;
+  });
+
+  // 4. Salva na API em segundo plano
   try {
-    // 2. PREPARA OS DADOS PARA SALVAR (reutilizando sua lógica)
-    final String newDateString = DateFormat('dd/MM/yyyy').format(pickedDate);
-
-    // Cria uma cópia dos metadados existentes da imagem
-    final Map<String, String> updatedMetadata = Map.from(imageItem.metadata);
-    // Atualiza apenas o campo 'Data'
-    updatedMetadata['Data'] = newDateString;
-
-    // Prepara a lista de 'tags' para a API, como na sua função original
-    final List<TagModel> allTags = await ApiService().getTags(UserHelper().user!.id!);
-    final Map<String, int> tagIds = {for (var tag in allTags) tag.nomeTag: tag.id};
-
-    final tagsParaAPI = updatedMetadata.entries
-        .map((entry) {
-          final tagId = tagIds[entry.key];
-          if (tagId != null) {
-            return {'id_tag': tagId, 'valor': entry.value};
-          }
-          return null;
-        })
-        .whereType<Map<String, dynamic>>()
-        .toList();
-
-    // 3. CHAMA A SUA FUNÇÃO DE SALVAR EXISTENTE
-    final result = await _saveChangesAndReturnItem(
-      imageItem,
-      updatedMetadata,
-      tagsParaAPI,
-    );
-
-    final updatedItem = result['newItem'] as ImageModel?;
-    
-    // 4. ATUALIZA A TELA COM A NOVA IMAGEM (com a data atualizada)
-    if (updatedItem != null && _imageItems != null && index < _imageItems!.length) {
-      setState(() {
-        _imageItems![index] = updatedItem;
-        _imageItemsFuture = Future.value(List.from(_imageItems!));
-      });
-    }
-
-  } catch (e) {
-    debugPrint("Erro ao salvar a data: $e");
-    if(mounted) {
-      print('Não foi possível salvar a nova data.');
-    }
-  } finally {
-    // Fecha o indicador de carregamento
+    await ApiService().saveOrUpdateComparacao(itemAtualizado);
     if (mounted) {
-      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data salva na nuvem!'), backgroundColor: Colors.green),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar a data: $e'), backgroundColor: Colors.red),
+      );
+      // Reverte a mudança na UI se a API falhar
+      setState(() {
+        _imageItems![index] = imageItem;
+      });
     }
   }
 }
 
 
-Widget _buildImageCard(ImageModel imageItem, int index, bool isLargeScreen,
-    double screenWidth, double screenHeight) {
-  // 1. Usar a data dos metadados como a fonte principal e única da verdade.
-  final String dateString = imageItem.metadata['Data'] ?? 'Sem data';
+// MUDANÇA 3: A adição da Key no _buildImageCard
+  Widget _buildImageCard({
+    Key? key, // Parâmetro Key adicionado
+    required ImageModel imageItem,
+    required int index,
+    required bool isLargeScreen,
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    final String dataAtualFormatada = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    final String dateText = (imageItem.date != null && imageItem.date!.isNotEmpty)
+        ? imageItem.date!
+        : dataAtualFormatada;
+
 
   return AnimatedBuilder(
     animation: _fadeAnimation,
     builder: (context, child) {
       return FadeTransition(
+        key: key, // Key aplicada ao widget raiz
         opacity: _fadeAnimation,
         child: Container(
           margin: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.0),
+            color: Colors.white, // Adicionado para melhor visualização
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
@@ -633,34 +635,20 @@ Widget _buildImageCard(ImageModel imageItem, int index, bool isLargeScreen,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // --- AJUSTE PARA TORNAR A DATA CLICÁVEL ---
-              Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 16.0,
-                    top: 16.0,
-                    right: 16.0,
-                    bottom: 8.0,
-                  ),
-                  // 2. Envolvemos o Text com InkWell
-                  child: InkWell(
-                    onTap: () {
-                      // 3. Chamamos a função para editar a data, que já criamos
-                      _editDateForImage(context, imageItem, index);
-                    },
-                    borderRadius: BorderRadius.circular(8.0), // Efeito visual no clique
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                      child: Text(
-                        dateString, // Usando a variável correta
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 14.0 : 12.0,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ),
+              // Widget que exibe a data
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 16.0,
+                  top: 16.0,
+                  right: 16.0,
+                  bottom: 8.0,
+                ),
+                child: Text(
+                  dateText, // <<-- A LÓGICA É APLICADA AQUI
+                  style: TextStyle(
+                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
                   ),
                 ),
               ),
@@ -1025,10 +1013,22 @@ Widget _buildShareableFrame({
       body: FutureBuilder<List<ImageModel>>(
       future: _imageItemsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          print("FutureBuilder: Estado de carregamento...");
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Erro: ${snapshot.error}'));
+          }
+
+          // MUDANÇA 4: A NOVA LÓGICA DE GERENCIAMENTO DE ESTADO
+          // Sincroniza a lista de estado `_imageItems` com os dados da API apenas na primeira vez.
+          if (_imageItems == null) {
+            _imageItems = snapshot.data ?? [];
+          }
+
+          // A partir daqui, a UI depende apenas de `_imageItems`, que é a nossa "fonte da verdade".
+          if (_imageItems!.isEmpty) {
           print("FutureBuilder: Erro - ${snapshot.error}");
           return Center(
             child: Column(
@@ -1067,7 +1067,15 @@ Widget _buildShareableFrame({
               ],
             ),
           );
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        }   if (_imageItems == null) {
+      _imageItems = snapshot.data ?? [];
+    }
+
+    // 2. VERIFICAÇÃO: Agora, verificamos a nossa lista de estado `_imageItems`.
+    //    Se ela estiver vazia, mostramos a mensagem.
+    if (_imageItems!.isEmpty) {
+      print("FutureBuilder: A lista _imageItems está vazia.");
+      // Sua UI para "nenhuma imagem" continua a mesma, está ótima.
           print("FutureBuilder: Sem dados ou lista vazia");
           return Center(
             child: Column(
@@ -1129,7 +1137,13 @@ Widget _buildShareableFrame({
                   itemCount: loadedImageItems.length,
                   itemBuilder: (context, index) {
                     final imageItem = loadedImageItems[index];
-                    return _buildImageCard(imageItem, index, isLargeScreen, screenWidth, screenHeight);
+                    return _buildImageCard(
+                      key: ValueKey(imageItem.id),
+                      imageItem: imageItem,
+                      index: index,
+                      isLargeScreen: isLargeScreen,
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,);
                     
                   },
                 ),
@@ -1138,7 +1152,11 @@ Widget _buildShareableFrame({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: _buildComppareButton(isLargeScreen, screenWidth, screenHeight, loadedImageItems),
+                child: _buildComppareButton(
+                  isLargeScreen, 
+                  screenWidth, 
+                  screenHeight, 
+                  loadedImageItems),
               ),
             ],
           );
@@ -1404,7 +1422,7 @@ Future<List<TagModel>> getTags(int usuario) async {
 }
 
 
-    Map<String, String> getHeaders({bool includeContentType = true}) {
+Map<String, String> getHeaders({bool includeContentType = true}) {
     final String? authToken = TokenHelper().token;
     foundation.debugPrint(
         'ApiService: Token sendo acessado em getHeaders: $authToken');
@@ -1424,6 +1442,42 @@ Future<List<TagModel>> getTags(int usuario) async {
     }
     return headers;
   }
+
+
+Future<void> onEditButtonPressed(BuildContext context, ImageModel imageItem, int index) async {
+  // 1. Abre o diálogo e espera pelo resultado (o item atualizado)
+  final ImageModel? itemAtualizado = await _showEditDialog(context, imageItem, index);
+
+  // 2. Se o usuário salvou (resultado não é nulo)
+  if (itemAtualizado != null && mounted) {
+    
+    // 3. ATUALIZA A UI INSTANTANEAMENTE
+    //    Apenas modificamos nossa lista de estado `_imageItems` dentro de um setState.
+    setState(() {
+      _imageItems![index] = itemAtualizado;
+    });
+
+    // 4. Salva na API em segundo plano (atualização otimista)
+    try {
+      await ApiService().saveOrUpdateComparacao(itemAtualizado);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Alterações salvas na nuvem!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar na API: $e'), backgroundColor: Colors.red),
+        );
+        // Opcional: Reverter a mudança na UI se a API falhar
+        setState(() {
+          _imageItems![index] = imageItem; // Volta ao estado original
+        });
+      }
+    }
+  }
+}
 
 
 
