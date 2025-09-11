@@ -268,7 +268,7 @@ class _PagamentoPageState extends State<PagamentoPage>
                   _buildFeatureChip(
                       '🏷️ ${widget.plano.quantidadeTags} categorias'),
                   _buildFeatureChip(
-                      '''📁 ${widget.plano.quantidadePastas} ''' + (widget.plano.nome.toLowerCase().contains('gratuito') ? 'Álbum' : 'Álbuns'),),
+                      '📁 ${widget.plano.quantidadePastas} Álbum' /*+ (widget.plano.nome.toLowerCase().contains('gratuito') ? 'Álbum' : 'Álbuns'),*/),
                  /* _buildFeatureChip(
                       '👥 ${widget.plano.quantidadeConvites} convites'),*/
                 ],

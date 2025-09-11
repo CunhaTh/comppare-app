@@ -42,7 +42,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     super.initState();
     user = UserHelper().user ?? User.empty();
     plansController = PlansController(apiService: ApiService());
-    plansController.getPlanById(user.idPlano ?? 0);
+    plansController.getPlanById(user.idPlano ?? 1);
     _updateStats();
   }
 

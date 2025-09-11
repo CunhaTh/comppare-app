@@ -155,7 +155,8 @@ class CadastroScreenState extends State<CadastroScreen> {
       } else {
         appSnackBar(
           context: context,
-          message: 'Erro ao cadastrar usuário, tente novamente mais tarde $response "BATEU AQUI" ',
+          message: 'Erro ao cadastrar usuário, tente novamente mais tarde',
+          backgroundColor: Colors.red
         );
       }
 
@@ -385,108 +386,124 @@ Future<void> _launchPDF(String pdfFileName) async {
 }
 
 
-  void _sendCadastroData() async {
-    // 1. A verificação agora é a primeira coisa que acontece.
-    if (!_termsAccepted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Você deve aceitar os termos de uso para continuar.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      // 2. O 'return' aqui impede que o resto da função execute.
-      return;
-    }
+void _sendCadastroData() async {
+  if (!_termsAccepted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Você deve aceitar os termos de uso para continuar.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    // Lê os valores dos controladores
-    String nome = _nameController.text.trim();
-    String sobrenome = _surnameController.text.trim();
-    String apelido = _nicknameController.text.trim(); // Apelido é opcional
-    String cpf = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
-    String email = _emailController.text.trim();
-    String nascimento = _nasciController.text.trim();
-    String telefone = _phoneController.text.trim();
-    String senha = _passwordController.text.trim();
-    String confirmSenha = _confirmPasswordController.text.trim();
+  String nome = _nameController.text.trim();
+  String sobrenome = _surnameController.text.trim();
+  String apelido = _nicknameController.text.trim();
+  String cpf = _cpfController.text.trim().replaceAll(RegExp(r'\D'), '');
+  String email = _emailController.text.trim();
+  String nascimento = _nasciController.text.trim();
+  String telefone = _phoneController.text.trim();
+  String senha = _passwordController.text.trim();
+  String confirmSenha = _confirmPasswordController.text.trim();
 
-    // Remove o apelido da lista de campos obrigatórios
-    if ([nome, sobrenome, cpf, email, nascimento, telefone, senha, confirmSenha]
-        .any((field) => field.isEmpty)) {
-      _showErrorDialog('Por favor, preencha todos os campos obrigatórios!');
-      setState(() => _isLoading = false);
-      return;
-    }
+  if ([nome, sobrenome, cpf, email, nascimento, telefone, senha, confirmSenha]
+      .any((field) => field.isEmpty)) {
+    _showErrorDialog('Por favor, preencha todos os campos obrigatórios!');
+    setState(() => _isLoading = false);
+    return;
+  }
 
-    // O restante da validação continua o mesmo...
-    if (!_isValidCpf(cpf)) {
-      _showErrorDialog('CPF inválido!');
-      setState(() => _isLoading = false);
-      return;
-    }
+  if (!_isValidCpf(cpf)) {
+    _showErrorDialog('CPF inválido!');
+    setState(() => _isLoading = false);
+    return;
+  }
 
-    if (!_isValidEmail(email)) {
-      _showErrorDialog('E-mail inválido!');
-      setState(() => _isLoading = false);
-      return;
-    }
+  if (!_isValidEmail(email)) {
+    _showErrorDialog('E-mail inválido!');
+    setState(() => _isLoading = false);
+    return;
+  }
 
-    if (senha != confirmSenha) {
-      _showErrorDialog('As senhas não coincidem!');
-      setState(() => _isLoading = false);
-      return;
-    }
+  if (senha != confirmSenha) {
+    _showErrorDialog('As senhas não coincidem!');
+    setState(() => _isLoading = false);
+    return;
+  }
 
-    final parts = nascimento.split('/');
-    if (parts.length == 3) {
-      try {
-        _nascimentoDate = DateTime(
-            int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-      } catch (e) {
-        _showErrorDialog('Data de nascimento inválida!');
-        setState(() => _isLoading = false);
-        return;
-      }
-    } else {
+  // --- INÍCIO DA VALIDAÇÃO DE SENHA ESPECÍFICA ---
+
+  // 1. Verificação do tamanho mínimo (8 caracteres)
+  if (senha.length < 8) {
+    appSnackBaErro(
+      context: context,
+      message: 'A senha deve conter no mínimo 8 caracteres.',
+      backgroundColor: const Color.fromARGB(221, 244, 67, 54),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  // 2. Verificação dos outros requisitos (número, caractere especial, maiúscula, minúscula)
+  final passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).*$');
+  if (!passwordRegex.hasMatch(senha)) {
+    appSnackBaErro(
+      context: context,
+      message: 'A senha deve seguir o padrão que está descrito abaixo',
+      backgroundColor: const Color.fromARGB(221, 244, 67, 54),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  // --- FIM DA VALIDAÇÃO DE SENHA ESPECÍFICA ---
+
+  final parts = nascimento.split('/');
+  if (parts.length == 3) {
+    try {
+      _nascimentoDate = DateTime(
+          int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+    } catch (e) {
       _showErrorDialog('Data de nascimento inválida!');
       setState(() => _isLoading = false);
       return;
     }
+  } else {
+    _showErrorDialog('Data de nascimento inválida!');
+    setState(() => _isLoading = false);
+    return;
+  }
 
-    if (!_isMaiorDeIdade(_nascimentoDate!)) {
-      _showErrorDialog('Você precisa ser maior de idade!');
-      setState(() => _isLoading = false);
-      return;
+  if (!_isMaiorDeIdade(_nascimentoDate!)) {
+    _showErrorDialog('Você precisa ser maior de idade!');
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  try {
+    await _cadastrarUsuario(
+        nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
+  } catch (e) {
+    String errorMessage = e.toString();
+    if (errorMessage.contains('409') || errorMessage.contains('Conflict')) {
+      _showErrorDialog(
+          'Este CPF ou e-mail já está cadastrado. Tente fazer o login.');
+    } else {
+      _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
     }
-
-    try {
-      await _cadastrarUsuario(
-          nome, sobrenome, apelido, cpf, email, telefone, senha, nascimento);
-    } catch (e) {
-      // --- INÍCIO DA MODIFICAÇÃO ---
-      // Converte o erro para String para verificar a mensagem
-      String errorMessage = e.toString();
-
-      // Verifica se o erro é de conflito (409), que indica dados duplicados (CPF/email)
-      if (errorMessage.contains('409') || errorMessage.contains('Conflict')) {
-        _showErrorDialog(
-            'Este CPF ou e-mail já está cadastrado. Tente fazer o login.');
-      } else {
-        // Para outros erros, exibe uma mensagem genérica
-        _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
-      }
-      // --- FIM DA MODIFICAÇÃO ---
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
 
   @override
