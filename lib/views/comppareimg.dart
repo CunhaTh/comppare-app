@@ -29,7 +29,9 @@ import 'package:application_progress/main.dart' as main_app;
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:application_progress/helpers/date_picker_widget.dart';
 
+import '../controllers/controller.dart';
 import '../infra/api_endponts.dart';
 
 class ImagemDetalhesPage extends StatefulWidget {
@@ -49,11 +51,11 @@ class ImagemDetalhesPage extends StatefulWidget {
 }
 
 class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
-  with TickerProviderStateMixin {
-
+    with TickerProviderStateMixin {
   final GlobalKey shareRepaintKey = GlobalKey();
   late Future<List<ImageModel>> _imageItemsFuture;
-  List<ImageModel>? _imageItems; // Agora esta é nossa única fonte da verdade após o load
+  List<ImageModel>?
+      _imageItems; // Agora esta é nossa única fonte da verdade após o load
   final List<Folder> idPastaPai = [];
   final Map<String, String> _savedValues = {};
   final Map<String, TextEditingController> _controllers = {};
@@ -98,7 +100,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     _fadeController.forward();
   }
 
-
   @override
   void dispose() {
     _imageItemsListenable.dispose();
@@ -110,81 +111,85 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   }
 
 // Função principal que gerencia o fluxo de exclusão
-void _deleteImage(ImageModel imageItem, int index) async {
-  // Mostra um dialog de confirmação e aguarda a resposta do usuário
-  final bool? confirmed = await _showDeleteConfirmationDialog(context);
+  void _deleteImage(ImageModel imageItem, int index) async {
+    // Mostra um dialog de confirmação e aguarda a resposta do usuário
+    final bool? confirmed = await _showDeleteConfirmationDialog(context);
 
-  // Apenas continua se o usuário explicitamente confirmar a exclusão
-  if (confirmed == true) {
-    try {
-      // Mostra um indicador de loading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
+    // Apenas continua se o usuário explicitamente confirmar a exclusão
+    if (confirmed == true) {
+      try {
+        // Mostra um indicador de loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
 
-      final User? user = UserHelper().user;
-      if (user == null || user.id == null) {
-        throw Exception('Usuário não autenticado.');
+        final User? user = UserHelper().user;
+        if (user == null || user.id == null) {
+          throw Exception('Usuário não autenticado.');
+        }
+
+        // Chama o método da sua API para deletar a imagem no backend
+        await ApiService().deleteImage(user.id!, imageItem.id);
+
+        Navigator.of(context).pop(); // Fecha o loading
+
+        // Remove o item da lista local
+        setState(() {
+          _imageItems?.removeAt(index); // Apenas remove da lista.
+        });
+
+        // Mostra uma mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Imagem excluída com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        Navigator.of(context).pop(); // Fecha o loading em caso de erro
+        // Mostra uma mensagem de erro
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir a imagem: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-
-      // Chama o método da sua API para deletar a imagem no backend
-      await ApiService().deleteImage(user.id!, imageItem.id);
-
-      Navigator.of(context).pop(); // Fecha o loading
-
-      // Remove o item da lista local
-      setState(() {
-       _imageItems?.removeAt(index); // Apenas remove da lista.
-      });
-
-      // Mostra uma mensagem de sucesso
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Imagem excluída com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      Navigator.of(context).pop(); // Fecha o loading em caso de erro
-      // Mostra uma mensagem de erro
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao excluir a imagem: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
-}
 
 // Dialog de confirmação para evitar exclusões acidentais
-Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
-  return showDialog<bool>(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Confirmar Exclusão'),
-        content: const Text('Você tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.'),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Cancelar'),
-            onPressed: () {
-              Navigator.of(context).pop(false); // Retorna false se o usuário cancelar
-            },
-          ),
-          TextButton(
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-            onPressed: () {
-              Navigator.of(context).pop(true); // Retorna true se o usuário confirmar
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
+  Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: const Text(
+              'Você tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context)
+                    .pop(false); // Retorna false se o usuário cancelar
+              },
+            ),
+            TextButton(
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context)
+                    .pop(true); // Retorna true se o usuário confirmar
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   // Method to capture card image
   Future<Uint8List?> captureCard(GlobalKey key) async {
@@ -200,8 +205,6 @@ Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
       return null;
     }
   }
-
-
 
   // Função para deletar imagens selecionadas
   Future<void> deleteImageList() async {
@@ -441,95 +444,101 @@ Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
     }
   }
 
-Future<List<ImageModel>> _prepareImageItems() async {
-  // Passo 1: Busca as tags do usuário (isso continua igual e está correto).
-  final User? user = UserHelper().user;
-  if (user?.id != null) {
-    try {
-      final List<TagModel> userTags = await ApiService().getTags(user!.id!);
-      // Preenche a variável de estado da classe
-      _tagIdToNameMap = {for (var tag in userTags) tag.id: tag.nomeTag};
-    } catch (e) {
-      devtools.debugPrint("Erro ao buscar tags do usuário: $e");
+  Future<List<ImageModel>> _prepareImageItems() async {
+    // Passo 1: Busca as tags do usuário (isso continua igual e está correto).
+    final User? user = UserHelper().user;
+    if (user?.id != null) {
+      try {
+        final List<TagModel> userTags = await ApiService().getTags(user!.id!);
+        // Preenche a variável de estado da classe
+        _tagIdToNameMap = {for (var tag in userTags) tag.id: tag.nomeTag};
+      } catch (e) {
+        devtools.debugPrint("Erro ao buscar tags do usuário: $e");
+      }
     }
+
+    // MELHORIA (PERFORMANCE): Processar todas as imagens em paralelo.
+    // Criamos uma lista de "tarefas" (Futures) a serem executadas.
+    final List<Future<ImageModel?>> processingTasks = [];
+
+    for (final myImage in widget.images) {
+      // Para cada imagem, adicionamos uma tarefa assíncrona à lista.
+      processingTasks.add(_loadAndEnrichImage(myImage));
+    }
+
+    // Executa todas as tarefas da lista em paralelo e espera a conclusão de todas.
+    final List<ImageModel?> processedResults =
+        await Future.wait(processingTasks);
+
+    // Filtra qualquer resultado nulo que possa ter ocorrido por erro no carregamento.
+    final List<ImageModel> finalItems =
+        processedResults.whereType<ImageModel>().toList();
+
+    _imageItems = finalItems;
+    return finalItems;
   }
-
-  // MELHORIA (PERFORMANCE): Processar todas as imagens em paralelo.
-  // Criamos uma lista de "tarefas" (Futures) a serem executadas.
-  final List<Future<ImageModel?>> processingTasks = [];
-
-  for (final myImage in widget.images) {
-    // Para cada imagem, adicionamos uma tarefa assíncrona à lista.
-    processingTasks.add(_loadAndEnrichImage(myImage));
-  }
-
-  // Executa todas as tarefas da lista em paralelo e espera a conclusão de todas.
-  final List<ImageModel?> processedResults = await Future.wait(processingTasks);
-  
-  // Filtra qualquer resultado nulo que possa ter ocorrido por erro no carregamento.
-  final List<ImageModel> finalItems = processedResults.whereType<ImageModel>().toList();
-
-  _imageItems = finalItems;
-  return finalItems;
-}
 
 // NOVO: Função auxiliar para manter o código limpo.
 // Esta função processa UMA ÚNICA imagem de forma assíncrona.
 // Função auxiliar ajustada para lidar com imagens novas (que retornam 404)
-Future<ImageModel?> _loadAndEnrichImage(ImageModel myImage) async {
-  try {
-    // Passo 1: Carrega os bytes da imagem. Se isso falhar, a imagem inteira falha.
-    final Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
+  Future<ImageModel?> _loadAndEnrichImage(ImageModel myImage) async {
+    try {
+      // Passo 1: Carrega os bytes da imagem. Se isso falhar, a imagem inteira falha.
+      final Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
 
-    if (imageData == null || imageData.isEmpty) {
-      devtools.debugPrint('ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
-      return null; // Descarta a imagem se não for possível carregar o arquivo.
-    }
-
-    final finalItem = ImageModel.fromMyImage(myImage, imageData: imageData);
-    
-    // Passo 2: Tenta carregar a comparação, mas não trata o 404 como um erro fatal.
-    ComparacaoModel? comparacao;
-    if (myImage.id != null && myImage.id != 0) { // Só tenta buscar se o ID for válido
-      try {
-        comparacao = await ApiService().getComparacaoSave(myImage.id!);
-      } on ApiException catch (e) {
-        // Ignora o erro APENAS se for um 404 (Not Found), o que é normal para imagens novas.
-        if (e.statusCode != 404) {
-          devtools.debugPrint('Erro inesperado ao buscar comparação para imagem ID ${myImage.id}: $e');
-        } else {
-          devtools.debugPrint('Nenhuma comparação encontrada para a imagem ID ${myImage.id} (esperado).');
-        }
+      if (imageData == null || imageData.isEmpty) {
+        devtools.debugPrint(
+            'ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
+        return null; // Descarta a imagem se não for possível carregar o arquivo.
       }
-    }
 
-    // Passo 3: Preenche os dados se a comparação foi encontrada.
-    if (comparacao != null) {
-      if (comparacao.dataComparacao != null && comparacao.dataComparacao!.isNotEmpty) {
-        finalItem.date = comparacao.dataComparacao;
-      }
-      for (var tagData in comparacao.tags) {
-        final tagId = tagData['id_tag'] as int?;
-        final valor = tagData['valor']?.toString() ?? '';
-        if (tagId != null) {
-          final categoryName = _tagIdToNameMap[tagId];
-          if (categoryName != null) {
-            finalItem.metadata[categoryName] = valor;
+      final finalItem = ImageModel.fromMyImage(myImage, imageData: imageData);
+
+      // Passo 2: Tenta carregar a comparação, mas não trata o 404 como um erro fatal.
+      ComparacaoModel? comparacao;
+      if (myImage.id != null && myImage.id != 0) {
+        // Só tenta buscar se o ID for válido
+        try {
+          comparacao = await ApiService().getComparacaoSave(myImage.id!);
+        } on ApiException catch (e) {
+          // Ignora o erro APENAS se for um 404 (Not Found), o que é normal para imagens novas.
+          if (e.statusCode != 404) {
+            devtools.debugPrint(
+                'Erro inesperado ao buscar comparação para imagem ID ${myImage.id}: $e');
+          } else {
+            devtools.debugPrint(
+                'Nenhuma comparação encontrada para a imagem ID ${myImage.id} (esperado).');
           }
         }
       }
-    }
-    
-    return finalItem;
 
-  } catch (e) {
-    devtools.debugPrint('Erro GERAL ao processar a imagem ID ${myImage.id}: $e');
-    return null; 
+      // Passo 3: Preenche os dados se a comparação foi encontrada.
+      if (comparacao != null) {
+        if (comparacao.dataComparacao != null &&
+            comparacao.dataComparacao!.isNotEmpty) {
+          finalItem.date = comparacao.dataComparacao;
+        }
+        for (var tagData in comparacao.tags) {
+          final tagId = tagData['id_tag'] as int?;
+          final valor = tagData['valor']?.toString() ?? '';
+          if (tagId != null) {
+            final categoryName = _tagIdToNameMap[tagId];
+            if (categoryName != null) {
+              finalItem.metadata[categoryName] = valor;
+            }
+          }
+        }
+      }
+
+      return finalItem;
+    } catch (e) {
+      devtools
+          .debugPrint('Erro GERAL ao processar a imagem ID ${myImage.id}: $e');
+      return null;
+    }
   }
-}
 
   Uint8List? _placeholderBytes;
-
 
   void _scrollLeft() {
     _scrollController.animateTo(
@@ -547,57 +556,61 @@ Future<ImageModel?> _loadAndEnrichImage(ImageModel myImage) async {
     );
   }
 
-Future<void> _editDateForImage(BuildContext context, ImageModel imageItem, int index) async {
-  // Tenta usar a data existente da imagem como data inicial
-  DateTime initialPickerDate;
-  try {
-    initialPickerDate = DateFormat('dd/MM/yyyy').parse(imageItem.date ?? '');
-  } catch (e) {
-    initialPickerDate = DateTime.now();
-  }
-
-  // 1. Abre o seletor de data
-  final DateTime? pickedDate = await showDatePicker(
-    context: context,
-    initialDate: initialPickerDate,
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2101),
-    locale: const Locale('pt', 'BR'),
-  );
-
-  if (pickedDate == null || !mounted) return;
-
-  // 2. Prepara o novo objeto ImageModel com a data atualizada
-  final String newDateString = DateFormat('dd/MM/yyyy').format(pickedDate);
-  // Usamos o método copyWith para criar uma nova instância imutável
-  final ImageModel itemAtualizado = imageItem.copyWith(date: newDateString);
-
-  // 3. ATUALIZA A UI INSTANTANEAMENTE
-  setState(() {
-    _imageItems![index] = itemAtualizado;
-  });
-
-  // 4. Salva na API em segundo plano
-  try {
-    await ApiService().saveOrUpdateComparacao(itemAtualizado);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data salva na nuvem!'), backgroundColor: Colors.green),
-      );
+  Future<void> _editDateForImage(
+      BuildContext context, ImageModel imageItem, int index) async {
+    // Tenta usar a data existente da imagem como data inicial
+    DateTime initialPickerDate;
+    try {
+      initialPickerDate = DateFormat('dd/MM/yyyy').parse(imageItem.date ?? '');
+    } catch (e) {
+      initialPickerDate = DateTime.now();
     }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao salvar a data: $e'), backgroundColor: Colors.red),
-      );
-      // Reverte a mudança na UI se a API falhar
-      setState(() {
-        _imageItems![index] = imageItem;
-      });
+
+    // 1. Abre o seletor de data
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialPickerDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+      locale: const Locale('pt', 'BR'),
+    );
+
+    if (pickedDate == null || !mounted) return;
+
+    // 2. Prepara o novo objeto ImageModel com a data atualizada
+    final String newDateString = DateFormat('dd/MM/yyyy').format(pickedDate);
+    // Usamos o método copyWith para criar uma nova instância imutável
+    final ImageModel itemAtualizado = imageItem.copyWith(date: newDateString);
+
+    // 3. ATUALIZA A UI INSTANTANEAMENTE
+    setState(() {
+      _imageItems![index] = itemAtualizado;
+    });
+
+    // 4. Salva na API em segundo plano
+    try {
+      await ApiService().saveOrUpdateComparacao(itemAtualizado);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Data salva na nuvem!'),
+              backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Erro ao salvar a data: $e'),
+              backgroundColor: Colors.red),
+        );
+        // Reverte a mudança na UI se a API falhar
+        setState(() {
+          _imageItems![index] = imageItem;
+        });
+      }
     }
   }
-}
-
 
 // MUDANÇA 3: A adição da Key no _buildImageCard
   Widget _buildImageCard({
@@ -608,354 +621,368 @@ Future<void> _editDateForImage(BuildContext context, ImageModel imageItem, int i
     required double screenWidth,
     required double screenHeight,
   }) {
-    final String dataAtualFormatada = DateFormat('dd/MM/yyyy').format(DateTime.now());
-    final String dateText = (imageItem.date != null && imageItem.date!.isNotEmpty)
-        ? imageItem.date!
-        : dataAtualFormatada;
+    final String dataAtualFormatada =
+        DateFormat('dd/MM/yyyy').format(DateTime.now());
+    final String dateText =
+        (imageItem.date != null && imageItem.date!.isNotEmpty)
+            ? imageItem.date!
+            : dataAtualFormatada;
 
-
-  return AnimatedBuilder(
-    animation: _fadeAnimation,
-    builder: (context, child) {
-      return FadeTransition(
-        key: key, // Key aplicada ao widget raiz
-        opacity: _fadeAnimation,
-        child: Container(
-          margin: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.0),
-            color: Colors.white, // Adicionado para melhor visualização
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8.0,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Widget que exibe a data
-              Padding(
-                padding: const EdgeInsets.only(
-                  left: 16.0,
-                  top: 16.0,
-                  right: 16.0,
-                  bottom: 8.0,
+    return AnimatedBuilder(
+      animation: _fadeAnimation,
+      builder: (context, child) {
+        return FadeTransition(
+          key: key, // Key aplicada ao widget raiz
+          opacity: _fadeAnimation,
+          child: Container(
+            margin: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.0),
+              color: Colors.white, // Adicionado para melhor visualização
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8.0,
+                  offset: const Offset(0, 4),
                 ),
-                child: Text(
-                  dateText, // <<-- A LÓGICA É APLICADA AQUI
-                  style: TextStyle(
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Widget que exibe a data
+                DatePickerWidget(
+                  currentDate: dateText,
+                  onDateChanged: (newDate) {
+                    setState(() {
+                      // Atualiza a data da imagem
+                      imageItem.date = newDate;
+                      final controller =
+                          ImageDataController(apiService: ApiService());
+
+                      controller.saveImageData(
+                        idPhoto: imageItem.id,
+                        dataComparacao: newDate,
+                      );
+                    });
+                  },
+                  padding: const EdgeInsets.only(
+                    left: 16.0,
+                    top: 16.0,
+                    right: 16.0,
+                    bottom: 8.0,
+                  ),
+                  textStyle: TextStyle(
                     fontSize: isLargeScreen ? 14.0 : 12.0,
                     fontWeight: FontWeight.bold,
                     color: Colors.black54,
                   ),
                 ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      imageItem.isSelected = !imageItem.isSelected;
-                    });
-                    _scaleController.forward().then((_) {
-                      _scaleController.reverse();
-                    });
-                  },
-                  child: AnimatedBuilder(
-                    animation: _scaleAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: imageItem.isSelected
-                            ? _scaleAnimation.value
-                            : 1.0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.0),
-                            border: Border.all(
-                              color: imageItem.isSelected
-                                  ? const Color(0xFFaed513)
-                                  : Colors.grey.withOpacity(0.3),
-                              width: imageItem.isSelected ? 3.0 : 1.0,
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        imageItem.isSelected = !imageItem.isSelected;
+                      });
+                      _scaleController.forward().then((_) {
+                        _scaleController.reverse();
+                      });
+                    },
+                    child: AnimatedBuilder(
+                      animation: _scaleAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: imageItem.isSelected
+                              ? _scaleAnimation.value
+                              : 1.0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16.0),
+                              border: Border.all(
+                                color: imageItem.isSelected
+                                    ? const Color(0xFFaed513)
+                                    : Colors.grey.withOpacity(0.3),
+                                width: imageItem.isSelected ? 3.0 : 1.0,
+                              ),
                             ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(15.0),
-                            child: Stack(
-                              children: [
-                                Image.memory(
-                                  imageItem.imageData!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    debugPrint(
-                                        'Erro ao renderizar imagem do GridView: $error');
-                                    return Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.error,
-                                                color: Colors.red, size: 40),
-                                            SizedBox(height: 8),
-                                            Text('Erro de imagem',
-                                                style: TextStyle(
-                                                    color: Colors.red)),
-                                          ],
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(15.0),
+                              child: Stack(
+                                children: [
+                                  Image.memory(
+                                    imageItem.imageData!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      debugPrint(
+                                          'Erro ao renderizar imagem do GridView: $error');
+                                      return Container(
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.error,
+                                                  color: Colors.red, size: 40),
+                                              SizedBox(height: 8),
+                                              Text('Erro de imagem',
+                                                  style: TextStyle(
+                                                      color: Colors.red)),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  if (imageItem.isSelected)
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFaed513),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.check,
+                                          color: Colors.black,
+                                          size: 16,
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
-                                if (imageItem.isSelected)
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFaed513),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.check,
-                                        color: Colors.black,
-                                        size: 16,
-                                      ),
                                     ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                // --- FIM DA PARTE DA IMAGEM ---
+
+                // --- INÍCIO DA MUDANÇA: BARRA DE AÇÕES ---
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isLargeScreen ? 8.0 : 4.0,
+                    vertical: isLargeScreen ? 8.0 : 6.0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Botão Editar (envolvido por Expanded)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              _showEditDialog(context, imageItem, index),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? 12.0 : 8.0,
+                              vertical: isLargeScreen ? 8.0 : 6.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  color: Colors.black,
+                                  size: isLargeScreen ? 16.0 : 14.0,
+                                ),
+                                SizedBox(width: isLargeScreen ? 6.0 : 4.0),
+                                Text(
+                                  'Editar',
+                                  style: TextStyle(
+                                    fontSize: isLargeScreen ? 14.0 : 12.0,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black,
                                   ),
+                                ),
                               ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              // --- FIM DA PARTE DA IMAGEM ---
+                      ),
 
-              // --- INÍCIO DA MUDANÇA: BARRA DE AÇÕES ---
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isLargeScreen ? 8.0 : 4.0,
-                  vertical: isLargeScreen ? 8.0 : 6.0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Botão Editar (envolvido por Expanded)
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () =>
-                            _showEditDialog(context, imageItem, index),
+                      SizedBox(width: isLargeScreen ? 8.0 : 4.0),
+
+                      // NOVO: Botão Deletar (apenas o ícone)
+                      GestureDetector(
+                        onTap: () => _deleteImage(imageItem, index),
                         child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isLargeScreen ? 12.0 : 8.0,
-                            vertical: isLargeScreen ? 8.0 : 6.0,
-                          ),
+                          padding: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.red.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8.0),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.edit,
-                                color: Colors.black,
-                                size: isLargeScreen ? 16.0 : 14.0,
-                              ),
-                              SizedBox(width: isLargeScreen ? 6.0 : 4.0),
-                              Text(
-                                'Editar',
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 14.0 : 12.0,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
+                          child: Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: isLargeScreen ? 20.0 : 18.0,
                           ),
                         ),
                       ),
-                    ),
-
-                    SizedBox(width: isLargeScreen ? 8.0 : 4.0),
-
-                    // NOVO: Botão Deletar (apenas o ícone)
-                    GestureDetector(
-                      onTap: () => _deleteImage(imageItem, index),
-                      child: Container(
-                        padding: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                          size: isLargeScreen ? 20.0 : 18.0,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-Widget _buildComppareButton(bool isLargeScreen, double screenWidth, double screenHeight, List<ImageModel> loadedImageItems) {
-  final selectedCount = loadedImageItems.where((item) => item.isSelected).length;
-
-  return AnimatedBuilder(
-    animation: _fadeAnimation,
-    builder: (context, child) {
-      return FadeTransition(
-        opacity: _fadeAnimation,
-        child: Container(
-          margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFaed513).withOpacity(0.3),
-                  blurRadius: 12.0,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => _showComparisonDialog(context, loadedImageItems, categorias, widget.subAlbumName),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isLargeScreen ? 24.0 : 20.0,
-                    vertical: isLargeScreen ? 16.0 : 14.0,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFaed513), Color(0xFF9bc412)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.compare,
-                        color: Colors.black,
-                        size: isLargeScreen ? 24.0 : 20.0,
-                      ),
-                      SizedBox(width: isLargeScreen ? 12.0 : 8.0),
-                      Text(
-                        'Comppare',
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 18.0 : 16.0,
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (selectedCount > 0) ...[
-                        SizedBox(width: isLargeScreen ? 12.0 : 8.0),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isLargeScreen ? 8.0 : 6.0,
-                            vertical: isLargeScreen ? 4.0 : 3.0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          child: Text(
-                            '$selectedCount',
-                            style: TextStyle(
-                              fontSize: isLargeScreen ? 14.0 : 12.0,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
+      double screenHeight, List<ImageModel> loadedImageItems) {
+    final selectedCount =
+        loadedImageItems.where((item) => item.isSelected).length;
+
+    return AnimatedBuilder(
+      animation: _fadeAnimation,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _fadeAnimation,
+          child: Container(
+            margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFaed513).withOpacity(0.3),
+                    blurRadius: 12.0,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _showComparisonDialog(context, loadedImageItems,
+                      categorias, widget.subAlbumName),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isLargeScreen ? 24.0 : 20.0,
+                      vertical: isLargeScreen ? 16.0 : 14.0,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.compare,
+                          color: Colors.black,
+                          size: isLargeScreen ? 24.0 : 20.0,
+                        ),
+                        SizedBox(width: isLargeScreen ? 12.0 : 8.0),
+                        Text(
+                          'Comppare',
+                          style: TextStyle(
+                            fontSize: isLargeScreen ? 18.0 : 16.0,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (selectedCount > 0) ...[
+                          SizedBox(width: isLargeScreen ? 12.0 : 8.0),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? 8.0 : 6.0,
+                              vertical: isLargeScreen ? 4.0 : 3.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: Text(
+                              '$selectedCount',
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 14.0 : 12.0,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      );
-    },
-  );
-}
-  
+        );
+      },
+    );
+  }
 
-  
-/// Cria o widget da moldura de comparação para ser salvo ou compartilhado.
-Widget _buildShareableFrame({
-  required GlobalKey key,
-  required List<ImageModel> displayedImages,
-  required bool isLargeScreen,
-}) {
-  return RepaintBoundary(
-    key: key,
-    child: Container(
-      color: Colors.white, // Fundo branco para a imagem final
-      padding: const EdgeInsets.all(8.0), // Pequena margem interna
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Container principal das imagens
-          Container(
-            height: 150, // Altura fixa para a moldura
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: displayedImages.map((imageItem) {
-                final index = displayedImages.indexOf(imageItem);
-                return Expanded(
-                  child: Align(
-                    alignment: index == 0
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Image.memory(
-                      imageItem.imageData!,
-                      fit: BoxFit.fitWidth,
-                      height: double.infinity,
+  /// Cria o widget da moldura de comparação para ser salvo ou compartilhado.
+  Widget _buildShareableFrame({
+    required GlobalKey key,
+    required List<ImageModel> displayedImages,
+    required bool isLargeScreen,
+  }) {
+    return RepaintBoundary(
+      key: key,
+      child: Container(
+        color: Colors.white, // Fundo branco para a imagem final
+        padding: const EdgeInsets.all(8.0), // Pequena margem interna
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Container principal das imagens
+            Container(
+              height: 150, // Altura fixa para a moldura
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: displayedImages.map((imageItem) {
+                  final index = displayedImages.indexOf(imageItem);
+                  return Expanded(
+                    child: Align(
+                      alignment: index == 0
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Image.memory(
+                        imageItem.imageData!,
+                        fit: BoxFit.fitWidth,
+                        height: double.infinity,
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          // Logo sobreposta
-          Positioned(
-            bottom: 10,
-            child: Image.asset(
-              "assets/logo_all_green.png",
-              width: isLargeScreen ? 50.0 : 50.0,
-              height: isLargeScreen ? 35.0 : 25.0,
-              fit: BoxFit.contain,
+            // Logo sobreposta
+            Positioned(
+              bottom: 10,
+              child: Image.asset(
+                "assets/logo_all_green.png",
+                width: isLargeScreen ? 50.0 : 50.0,
+                height: isLargeScreen ? 35.0 : 25.0,
+                fit: BoxFit.contain,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}  
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -963,208 +990,212 @@ Widget _buildShareableFrame({
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
         backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          leading: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.arrow_back, color: Colors.black),
             ),
-            child: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
-          onPressed: () {
-            Navigator.pop(context);
+          title: Center(
+            child: Image.asset(
+              "assets/logo_cortada.png",
+              width: isLargeScreen ? screenWidth * 0.25 : screenWidth * 0.35,
+              height: isLargeScreen ? screenHeight * 0.04 : screenHeight * 0.06,
+              fit: BoxFit.contain,
+            ),
+          ),
+          actions: [
+            Container(
+              margin: EdgeInsets.only(right: isLargeScreen ? 16.0 : 12.0),
+              child: IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.home, color: Colors.black),
+                ),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const PrincipalPage()),
+                    (Route<dynamic> route) => false,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        body: FutureBuilder<List<ImageModel>>(
+          future: _imageItemsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('Erro: ${snapshot.error}'));
+            }
+
+            // MUDANÇA 4: A NOVA LÓGICA DE GERENCIAMENTO DE ESTADO
+            // Sincroniza a lista de estado `_imageItems` com os dados da API apenas na primeira vez.
+            if (_imageItems == null) {
+              _imageItems = snapshot.data ?? [];
+            }
+
+            // A partir daqui, a UI depende apenas de `_imageItems`, que é a nossa "fonte da verdade".
+            if (_imageItems!.isEmpty) {
+              print("FutureBuilder: Erro - ${snapshot.error}");
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Erro ao carregar imagens',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${snapshot.error}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black.withOpacity(0.6),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+            if (_imageItems == null) {
+              _imageItems = snapshot.data ?? [];
+            }
+
+            // 2. VERIFICAÇÃO: Agora, verificamos a nossa lista de estado `_imageItems`.
+            //    Se ela estiver vazia, mostramos a mensagem.
+            if (_imageItems!.isEmpty) {
+              print("FutureBuilder: A lista _imageItems está vazia.");
+              // Sua UI para "nenhuma imagem" continua a mesma, está ótima.
+              print("FutureBuilder: Sem dados ou lista vazia");
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.photo_library_outlined,
+                        color: Colors.grey,
+                        size: 48,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Nenhuma imagem encontrada',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Adicione imagens para começar a comparar',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              final List<ImageModel> loadedImageItems =
+                  snapshot.data!.cast<ImageModel>();
+              _imageItems =
+                  loadedImageItems; // Sincroniza _imageItems com loadedImageItems
+              print(
+                  "loadedImageItems metadata: ${loadedImageItems.map((item) => item.metadata).toList()}");
+              return Stack(
+                children: [
+                  Container(
+                    padding: EdgeInsets.only(
+                      left: isLargeScreen ? 16.0 : 12.0,
+                      right: isLargeScreen ? 16.0 : 12.0,
+                      top: isLargeScreen ? 16.0 : 12.0,
+                      bottom: isLargeScreen ? 100.0 : 80.0,
+                    ),
+                    child: GridView.builder(
+                      controller: _scrollController,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount:
+                            (screenWidth / (isLargeScreen ? 220 : 180))
+                                .floor()
+                                .clamp(1, 3),
+                        childAspectRatio: 0.85,
+                        crossAxisSpacing: isLargeScreen ? 16.0 : 12.0,
+                        mainAxisSpacing: isLargeScreen ? 16.0 : 12.0,
+                      ),
+                      itemCount: loadedImageItems.length,
+                      itemBuilder: (context, index) {
+                        final imageItem = loadedImageItems[index];
+                        return _buildImageCard(
+                          key: ValueKey(imageItem.id),
+                          imageItem: imageItem,
+                          index: index,
+                          isLargeScreen: isLargeScreen,
+                          screenWidth: screenWidth,
+                          screenHeight: screenHeight,
+                        );
+                      },
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _buildComppareButton(isLargeScreen, screenWidth,
+                        screenHeight, loadedImageItems),
+                  ),
+                ],
+              );
+            }
           },
-        ),
-        title: Center(
-          child: Image.asset(
-            "assets/logo_cortada.png",
-            width: isLargeScreen ? screenWidth * 0.25 : screenWidth * 0.35,
-            height: isLargeScreen ? screenHeight * 0.04 : screenHeight * 0.06,
-            fit: BoxFit.contain,
-          ),
-        ),
-        actions: [
-          Container(
-            margin: EdgeInsets.only(right: isLargeScreen ? 16.0 : 12.0),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.home, color: Colors.black),
-              ),
-              onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const PrincipalPage()),
-                      (Route<dynamic> route) => false,
-                    );
-              },
-            ),
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<ImageModel>>(
-      future: _imageItemsFuture,
-      builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
-          }
-
-          // MUDANÇA 4: A NOVA LÓGICA DE GERENCIAMENTO DE ESTADO
-          // Sincroniza a lista de estado `_imageItems` com os dados da API apenas na primeira vez.
-          if (_imageItems == null) {
-            _imageItems = snapshot.data ?? [];
-          }
-
-          // A partir daqui, a UI depende apenas de `_imageItems`, que é a nossa "fonte da verdade".
-          if (_imageItems!.isEmpty) {
-          print("FutureBuilder: Erro - ${snapshot.error}");
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.error_outline,
-                    color: Colors.red,
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Erro ao carregar imagens',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${snapshot.error}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black.withOpacity(0.6),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }   if (_imageItems == null) {
-      _imageItems = snapshot.data ?? [];
-    }
-
-    // 2. VERIFICAÇÃO: Agora, verificamos a nossa lista de estado `_imageItems`.
-    //    Se ela estiver vazia, mostramos a mensagem.
-    if (_imageItems!.isEmpty) {
-      print("FutureBuilder: A lista _imageItems está vazia.");
-      // Sua UI para "nenhuma imagem" continua a mesma, está ótima.
-          print("FutureBuilder: Sem dados ou lista vazia");
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.photo_library_outlined,
-                    color: Colors.grey,
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Nenhuma imagem encontrada',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Adicione imagens para começar a comparar',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black.withOpacity(0.6), 
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          final List<ImageModel> loadedImageItems = snapshot.data!.cast<ImageModel>();
-          _imageItems = loadedImageItems; // Sincroniza _imageItems com loadedImageItems
-          print("loadedImageItems metadata: ${loadedImageItems.map((item) => item.metadata).toList()}");
-          return Stack(
-            children: [
-              Container(
-                padding: EdgeInsets.only(
-                  left: isLargeScreen ? 16.0 : 12.0,
-                  right: isLargeScreen ? 16.0 : 12.0,
-                  top: isLargeScreen ? 16.0 : 12.0,
-                  bottom: isLargeScreen ? 100.0 : 80.0,
-                ),
-                child: GridView.builder(
-                  controller: _scrollController,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: (screenWidth / (isLargeScreen ? 220 : 180)).floor().clamp(1, 3),
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: isLargeScreen ? 16.0 : 12.0,
-                    mainAxisSpacing: isLargeScreen ? 16.0 : 12.0,
-                  ),
-                  itemCount: loadedImageItems.length,
-                  itemBuilder: (context, index) {
-                    final imageItem = loadedImageItems[index];
-                    return _buildImageCard(
-                      key: ValueKey(imageItem.id),
-                      imageItem: imageItem,
-                      index: index,
-                      isLargeScreen: isLargeScreen,
-                      screenWidth: screenWidth,
-                      screenHeight: screenHeight,);
-                    
-                  },
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _buildComppareButton(
-                  isLargeScreen, 
-                  screenWidth, 
-                  screenHeight, 
-                  loadedImageItems),
-              ),
-            ],
-          );
-        }
-      },
-    )
-    );
+        ));
   }
 
   void _showSuccessDialog(String message) {
@@ -1280,150 +1311,148 @@ Widget _buildShareableFrame({
     );
   }
 
-
-
-
-Future<void> _showErrorDialog(BuildContext context, String message) async {
-  await showDialog(
-    context: context,
-    barrierDismissible: true, // Permite fechar tocando fora, opcional
-    builder: (BuildContext context) {
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 25,
-                offset: const Offset(0, 12),
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.green.withOpacity(0.3),
-                    width: 2,
+  Future<void> _showErrorDialog(BuildContext context, String message) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true, // Permite fechar tocando fora, opcional
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 25,
+                  offset: const Offset(0, 12),
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.green.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.verified_rounded,
+                    color: Colors.green,
+                    size: 36,
                   ),
                 ),
-                child: const Icon(
-                  Icons.verified_rounded,
-                  color: Colors.green,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Show, Deu tudo certo !',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  letterSpacing: -0.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                    height: 1.5,
-                    fontWeight: FontWeight.w400,
+                const SizedBox(height: 24),
+                const Text(
+                  'Show, Deu tudo certo !',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                    letterSpacing: -0.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.black54,
+                      height: 1.5,
+                      fontWeight: FontWeight.w400,
                     ),
-                    elevation: 3,
-                    shadowColor: Colors.green.withOpacity(0.4),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.thumb_up_rounded,
-                        size: 18,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'ok, vlw',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 3,
+                      shadowColor: Colors.green.withOpacity(0.4),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.thumb_up_rounded,
+                          size: 18,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'ok, vlw',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
 // A sua função de API para recuperar as tags
-Future<List<TagModel>> getTags(int usuario) async {
-  final User? user = UserHelper().user;
-  if (user == null || user.id == null) {
-    throw ApiException('Usuário não autenticado.', statusCode: 401);
+  Future<List<TagModel>> getTags(int usuario) async {
+    final User? user = UserHelper().user;
+    if (user == null || user.id == null) {
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
+
+    final url = Uri.parse(ApiEndpoints.listarTags);
+    final body = {
+      'usuario': user.id,
+    };
+    final responseBody = await ApiService().sendRequest(
+      () => http.post(
+        url,
+        headers: ApiService().getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Tags carregadas com sucesso.',
+      errorMessage: 'Falha ao carregar tags.',
+    );
+
+    if (responseBody.containsKey('data') && responseBody['data'] is List) {
+      final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
+      foundation.debugPrint(
+          'Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
+      return tagsJson
+          .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
+      return [];
+    }
   }
 
-  
-  final url = Uri.parse(ApiEndpoints.listarTags);
-  final body = {
-    'usuario': user.id,
-  };
-  final responseBody = await ApiService().sendRequest(
-    () => http.post(
-      url,
-      headers: ApiService().getHeaders(includeContentType: true),
-      body: jsonEncode(body),
-    ),
-    successMessage: 'Tags carregadas com sucesso.',
-    errorMessage: 'Falha ao carregar tags.',
-  );
-
-  if (responseBody.containsKey('data') && responseBody['data'] is List) {
-    final List<dynamic> tagsJson = responseBody['data'] as List<dynamic>;
-    foundation.debugPrint('Tags do usuário: ${tagsJson.map((e) => e['nomeTag']?.toString() ?? '').toList()}');
-    return tagsJson.map((json) => TagModel.fromJson(json as Map<String, dynamic>)).toList();
-  } else {
-    foundation.debugPrint('Nenhuma tag encontrada para o usuário.');
-    return [];
-  }
-}
-
-
-Map<String, String> getHeaders({bool includeContentType = true}) {
+  Map<String, String> getHeaders({bool includeContentType = true}) {
     final String? authToken = TokenHelper().token;
     foundation.debugPrint(
         'ApiService: Token sendo acessado em getHeaders: $authToken');
@@ -1444,679 +1473,763 @@ Map<String, String> getHeaders({bool includeContentType = true}) {
     return headers;
   }
 
+  Future<void> onEditButtonPressed(
+      BuildContext context, ImageModel imageItem, int index) async {
+    // 1. Abre o diálogo e espera pelo resultado (o item atualizado)
+    final ImageModel? itemAtualizado =
+        await _showEditDialog(context, imageItem, index);
 
-Future<void> onEditButtonPressed(BuildContext context, ImageModel imageItem, int index) async {
-  // 1. Abre o diálogo e espera pelo resultado (o item atualizado)
-  final ImageModel? itemAtualizado = await _showEditDialog(context, imageItem, index);
-
-  // 2. Se o usuário salvou (resultado não é nulo)
-  if (itemAtualizado != null && mounted) {
-    
-    // 3. ATUALIZA A UI INSTANTANEAMENTE
-    //    Apenas modificamos nossa lista de estado `_imageItems` dentro de um setState.
-    setState(() {
-      _imageItems![index] = itemAtualizado;
-    });
-
-    // 4. Salva na API em segundo plano (atualização otimista)
-    try {
-      await ApiService().saveOrUpdateComparacao(itemAtualizado);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Alterações salvas na nuvem!'), backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao salvar na API: $e'), backgroundColor: Colors.red),
-        );
-        // Opcional: Reverter a mudança na UI se a API falhar
-        setState(() {
-          _imageItems![index] = imageItem; // Volta ao estado original
-        });
-      }
-    }
-  }
-}
-
-
-
-Future<ImageModel?> _showEditDialog(BuildContext context, ImageModel imageItem, int index) async {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final screenHeight = MediaQuery.of(context).size.height;
-  final isLargeScreen = screenWidth > 520 && screenHeight > 889;
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => const Center(child: CircularProgressIndicator()),
-  );
-
-  Map<String, int> tagIds = {};
-  ComparacaoModel? comparacao;
-  Map<String, String> apiValues = {};
-  List<String> categoriasDinamicas = [];
-
-  try {
-    final List<TagModel> tags = await ApiService().getTags(UserHelper().user!.id!);
-    tagIds = {for (var tag in tags) tag.nomeTag: tag.id};
-    print("Tags do usuário (tagIds): $tagIds");
-
-    if (imageItem.id == null) {
-      Navigator.of(context).pop();
-      if (context.mounted) {
-        await _showErrorDialog(context, 'ID da imagem não encontrado.');
-      }
-      return null;
-    }
-
-    comparacao = await ApiService().getComparacaoSave(imageItem.id!);
-    print("Comparação recuperada: $comparacao");
-
-    if (comparacao != null && comparacao.tags.isNotEmpty) {
-      for (var tag in comparacao.tags) {
-        final tagId = tag['id_tag'] as int?;
-        final valor = tag['valor']?.toString() ?? '';
-        if (tagId != null) {
-          final category = tagIds.entries.firstWhere(
-            (entry) => entry.value == tagId,
-            orElse: () => null!,
-          )?.key;
-          if (category != null) {
-            apiValues[category] = valor;
-          }
-        }
-      }
-      print("Valores da API mapeados: $apiValues");
-    }
-    Navigator.of(context).pop();
-  } catch (e) {
-    Navigator.of(context).pop();
-    print("Erro ao carregar comparação: $e");
-    // Não exibe erro para o usuário se não houver comparação, apenas prossegue
-  }
-
-  // Define categorias dinâmicas independentemente de comparação
-  categoriasDinamicas = ['Data']..addAll(widget.categorias.isNotEmpty ? widget.categorias.where((cat) => tagIds.containsKey(cat)) : tagIds.keys.where((cat) => tagIds.containsKey(cat)));
-  print("Categorias dinâmicas: $categoriasDinamicas");
-
-  // Inicializa controllers com valores da API ou vazios
-  final Map<String, TextEditingController> controllers = {};
-  for (var categoria in categoriasDinamicas) {
-    String textValue = apiValues[categoria] ?? '';
-    if (textValue.isEmpty) {
-      textValue = categoria == 'Data'
-          ? (imageItem.date ?? _savedValues[categoria] ?? '')
-          : imageItem.metadata[categoria] ?? _savedValues[categoria] ?? '';
-    }
-    print("Valor para $categoria: $textValue");
-    controllers[categoria] = TextEditingController(text: textValue);
-  }
-
-// DENTRO DE: _showEditDialog
-  // 1. Abre o diálogo e aguarda o resultado. 
-  //    Ele só retornará um `ImageModel` se a API salvar com sucesso.
-  //    Caso contrário (cancelamento ou erro), retornará `null`.
-  final ImageModel? itemConfirmadoPelaAPI = await _openEditDialog(
-    context, 
-    imageItem, 
-    index, 
-    tagIds, 
-    apiValues, 
-    controllers, 
-    categoriasDinamicas
-  );
-
-  // 2. Se o resultado NÃO for nulo, significa que a API confirmou o salvamento.
-  //    Agora sim, é seguro atualizar o estado da tela principal.
-  if (itemConfirmadoPelaAPI != null) {
-    if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
-      
-      // 3. Chama o setState para reconstruir a UI com o dado já confirmado.
+    // 2. Se o usuário salvou (resultado não é nulo)
+    if (itemAtualizado != null && mounted) {
+      // 3. ATUALIZA A UI INSTANTANEAMENTE
+      //    Apenas modificamos nossa lista de estado `_imageItems` dentro de um setState.
       setState(() {
-        // Atualiza a lista local
-        _imageItems![index] = itemConfirmadoPelaAPI;
-
-        // Recria o Future para que o FutureBuilder reconstrua a grade de imagens.
-        _imageItemsFuture = Future.value(List.from(_imageItems!));
+        _imageItems![index] = itemAtualizado;
       });
 
-      // Opcional: Mostrar uma mensagem de sucesso na tela principal
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Colors.green),
-        );
-      }
-    }
-  }
-  // Se `itemConfirmadoPelaAPI` for nulo, não fazemos nada, pois o usuário cancelou ou a API falhou.
-}
-
-Future<ImageModel?> _openEditDialog(
-  BuildContext context,
-  ImageModel imageItem,
-  int index,
-  Map<String, int> tagIds,
-  Map<String, String> apiValues,
-  Map<String, TextEditingController> controllers,
-  List<String> categoriasDinamicas,
-) async {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final screenHeight = MediaQuery.of(context).size.height;
-  final isLargeScreen = screenWidth > 520 && screenHeight > 889;
-
-  final updatedItem = await showDialog<ImageModel>(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) {
-      return StatefulBuilder(
-        builder: (dialogContext, setState) {
-          bool isProcessing = false;
-
-          return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
-            ),
-            child: Container(
-              width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
-              constraints: BoxConstraints(
-                maxHeight: screenHeight * 0.8,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20.0),
-                color: Colors.white,
-              ),
-              child: Stack(
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFaed513),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(20.0),
-                            topRight: Radius.circular(20.0),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Editar Imagem',
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 20.0 : 18.0,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () => Navigator.of(dialogContext).pop(),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.black,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                height: isLargeScreen ? screenHeight * 0.3 : screenHeight * 0.25,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  border: Border.all(
-                                    color: Colors.grey[300]!,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  child: imageItem.imageData != null && imageItem.imageData!.isNotEmpty
-                                      ? Image.memory(
-                                          imageItem.imageData!,
-                                          fit: BoxFit.fitHeight,
-                                        )
-                                      : Container(
-                                          color: Colors.grey[200],
-                                          child: const Center(
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
-                                                SizedBox(height: 8),
-                                                Text('Imagem não disponível', style: TextStyle(color: Colors.grey)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              SizedBox(height: isLargeScreen ? 24.0 : 20.0),
-                              if (categoriasDinamicas.isNotEmpty)
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: categoriasDinamicas.map((categoria) {
-                                    return Container(
-                                      margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 12.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            categoria,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: isLargeScreen ? 16.0 : 14.0,
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                          SizedBox(height: 8.0),
-                                          TextField(
-                                            controller: controllers[categoria],
-                                            decoration: InputDecoration(
-                                              hintText: 'Insira o valor para $categoria',
-                                              filled: true,
-                                              fillColor: Colors.grey[50],
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(12.0),
-                                                borderSide: BorderSide(color: Colors.grey[300]!),
-                                              ),
-                                              enabledBorder: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(12.0),
-                                                borderSide: BorderSide(color: Colors.grey[300]!),
-                                              ),
-                                              focusedBorder: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(12.0),
-                                                borderSide: const BorderSide(color: Color(0xFFaed513), width: 2),
-                                              ),
-                                              contentPadding: EdgeInsets.symmetric(
-                                                horizontal: 16.0,
-                                                vertical: 12.0,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
-                                )
-                              else
-                                Container(
-                                  padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.info_outline, color: Colors.grey, size: 20),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        'Sem categorias disponíveis no momento.',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: isLargeScreen ? 14.0 : 12.0,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            bottomLeft: Radius.circular(20.0),
-                            bottomRight: Radius.circular(20.0),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Expanded(
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 8.0),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey[200],
-                                    foregroundColor: Colors.black,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 24.0,
-                                      vertical: isLargeScreen ? 16.0 : 14.0,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12.0),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  onPressed: isProcessing ? null : () => Navigator.of(dialogContext).pop(),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.cancel, size: isLargeScreen ? 18.0 : 16.0),
-                                      SizedBox(width: 8.0),
-                                      Expanded(
-                                        child: Text(
-                                          'Cancelar',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: isLargeScreen ? 16.0 : 14.0,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                margin: const EdgeInsets.only(left: 8.0),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFaed513),
-                                    foregroundColor: Colors.black,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 24.0,
-                                      vertical: isLargeScreen ? 16.0 : 14.0,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12.0),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                 
-onPressed: isProcessing
-  ? null // Botão desabilitado enquanto estiver processando
-  : () async {
-      // 1. Inicia o estado de carregamento DENTRO do diálogo
-      //    (O `setState` aqui é do StatefulBuilder do seu diálogo)
-      setState(() {
-        isProcessing = true;
-      });
-      
-
+      // 4. Salva na API em segundo plano (atualização otimista)
       try {
-        // Prepara os dados para a API (seu código original, que está correto)
-        final Map<String, String> updatedMetadata = Map.from(imageItem.metadata);
-        controllers.forEach((key, controller) {
-          updatedMetadata[key] = controller.text.trim();
-        });
-
-        final tagsParaAPI = updatedMetadata.entries
-            .map((entry) {
-              final tagId = tagIds[entry.key];
-              if (tagId != null) {
-                return {'id_tag': tagId, 'valor': entry.value};
-              }
-              return null;
-            })
-            .whereType<Map<String, dynamic>>()
-            .toList();
-        
-        // 2. Tenta salvar os dados na API
-        final result = await _saveChangesAndReturnItem(
-          imageItem,
-          updatedMetadata,
-          tagsParaAPI,
-        );
-
-        final ImageModel? itemConfirmado = result['newItem'] as ImageModel?;
-
-        // 3. SUCESSO: Fecha o diálogo e retorna o item ATUALIZADO pela API.
-        //    Este valor será capturado pelo `await _openEditDialog(...)` na sua função principal.
-        if (dialogContext.mounted && itemConfirmado != null) {
-          Navigator.of(dialogContext).pop(itemConfirmado);
-        }
-
-      } catch (e) {
-        // 4. FALHA: Mostra um erro para o usuário e NÃO fecha o diálogo.
-        print("Erro ao salvar alterações: $e");
-        if (dialogContext.mounted) {
-          ScaffoldMessenger.of(dialogContext).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao salvar: $e'),
-              backgroundColor: Colors.red,
-            ),
+        await ApiService().saveOrUpdateComparacao(itemAtualizado);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Alterações salvas na nuvem!'),
+                backgroundColor: Colors.green),
           );
         }
-        // IMPORTANTE: Não chamamos Navigator.pop() aqui em caso de erro.
-      
-      } finally {
-        // 5. Garante que o indicador de carregamento seja desativado no final,
-        //    seja em caso de sucesso ou falha.
-        if (dialogContext.mounted) {
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Erro ao salvar na API: $e'),
+                backgroundColor: Colors.red),
+          );
+          // Opcional: Reverter a mudança na UI se a API falhar
           setState(() {
-            isProcessing = false;
+            _imageItems![index] = imageItem; // Volta ao estado original
           });
         }
       }
-    },
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.save, size: isLargeScreen ? 18.0 : 16.0),
-                                      SizedBox(width: 8.0),
-                                      Expanded(
-                                        child: Text(
-                                          'Salvar',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: isLargeScreen ? 16.0 : 14.0,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (isProcessing)
-                    const Positioned.fill(
-                      child: Center(
-                        child: CircularProgressIndicator(color: Color(0xFFaed513)),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
-  return updatedItem;
-}
-
-
-// Crie esta nova função na sua classe
-Future<ImageModel?> _uploadNewImageWithData(
-  ImageModel newItem,
-  Map<String, String> metadata,
-  List<Map<String, dynamic>> tags,
-) async {
-  final User? user = UserHelper().user;
-  if (user == null) throw Exception('Usuário não autenticado.');
-  if (newItem.imageData == null) throw Exception('Dados da imagem não encontrados.');
-
-  // Crie um endpoint novo na sua API para isso, ex: /api/fotos/criarComDados
-  var request = http.MultipartRequest(
-      'POST', Uri.parse(ApiEndpoints.salvaComparacao)); 
-
-  // Adiciona os campos de texto
-  request.fields['id_usuario'] = user.id.toString();
-  request.fields['data_comparacao'] = metadata['Data'] ?? DateFormat('dd/MM/yyyy').format(DateTime.now());
-  request.fields['tags'] = jsonEncode(tags); // Envia as tags como uma string JSON
-
-  // Adiciona o arquivo da imagem
-  request.files.add(http.MultipartFile.fromBytes(
-    'photo', // O nome do campo que sua API espera para o arquivo
-    newItem.imageData!,
-    filename: 'upload.jpg', // Um nome de arquivo padrão
-    contentType: MediaType('image', 'jpeg'),
-  ));
-
-  // Adiciona os headers de autenticação
-  request.headers.addAll(ApiService().getHeaders(includeContentType: false));
-
-  // Envia a requisição
-  final response = await request.send();
-  final responseBody = await response.stream.bytesToString();
-  final decodedBody = jsonDecode(responseBody);
-
-  if (response.statusCode >= 200 && response.statusCode < 300) {
-    // Assumindo que sua API retorna o objeto da foto criada com o novo ID
-    // Você precisará ajustar o `ImageModel.fromMap` se necessário
-    return ImageModel.fromMap(decodedBody['data']); 
-  } else {
-    throw Exception('Falha ao fazer upload da nova imagem: ${decodedBody["message"]}');
-  }
-}
-
-
-// Função corrigida - substitua a sua por esta
-Future<Map<String, dynamic>> _saveChangesAndReturnItem(
-  ImageModel originalItem,
-  Map<String, String> updatedMetadata,
-  List<Map<String, dynamic>> tagsParaAPI,
-) async {
-  final User? user = UserHelper().user;
-  if (user == null || user.id == null) { // A verificação de token não é necessária aqui
-    throw Exception('Usuário não autenticado.');
-  }
-
-  // Salvar localmente (esta parte está correta)
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('image_tags_${originalItem.id}', jsonEncode(updatedMetadata));
-  print("Metadados salvos localmente: $updatedMetadata");
-
-  // Preparar o corpo da requisição (esta parte está correta)
-  String dataComparacao = DateFormat('dd/MM/yyyy').format(DateTime.now());
-  if (updatedMetadata['Data']?.isNotEmpty == true) {
-    try {
-      dataComparacao = DateFormat('dd/MM/yyyy')
-          .format(DateFormat('dd/MM/yyyy').parse(updatedMetadata['Data']!));
-    } catch (e) {
-      print("Erro ao formatar data: $e, usando data atual: $dataComparacao");
     }
   }
 
-  final body = {
-    'id_usuario': user.id,
-    'id_photo': originalItem.id,
-    'data_comparacao': dataComparacao,
-    'tags': tagsParaAPI,
-  };
+  Future<ImageModel?> _showEditDialog(
+      BuildContext context, ImageModel imageItem, int index) async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
-  print("Corpo enviado à API: $body");
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-  // --- INÍCIO DA CORREÇÃO ---
+    Map<String, int> tagIds = {};
+    ComparacaoModel? comparacao;
+    Map<String, String> apiValues = {};
+    List<String> categoriasDinamicas = [];
 
-  // 1. sendRequest já retorna o Map<String, dynamic> do body em caso de sucesso.
-  //    Vamos chamar a variável de 'responseBody' para ficar mais claro.
-  final responseBody = await ApiService().sendRequest(
-    () => http.post(
-      Uri.parse(ApiEndpoints.salvaComparacao),
-      headers: ApiService().getHeaders(includeContentType: true),
-      body: jsonEncode(body),
-    ),
-    successMessage: 'Alterações salvas com sucesso.',
-    errorMessage: 'Falha ao salvar as alterações.',
-  );
+    try {
+      final List<TagModel> tags =
+          await ApiService().getTags(UserHelper().user!.id!);
+      tagIds = {for (var tag in tags) tag.nomeTag: tag.id};
+      print("Tags do usuário (tagIds): $tagIds");
 
-  print("Resposta da API (corpo JSON): $responseBody");
+      if (imageItem.id == null) {
+        Navigator.of(context).pop();
+        if (context.mounted) {
+          await _showErrorDialog(context, 'ID da imagem não encontrado.');
+        }
+        return null;
+      }
 
-  // 2. Não precisamos mais verificar 'statusCode' ou 'body', pois sendRequest já fez isso.
-  //    Agora trabalhamos diretamente com a resposta decodificada.
-  final Map<String, String> syncedMetadata = Map.from(updatedMetadata);
-  
-  // A lógica abaixo para sincronizar com a resposta da API é opcional,
-  // mas é uma boa prática para garantir que o estado do app reflita 100% o que está no servidor.
-  try {
-    if (responseBody['data'] != null && responseBody['data'] is List && responseBody['data'].isNotEmpty) {
-      final tagsFromApi = responseBody['data'][0]['tags'] as List<dynamic>? ?? [];
-      final List<TagModel> tags = await ApiService().getTags(user.id!);
-      for (var tag in tagsFromApi) {
-        final tagId = tag['id_tag'] as int?;
-        final valor = tag['valor']?.toString() ?? '';
-        if (tagId != null) {
-          final category = tags.firstWhere((t) => t.id == tagId, orElse: () => null!)?.nomeTag;
-          if (category != null) {
-            syncedMetadata[category] = valor;
+      comparacao = await ApiService().getComparacaoSave(imageItem.id!);
+      print("Comparação recuperada: $comparacao");
+
+      if (comparacao != null && comparacao.tags.isNotEmpty) {
+        for (var tag in comparacao.tags) {
+          final tagId = tag['id_tag'] as int?;
+          final valor = tag['valor']?.toString() ?? '';
+          if (tagId != null) {
+            final category = tagIds.entries
+                .firstWhere(
+                  (entry) => entry.value == tagId,
+                  orElse: () => null!,
+                )
+                ?.key;
+            if (category != null) {
+              apiValues[category] = valor;
+            }
           }
+        }
+        print("Valores da API mapeados: $apiValues");
+      }
+      Navigator.of(context).pop();
+    } catch (e) {
+      Navigator.of(context).pop();
+      print("Erro ao carregar comparação: $e");
+      // Não exibe erro para o usuário se não houver comparação, apenas prossegue
+    }
+
+    // Define categorias dinâmicas independentemente de comparação
+    categoriasDinamicas = ['Data']..addAll(widget.categorias.isNotEmpty
+        ? widget.categorias.where((cat) {
+            print("Abimael Categoria: $cat");
+            return tagIds.containsKey(cat);
+          })
+        : tagIds.keys.where((cat) => tagIds.containsKey(cat)));
+    print("Categorias dinâmicas: $categoriasDinamicas");
+
+    // Inicializa controllers com valores da API ou vazios
+    final Map<String, TextEditingController> controllers = {};
+    for (var categoria in categoriasDinamicas) {
+      String textValue = apiValues[categoria] ?? '';
+      if (textValue.isEmpty) {
+        textValue = categoria == 'Data'
+            ? (imageItem.date ?? _savedValues[categoria] ?? '')
+            : imageItem.metadata[categoria] ?? _savedValues[categoria] ?? '';
+      }
+      print("Valor para $categoria: $textValue");
+      controllers[categoria] = TextEditingController(text: textValue);
+    }
+
+// DENTRO DE: _showEditDialog
+    // 1. Abre o diálogo e aguarda o resultado.
+    //    Ele só retornará um `ImageModel` se a API salvar com sucesso.
+    //    Caso contrário (cancelamento ou erro), retornará `null`.
+
+    ///(ABIMAEL): Removendo o campo Data para não exibir dentro do EDITAR IMAGEM
+    ///List<String> filtradas = categorias.where((item) => item.toLowerCase() != 'data').toList();
+
+    final ImageModel? itemConfirmadoPelaAPI = await _openEditDialog(context,
+        imageItem, index, tagIds, apiValues, controllers, categoriasDinamicas);
+
+    // 2. Se o resultado NÃO for nulo, significa que a API confirmou o salvamento.
+    //    Agora sim, é seguro atualizar o estado da tela principal.
+    if (itemConfirmadoPelaAPI != null) {
+      if (_imageItems != null && index >= 0 && index < _imageItems!.length) {
+        // 3. Chama o setState para reconstruir a UI com o dado já confirmado.
+        setState(() {
+          // Atualiza a lista local
+          _imageItems![index] = itemConfirmadoPelaAPI;
+
+          // Recria o Future para que o FutureBuilder reconstrua a grade de imagens.
+          _imageItemsFuture = Future.value(List.from(_imageItems!));
+        });
+
+        // Opcional: Mostrar uma mensagem de sucesso na tela principal
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Dados atualizados com sucesso!'),
+                backgroundColor: Colors.green),
+          );
         }
       }
     }
-  } catch (e) {
-    print("Erro ao processar metadados da API: $e, usando updatedMetadata");
+    // Se `itemConfirmadoPelaAPI` for nulo, não fazemos nada, pois o usuário cancelou ou a API falhou.
   }
-  
-  // --- FIM DA CORREÇÃO ---
 
-  final newItem = ImageModel(
-    id: originalItem.id,
-    url: originalItem.url,
-    imageData: originalItem.imageData,
-    isSelected: originalItem.isSelected,
-    metadata: syncedMetadata,
-  );
+  Future<ImageModel?> _openEditDialog(
+    BuildContext context,
+    ImageModel imageItem,
+    int index,
+    Map<String, int> tagIds,
+    Map<String, String> apiValues,
+    Map<String, TextEditingController> controllers,
+    List<String> categoriasDinamicas,
+  ) async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
-  print("newItem metadata retornado: ${newItem.metadata}");
-  
-  // Mantemos a estrutura de retorno para não quebrar as outras funções
-  return {'newItem': newItem, 'response': responseBody};
-}
+    ///(ABIMAEL): Removendo o campo Data para não exibir dentro do EDITAR IMAGEM(A pedido do Andrew)
+    List<String> categoriasDinamicasFiltradas = widget.categorias
+        .where((item) => item.toLowerCase() != 'data')
+        .toList();
+
+    final updatedItem = await showDialog<ImageModel>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            bool isProcessing = false;
+
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              child: Container(
+                width: isLargeScreen ? screenWidth * 0.8 : screenWidth * 0.95,
+                constraints: BoxConstraints(
+                  maxHeight: screenHeight * 0.8,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.0),
+                  color: Colors.white,
+                ),
+                child: Stack(
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFaed513),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20.0),
+                              topRight: Radius.circular(20.0),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Editar Imagem',
+                                  style: TextStyle(
+                                    fontSize: isLargeScreen ? 20.0 : 18.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => Navigator.of(dialogContext).pop(),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: Colors.black,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding:
+                                EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  height: isLargeScreen
+                                      ? screenHeight * 0.3
+                                      : screenHeight * 0.25,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16.0),
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16.0),
+                                    child: imageItem.imageData != null &&
+                                            imageItem.imageData!.isNotEmpty
+                                        ? Image.memory(
+                                            imageItem.imageData!,
+                                            fit: BoxFit.fitHeight,
+                                          )
+                                        : Container(
+                                            color: Colors.grey[200],
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                      Icons.image_not_supported,
+                                                      color: Colors.grey,
+                                                      size: 48),
+                                                  SizedBox(height: 8),
+                                                  Text('Imagem não disponível',
+                                                      style: TextStyle(
+                                                          color: Colors.grey)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                SizedBox(height: isLargeScreen ? 24.0 : 20.0),
+                                if (categoriasDinamicasFiltradas.isNotEmpty)
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: categoriasDinamicasFiltradas
+                                        .map((categoria) {
+                                      return Container(
+                                        margin: EdgeInsets.only(
+                                            bottom:
+                                                isLargeScreen ? 16.0 : 12.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              categoria,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:
+                                                    isLargeScreen ? 16.0 : 14.0,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8.0),
+                                            TextField(
+                                              controller:
+                                                  controllers[categoria],
+                                              decoration: InputDecoration(
+                                                hintText:
+                                                    'Insira o valor para $categoria',
+                                                filled: true,
+                                                fillColor: Colors.grey[50],
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12.0),
+                                                  borderSide: BorderSide(
+                                                      color: Colors.grey[300]!),
+                                                ),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12.0),
+                                                  borderSide: BorderSide(
+                                                      color: Colors.grey[300]!),
+                                                ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12.0),
+                                                  borderSide: const BorderSide(
+                                                      color: Color(0xFFaed513),
+                                                      width: 2),
+                                                ),
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                  horizontal: 16.0,
+                                                  vertical: 12.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  )
+                                else
+                                  Container(
+                                    padding: EdgeInsets.all(
+                                        isLargeScreen ? 20.0 : 16.0),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(12.0),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.info_outline,
+                                            color: Colors.grey, size: 20),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Sem categorias disponíveis no momento.',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize:
+                                                isLargeScreen ? 14.0 : 12.0,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(20.0),
+                              bottomRight: Radius.circular(20.0),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 8.0),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey[200],
+                                      foregroundColor: Colors.black,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 24.0,
+                                        vertical: isLargeScreen ? 16.0 : 14.0,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12.0),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    onPressed: isProcessing
+                                        ? null
+                                        : () =>
+                                            Navigator.of(dialogContext).pop(),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.cancel,
+                                            size: isLargeScreen ? 18.0 : 16.0),
+                                        SizedBox(width: 8.0),
+                                        Expanded(
+                                          child: Text(
+                                            'Cancelar',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize:
+                                                  isLargeScreen ? 16.0 : 14.0,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  margin: const EdgeInsets.only(left: 8.0),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFaed513),
+                                      foregroundColor: Colors.black,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 24.0,
+                                        vertical: isLargeScreen ? 16.0 : 14.0,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12.0),
+                                      ),
+                                      elevation: 2,
+                                    ),
+                                    onPressed: isProcessing
+                                        ? null // Botão desabilitado enquanto estiver processando
+                                        : () async {
+                                            // 1. Inicia o estado de carregamento DENTRO do diálogo
+                                            //    (O `setState` aqui é do StatefulBuilder do seu diálogo)
+                                            setState(() {
+                                              isProcessing = true;
+                                            });
+
+                                            try {
+                                              // Prepara os dados para a API (seu código original, que está correto)
+                                              final Map<String, String>
+                                                  updatedMetadata =
+                                                  Map.from(imageItem.metadata);
+                                              controllers
+                                                  .forEach((key, controller) {
+                                                updatedMetadata[key] =
+                                                    controller.text.trim();
+                                              });
+
+                                              final tagsParaAPI = updatedMetadata
+                                                  .entries
+                                                  .map((entry) {
+                                                    final tagId =
+                                                        tagIds[entry.key];
+                                                    if (tagId != null) {
+                                                      return {
+                                                        'id_tag': tagId,
+                                                        'valor': entry.value
+                                                      };
+                                                    }
+                                                    return null;
+                                                  })
+                                                  .whereType<
+                                                      Map<String, dynamic>>()
+                                                  .toList();
+
+                                              // 2. Tenta salvar os dados na API
+                                              final result =
+                                                  await _saveChangesAndReturnItem(
+                                                imageItem,
+                                                updatedMetadata,
+                                                tagsParaAPI,
+                                              );
+
+                                              final ImageModel? itemConfirmado =
+                                                  result['newItem']
+                                                      as ImageModel?;
+
+                                              // 3. SUCESSO: Fecha o diálogo e retorna o item ATUALIZADO pela API.
+                                              //    Este valor será capturado pelo `await _openEditDialog(...)` na sua função principal.
+                                              if (dialogContext.mounted &&
+                                                  itemConfirmado != null) {
+                                                Navigator.of(dialogContext)
+                                                    .pop(itemConfirmado);
+                                              }
+                                            } catch (e) {
+                                              // 4. FALHA: Mostra um erro para o usuário e NÃO fecha o diálogo.
+                                              print(
+                                                  "Erro ao salvar alterações: $e");
+                                              if (dialogContext.mounted) {
+                                                ScaffoldMessenger.of(
+                                                        dialogContext)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        'Erro ao salvar: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                              // IMPORTANTE: Não chamamos Navigator.pop() aqui em caso de erro.
+                                            } finally {
+                                              // 5. Garante que o indicador de carregamento seja desativado no final,
+                                              //    seja em caso de sucesso ou falha.
+                                              if (dialogContext.mounted) {
+                                                setState(() {
+                                                  isProcessing = false;
+                                                });
+                                              }
+                                            }
+                                          },
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.save,
+                                            size: isLargeScreen ? 18.0 : 16.0),
+                                        SizedBox(width: 8.0),
+                                        Expanded(
+                                          child: Text(
+                                            'Salvar',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize:
+                                                  isLargeScreen ? 16.0 : 14.0,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (isProcessing)
+                      const Positioned.fill(
+                        child: Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFFaed513)),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    return updatedItem;
+  }
+
+// Crie esta nova função na sua classe
+  Future<ImageModel?> _uploadNewImageWithData(
+    ImageModel newItem,
+    Map<String, String> metadata,
+    List<Map<String, dynamic>> tags,
+  ) async {
+    final User? user = UserHelper().user;
+    if (user == null) throw Exception('Usuário não autenticado.');
+    if (newItem.imageData == null)
+      throw Exception('Dados da imagem não encontrados.');
+
+    // Crie um endpoint novo na sua API para isso, ex: /api/fotos/criarComDados
+    var request =
+        http.MultipartRequest('POST', Uri.parse(ApiEndpoints.salvaComparacao));
+
+    // Adiciona os campos de texto
+    request.fields['id_usuario'] = user.id.toString();
+    request.fields['data_comparacao'] =
+        metadata['Data'] ?? DateFormat('dd/MM/yyyy').format(DateTime.now());
+    request.fields['tags'] =
+        jsonEncode(tags); // Envia as tags como uma string JSON
+
+    // Adiciona o arquivo da imagem
+    request.files.add(http.MultipartFile.fromBytes(
+      'photo', // O nome do campo que sua API espera para o arquivo
+      newItem.imageData!,
+      filename: 'upload.jpg', // Um nome de arquivo padrão
+      contentType: MediaType('image', 'jpeg'),
+    ));
+
+    // Adiciona os headers de autenticação
+    request.headers.addAll(ApiService().getHeaders(includeContentType: false));
+
+    // Envia a requisição
+    final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
+    final decodedBody = jsonDecode(responseBody);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      // Assumindo que sua API retorna o objeto da foto criada com o novo ID
+      // Você precisará ajustar o `ImageModel.fromMap` se necessário
+      return ImageModel.fromMap(decodedBody['data']);
+    } else {
+      throw Exception(
+          'Falha ao fazer upload da nova imagem: ${decodedBody["message"]}');
+    }
+  }
+
+// Função corrigida - substitua a sua por esta
+  Future<Map<String, dynamic>> _saveChangesAndReturnItem(
+    ImageModel originalItem,
+    Map<String, String> updatedMetadata,
+    List<Map<String, dynamic>> tagsParaAPI,
+  ) async {
+    final User? user = UserHelper().user;
+    if (user == null || user.id == null) {
+      // A verificação de token não é necessária aqui
+      throw Exception('Usuário não autenticado.');
+    }
+
+    // Salvar localmente (esta parte está correta)
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'image_tags_${originalItem.id}', jsonEncode(updatedMetadata));
+    print("Metadados salvos localmente: $updatedMetadata");
+
+    // Preparar o corpo da requisição (esta parte está correta)
+    String dataComparacao = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    if (updatedMetadata['Data']?.isNotEmpty == true) {
+      try {
+        dataComparacao = DateFormat('dd/MM/yyyy')
+            .format(DateFormat('dd/MM/yyyy').parse(updatedMetadata['Data']!));
+      } catch (e) {
+        print("Erro ao formatar data: $e, usando data atual: $dataComparacao");
+      }
+    }
+
+    final body = {
+      'id_usuario': user.id,
+      'id_photo': originalItem.id,
+      'data_comparacao': dataComparacao,
+      'tags': tagsParaAPI,
+    };
+
+    print("Corpo enviado à API: $body");
+
+    // --- INÍCIO DA CORREÇÃO ---
+
+    // 1. sendRequest já retorna o Map<String, dynamic> do body em caso de sucesso.
+    //    Vamos chamar a variável de 'responseBody' para ficar mais claro.
+    final responseBody = await ApiService().sendRequest(
+      () => http.post(
+        Uri.parse(ApiEndpoints.salvaComparacao),
+        headers: ApiService().getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Alterações salvas com sucesso.',
+      errorMessage: 'Falha ao salvar as alterações.',
+    );
+
+    print("Resposta da API (corpo JSON): $responseBody");
+
+    // 2. Não precisamos mais verificar 'statusCode' ou 'body', pois sendRequest já fez isso.
+    //    Agora trabalhamos diretamente com a resposta decodificada.
+    final Map<String, String> syncedMetadata = Map.from(updatedMetadata);
+
+    // A lógica abaixo para sincronizar com a resposta da API é opcional,
+    // mas é uma boa prática para garantir que o estado do app reflita 100% o que está no servidor.
+    try {
+      if (responseBody['data'] != null &&
+          responseBody['data'] is List &&
+          responseBody['data'].isNotEmpty) {
+        final tagsFromApi =
+            responseBody['data'][0]['tags'] as List<dynamic>? ?? [];
+        final List<TagModel> tags = await ApiService().getTags(user.id!);
+        for (var tag in tagsFromApi) {
+          final tagId = tag['id_tag'] as int?;
+          final valor = tag['valor']?.toString() ?? '';
+          if (tagId != null) {
+            final category = tags
+                .firstWhere((t) => t.id == tagId, orElse: () => null!)
+                ?.nomeTag;
+            if (category != null) {
+              syncedMetadata[category] = valor;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print("Erro ao processar metadados da API: $e, usando updatedMetadata");
+    }
+
+    // --- FIM DA CORREÇÃO ---
+
+    final newItem = ImageModel(
+      id: originalItem.id,
+      url: originalItem.url,
+      imageData: originalItem.imageData,
+      isSelected: originalItem.isSelected,
+      metadata: syncedMetadata,
+    );
+
+    print("newItem metadata retornado: ${newItem.metadata}");
+
+    // Mantemos a estrutura de retorno para não quebrar as outras funções
+    return {'newItem': newItem, 'response': responseBody};
+  }
 
   // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
   void _showComparisonDialog(
       BuildContext context,
-    List<ImageModel> imagesToCompare,
-    List<String> categorias,
-    String subAlbumName) async {
-  final GlobalKey repaintKey = GlobalKey();
-  final GlobalKey shareRepaintKey = GlobalKey();
-  final screenWidth = MediaQuery.of(context).size.width;
-  final screenHeight = MediaQuery.of(context).size.height;
-  final isLargeScreen = screenWidth > 520 && screenHeight > 889;
-    
+      List<ImageModel> imagesToCompare,
+      List<String> categorias,
+      String subAlbumName) async {
+    final GlobalKey repaintKey = GlobalKey();
+    final GlobalKey shareRepaintKey = GlobalKey();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+
     String? _getValueForCategory(ImageModel item, String categoria) {
       // 1. Prioridade máxima: o valor no metadata.
       String? metadataValue = item.metadata[categoria];
       if (metadataValue != null && metadataValue.isNotEmpty) {
-      return metadataValue;
-    }}
-  
+        return metadataValue;
+      }
+    }
 
     final List<ImageModel> selectedImages =
         imagesToCompare.where((item) => item.isSelected).toList();
@@ -2239,13 +2352,13 @@ Future<Map<String, dynamic>> _saveChangesAndReturnItem(
     final List<ImageModel> allSelectedImages = List.from(
         selectedImages); // Todas as imagens selecionadas para miniaturas
 
-final Map<String, List<TextEditingController>> controllers = {
-  for (var categoria in categorias)
-    categoria: displayedImages.map((item) {
-      final textValue = _getValueForCategory(item, categoria);
-      return TextEditingController(text: textValue);
-    }).toList(),
-};
+    final Map<String, List<TextEditingController>> controllers = {
+      for (var categoria in categorias)
+        categoria: displayedImages.map((item) {
+          final textValue = _getValueForCategory(item, categoria);
+          return TextEditingController(text: textValue);
+        }).toList(),
+    };
 
     Future<Uint8List?> captureCard(GlobalKey key) async {
       try {
@@ -2261,214 +2374,216 @@ final Map<String, List<TextEditingController>> controllers = {
       }
     }
 
-
-Future<void> shareSaveImages() async {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Container(
-          width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
-          constraints: BoxConstraints(
-            maxHeight: screenHeight * 0.85,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: Colors.white,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header do dialog
-              Container(
-                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFaed513), Color(0xFF9bc412)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24.0),
-                    topRight: Radius.circular(24.0),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFaed513).withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Compartilhar Comparação',
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 20.0 : 18.0,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                          letterSpacing: -0.5,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.black.withOpacity(0.2),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.close_rounded,
-                          color: Colors.black,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+    Future<void> shareSaveImages() async {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Container(
+              width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
+              constraints: BoxConstraints(
+                maxHeight: screenHeight * 0.85,
               ),
-              // Conteúdo com a pré-visualização
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Usando a nova função reutilizável para criar a moldura
-                      _buildShareableFrame(
-                        key: shareRepaintKey,
-                        displayedImages: displayedImages,
-                        isLargeScreen: isLargeScreen,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: Colors.white,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header do dialog
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(height: 8),
-                      // Texto informativo
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16.0),
-                          border: Border.all(
-                            color: Colors.grey[200]!,
-                            width: 1.5,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(24.0),
+                        topRight: Radius.circular(24.0),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFaed513).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Compartilhar Comparação',
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 20.0 : 18.0,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                              letterSpacing: -0.5,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFaed513).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.info_outline_rounded,
-                                color: const Color(0xFFaed513),
-                                size: isLargeScreen ? 22.0 : 20.0,
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.black.withOpacity(0.2),
+                                width: 1.5,
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 15.0 : 13.0,
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.4,
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.black,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Conteúdo com a pré-visualização
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Usando a nova função reutilizável para criar a moldura
+                          _buildShareableFrame(
+                            key: shareRepaintKey,
+                            displayedImages: displayedImages,
+                            isLargeScreen: isLargeScreen,
+                          ),
+                          const SizedBox(height: 8),
+                          // Texto informativo
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(16.0),
+                              border: Border.all(
+                                color: Colors.grey[200]!,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFaed513)
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.info_outline_rounded,
+                                    color: const Color(0xFFaed513),
+                                    size: isLargeScreen ? 22.0 : 20.0,
+                                  ),
                                 ),
-                                textAlign: TextAlign.justify,
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Text(
+                                    'Esta imagem será compartilhada com a logo do Comppare e as informações das imagens selecionadas.',
+                                    style: TextStyle(
+                                      fontSize: isLargeScreen ? 15.0 : 13.0,
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.4,
+                                    ),
+                                    textAlign: TextAlign.justify,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Botões de ação
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[100],
+                              foregroundColor: Colors.black87,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: isLargeScreen ? 18.0 : 16.0,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16.0),
+                                side: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFaed513),
+                              foregroundColor: Colors.black,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: isLargeScreen ? 18.0 : 16.0,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16.0),
                               ),
                             ),
-                          ],
+                            onPressed: () async {
+                              // Lógica de captura e compartilhamento
+                              final Uint8List? imageBytes =
+                                  await captureCard(shareRepaintKey);
+                              Navigator.of(context)
+                                  .pop(); // Fecha o dialog de preview
+
+                              if (imageBytes == null) {
+                                _showErrorDialog(context,
+                                    'Erro ao capturar a imagem para compartilhamento.');
+                                return;
+                              }
+                              await shareImage(imageBytes);
+                            },
+                            child: const Text('Compartilhar'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-              // Botões de ação
-              Container(
-                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[100],
-                          foregroundColor: Colors.black87,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24.0,
-                            vertical: isLargeScreen ? 18.0 : 16.0,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
-                            side: BorderSide(
-                              color: Colors.grey[300]!,
-                              width: 1.5,
-                            ),
-                          ),
-                          elevation: 0,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancelar'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFaed513),
-                          foregroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24.0,
-                            vertical: isLargeScreen ? 18.0 : 16.0,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
-                        ),
-                        onPressed: () async {
-                          // Lógica de captura e compartilhamento
-                          final Uint8List? imageBytes = await captureCard(shareRepaintKey);
-                          Navigator.of(context).pop(); // Fecha o dialog de preview
-
-                          if (imageBytes == null) {
-                            _showErrorDialog(context, 'Erro ao capturar a imagem para compartilhamento.');
-                            return;
-                          }
-                          await shareImage(imageBytes);
-                        },
-                        child: const Text('Compartilhar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
-    },
-  );
-}
+    }
 
-
-Future<void> shareImages() async {
+    Future<void> shareImages() async {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -2548,10 +2663,10 @@ Future<void> shareImages() async {
                     ),
                   ),
                   _buildShareableFrame(
-                      key: shareRepaintKey, // A chave que você já usava
-                      displayedImages: displayedImages,
-                      isLargeScreen: isLargeScreen,
-                    ),
+                    key: shareRepaintKey, // A chave que você já usava
+                    displayedImages: displayedImages,
+                    isLargeScreen: isLargeScreen,
+                  ),
                   // Content com design aprimorado
                   Expanded(
                     child: SingleChildScrollView(
@@ -2871,159 +2986,179 @@ Future<void> shareImages() async {
       );
     }
 
+    Future<void> saveCard() async {
+      // Cria uma chave local para a RepaintBoundary deste dialog específico
+      final GlobalKey savePreviewKey = GlobalKey();
 
-Future<void> saveCard() async {
-  // Cria uma chave local para a RepaintBoundary deste dialog específico
-  final GlobalKey savePreviewKey = GlobalKey();
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Container(
-          width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
-          constraints: BoxConstraints(
-            maxHeight: screenHeight * 0.85,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: Colors.white,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header (similar ao de compartilhar, mas com texto diferente)
-              Container(
-                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFaed513), Color(0xFF9bc412)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24.0),
-                    topRight: Radius.circular(24.0),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Salvar Pré-visualização',
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 20.0 : 18.0,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.close_rounded, color: Colors.black, size: 22),
-                      ),
-                    ),
-                  ],
-                ),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Container(
+              width: isLargeScreen ? screenWidth * 0.9 : screenWidth * 0.95,
+              constraints: BoxConstraints(
+                maxHeight: screenHeight * 0.85,
               ),
-              // Conteúdo com a pré-visualização da moldura
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
-                  child: _buildShareableFrame(
-                    key: savePreviewKey, // Usa a chave local para este dialog
-                    displayedImages: displayedImages,
-                    isLargeScreen: isLargeScreen,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: Colors.white,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header (similar ao de compartilhar, mas com texto diferente)
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFaed513), Color(0xFF9bc412)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(24.0),
+                        topRight: Radius.circular(24.0),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Salvar Pré-visualização',
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 20.0 : 18.0,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.close_rounded,
+                                color: Colors.black, size: 22),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              // Botões de ação "Cancelar" e "Salvar"
-              Container(
-                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          padding: EdgeInsets.symmetric(vertical: isLargeScreen ? 18.0 : 16.0),
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancelar', style: TextStyle(color: Colors.black87)),
+                  // Conteúdo com a pré-visualização da moldura
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
+                      child: _buildShareableFrame(
+                        key:
+                            savePreviewKey, // Usa a chave local para este dialog
+                        displayedImages: displayedImages,
+                        isLargeScreen: isLargeScreen,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFaed513),
-                          padding: EdgeInsets.symmetric(vertical: isLargeScreen ? 18.0 : 16.0),
+                  ),
+                  // Botões de ação "Cancelar" e "Salvar"
+                  Container(
+                    padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[200],
+                              padding: EdgeInsets.symmetric(
+                                  vertical: isLargeScreen ? 18.0 : 16.0),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancelar',
+                                style: TextStyle(color: Colors.black87)),
+                          ),
                         ),
-                        onPressed: () async {
-                          // Lógica para capturar e salvar a imagem
-                          final Uint8List? imageBytes = await captureCard(savePreviewKey);
-                          Navigator.of(context).pop(); // Fecha o dialog de preview
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFaed513),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: isLargeScreen ? 18.0 : 16.0),
+                            ),
+                            onPressed: () async {
+                              // Lógica para capturar e salvar a imagem
+                              final Uint8List? imageBytes =
+                                  await captureCard(savePreviewKey);
+                              Navigator.of(context)
+                                  .pop(); // Fecha o dialog de preview
 
-                          if (imageBytes == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Erro ao capturar o card para salvamento.')),
-                            );
-                            return;
-                          }
+                              if (imageBytes == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'Erro ao capturar o card para salvamento.')),
+                                );
+                                return;
+                              }
 
-                          // Lógica de salvamento que você já tinha
-                          if (kIsWeb) {
-                            final blob = html.Blob([imageBytes], 'image/png');
-                            final url = html.Url.createObjectUrlFromBlob(blob);
-                            final anchor = html.AnchorElement(href: url)
-                              ..setAttribute('download', 'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
-                              ..click();
-                            html.Url.revokeObjectUrl(url);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Imagem baixada com sucesso!')),
-                            );
-                          } else {
-                            final result = await ImageGallerySaver.saveImage(
-                              imageBytes,
-                              quality: 100,
-                              name: "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
-                            );
-                            if (result['isSuccess']) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Card salvo na galeria com sucesso!')),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Erro ao salvar o card na galeria.')),
-                              );
-                            }
-                          }
-                        },
-                        child: const Text('Salvar na Galeria', style: TextStyle(color: Colors.black)),
-                      ),
+                              // Lógica de salvamento que você já tinha
+                              if (kIsWeb) {
+                                final blob =
+                                    html.Blob([imageBytes], 'image/png');
+                                final url =
+                                    html.Url.createObjectUrlFromBlob(blob);
+                                final anchor = html.AnchorElement(href: url)
+                                  ..setAttribute('download',
+                                      'comparison_card_${DateTime.now().millisecondsSinceEpoch}.png')
+                                  ..click();
+                                html.Url.revokeObjectUrl(url);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                          Text('Imagem baixada com sucesso!')),
+                                );
+                              } else {
+                                final result =
+                                    await ImageGallerySaver.saveImage(
+                                  imageBytes,
+                                  quality: 100,
+                                  name:
+                                      "comparison_card_${DateTime.now().millisecondsSinceEpoch}",
+                                );
+                                if (result['isSuccess']) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Card salvo na galeria com sucesso!')),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Erro ao salvar o card na galeria.')),
+                                  );
+                                }
+                              }
+                            },
+                            child: const Text('Salvar na Galeria',
+                                style: TextStyle(color: Colors.black)),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
-    },
-  );
-}
+    }
 
     final ScrollController localScrollController =
         ScrollController(); // Usar um controller local para o diálogo
@@ -3106,11 +3241,13 @@ Future<void> saveCard() async {
                     // Atualiza os controladores de texto com os dados das novas imagens exibidas
                     controllers.forEach((categoria, controllerList) {
                       // Atualiza a primeira posição (esquerda)
-                      controllerList[0].text = _getValueForCategory(displayedImages[0], categoria)!;
+                      controllerList[0].text =
+                          _getValueForCategory(displayedImages[0], categoria)!;
                       // Atualiza a segunda posição (direita)
                       // Atualiza a segunda posição (direita)
                       if (controllerList.length > 1) {
-                        controllerList[1].text = _getValueForCategory(displayedImages[1], categoria)!;
+                        controllerList[1].text = _getValueForCategory(
+                            displayedImages[1], categoria)!;
                       }
                     });
                   });
@@ -3245,63 +3382,75 @@ Future<void> saveCard() async {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                     Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            isLargeScreen ? 16.0 : 12.0,
-                            8.0,
-                            isLargeScreen ? 16.0 : 12.0,
-                            8.0,
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFaed513).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                                child: Text(
-                                  'Data',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isLargeScreen ? 14.0 : 12.0,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12.0),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      // Lê a data diretamente da propriedade .date
-                                      displayedImages[0].date ?? 'N/A',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: isLargeScreen ? 16.0 : 14.0,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black87,
+                                    Padding(
+                                      padding: EdgeInsets.fromLTRB(
+                                        isLargeScreen ? 16.0 : 12.0,
+                                        8.0,
+                                        isLargeScreen ? 16.0 : 12.0,
+                                        8.0,
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12.0,
+                                                vertical: 6.0),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFaed513)
+                                                  .withOpacity(0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
+                                            ),
+                                            child: Text(
+                                              'Data',
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:
+                                                    isLargeScreen ? 14.0 : 12.0,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12.0),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  // Lê a data diretamente da propriedade .date
+                                                  displayedImages[0].date ??
+                                                      'N/A',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontSize: isLargeScreen
+                                                        ? 16.0
+                                                        : 14.0,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: Text(
+                                                  // Lê a data diretamente da propriedade .date
+                                                  displayedImages[1].date ??
+                                                      'N/A',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontSize: isLargeScreen
+                                                        ? 16.0
+                                                        : 14.0,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const Divider(
+                                              height: 24, thickness: 1),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      // Lê a data diretamente da propriedade .date
-                                      displayedImages[1].date ?? 'N/A',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: isLargeScreen ? 16.0 : 14.0,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 24, thickness: 1),
-                            ],
-                          ),
-                        ),
 
                                     // Medidas/Categorias
                                     categorias.isNotEmpty
@@ -3755,7 +3904,6 @@ Future<void> saveCard() async {
         );
       },
     );
-
   }
 
   Future<void> shareImage(Uint8List imageBytes) async {
@@ -3797,11 +3945,10 @@ Future<void> saveCard() async {
         _showSuccessDialog('Compartilhamento realizado com sucesso!');
       } catch (e) {
         print('Erro ao compartilhar no mobile: $e');
-        _showErrorDialog(context,'Erro ao compartilhar a imagem: $e');
+        _showErrorDialog(context, 'Erro ao compartilhar a imagem: $e');
       }
     }
   }
-
 
   // Método para mostrar opções de compartilhamento na web com redes sociais
   void _showSocialShareOptionsWeb(Uint8List imageBytes) {
@@ -4112,7 +4259,7 @@ Future<void> saveCard() async {
       }
     } catch (e) {
       devtools.debugPrint('Erro no compartilhamento: $e');
-      _showErrorDialog(context,'Erro ao compartilhar: $e');
+      _showErrorDialog(context, 'Erro ao compartilhar: $e');
     }
   }
 
@@ -4413,8 +4560,8 @@ Future<void> saveCard() async {
     _showSuccessDialog('Redirecionando para o email...');
   }
 
-void _navigateToLogin(BuildContext context) {
-  Navigator.of(context).pushReplacementNamed('/login'); // Ajuste a rota '/login' conforme necessário
+  void _navigateToLogin(BuildContext context) {
+    Navigator.of(context).pushReplacementNamed(
+        '/login'); // Ajuste a rota '/login' conforme necessário
+  }
 }
-}
-
