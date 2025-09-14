@@ -1,5 +1,9 @@
 // lib/user_dashboard_screen.dart
+import 'dart:convert';
+
+import 'package:application_progress/infra/api_endponts.dart';
 import 'package:application_progress/infra/api_exception.dart';
+import 'package:application_progress/infra/repositories/ranking_repository.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
@@ -8,6 +12,7 @@ import 'package:application_progress/models/user_stats_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as httpClient;
 
 import '../controllers/plans/plans_controller.dart';
 import '../infra/api_services.dart';
@@ -43,6 +48,8 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     user = UserHelper().user ?? User.empty();
     plansController = PlansController(apiService: ApiService());
     plansController.getPlanById(user.idPlano ?? 1);
+
+    _loadStatsAndSendPoints(); 
     _updateStats();
   }
 
@@ -51,6 +58,199 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     super.didChangeDependencies();
     if (!_isLoading) {
       _fetchFoldersFromApiAndRefreshState();
+    }
+  }
+
+        /// Calcula a pontuação total com base nas estatísticas do usuário.
+    int calculateTotalPoints(UserStats stats) {
+      // REGRA ATUALIZADA: 1 ponto por álbum
+      final int albumPoints = stats.folderCount;
+
+      // REGRA ATUALIZADA: 1 ponto por subálbum
+      final int subAlbumPoints = stats.subfolderCount;
+
+      // REGRA ATUALIZADA: 1 ponto por foto
+      final int photoPoints = stats.totalFotos;
+
+      return albumPoints + subAlbumPoints + photoPoints;
+    }
+
+    /// Carrega as estatísticas, atualiza a tela e envia a pontuação para o ranking.
+    Future<void> _loadStatsAndSendPoints() async {
+      try {
+        // PASSO A: BUSCAR as estatísticas da sua API
+        final UserStats stats = await fetchUserStats(); // Sua função que já existe
+
+        // PASSO B: ATUALIZAR A TELA para mostrar os números
+        // (O setState redesenha o widget com os novos valores)
+        setState(() {
+          _folderCount = stats.folderCount;
+          _subfolderCount = stats.subfolderCount;
+          _photoCount = stats.totalFotos;
+        });
+
+        // PASSO C: CALCULAR os pontos usando a função que criamos (Peça 1)
+        final int totalPoints = calculateTotalPoints(stats);
+
+        // PASSO D: ENVIAR a pontuação final para o backend do ranking
+        await RankingRepository.sendDataRanking(points: totalPoints);
+
+        print('Sucesso! Pontuação atualizada para: $totalPoints pontos.');
+
+      } catch (e) {
+        // Tratar qualquer erro que possa ocorrer durante o processo
+        print('Ocorreu um erro: $e');
+        // Aqui você pode mostrar um SnackBar ou uma mensagem de erro para o usuário
+      }
+    }
+
+
+    Future<dynamic> sendRequest(
+    Future<httpClient.Response> Function() requestFunction, {
+    String? successMessage,
+    String? errorMessage,
+    bool decodeJson = true,
+  }) async {
+    try {
+      final response =
+          await requestFunction().timeout(const Duration(seconds: 20));
+      foundation.debugPrint(
+          '[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Adicionada verificação para corpo vazio antes de tentar decodificar
+        if (decodeJson && response.body.isNotEmpty) {
+          final dynamic responseBody = json.decode(response.body);
+          foundation.debugPrint(
+              '[sendRequest] Decoded responseBody type: ${responseBody.runtimeType}');
+
+          if (responseBody is Map<String, dynamic>) {
+            // --- INÍCIO DA CORREÇÃO ---
+
+            // Condição 1: A resposta tem um 'codRetorno' de sucesso.
+            bool hasSuccessCode = responseBody.containsKey('codRetorno') &&
+                (responseBody['codRetorno'] == 200 ||
+                    responseBody['codRetorno'] == 201);
+
+            // Condição 2 (NOVA): A resposta é um sucesso simples, com 'message' mas sem 'codRetorno'.
+            bool isSimpleSuccess = responseBody.containsKey('message') &&
+                !responseBody.containsKey('codRetorno');
+
+            // Se qualquer uma das condições de sucesso for verdadeira, retorne o corpo.
+            if (hasSuccessCode || isSimpleSuccess) {
+              return responseBody;
+            }
+            // Se for um status 200 mas o corpo indicar um erro (ex: codRetorno 400)
+            else {
+              throw ApiException(
+                responseBody['message'] ??
+                    errorMessage ??
+                    'A API retornou um erro inesperado.',
+                statusCode: response.statusCode,
+                body: response.body,
+              );
+            }
+            // --- FIM DA CORREÇÃO ---
+          } else if (responseBody is List<dynamic>) {
+            // Mantido o suporte para respostas em lista
+            return responseBody;
+          } else {
+            // Se for um tipo de JSON inesperado (nem Mapa, nem Lista)
+            throw ApiException(
+              'Resposta inválida do servidor: formato inesperado.',
+              statusCode: response.statusCode,
+              body: response.body,
+            );
+          }
+        } else {
+          // Retorna um sucesso genérico se não for para decodificar ou o corpo for vazio
+          return {
+            'status': 'success',
+            'statusCode': response.statusCode,
+            'body': response.body
+          };
+        }
+      } else {
+        // O resto da sua lógica de tratamento de erro continua aqui
+        String serverMessage = 'Falha na requisição.';
+        try {
+          final errorBody = json.decode(response.body) as Map<String, dynamic>;
+          serverMessage = errorBody['message'] ??
+              errorBody['errors']?.toString() ??
+              serverMessage;
+        } catch (_) {
+          serverMessage =
+              response.body.isNotEmpty ? response.body : serverMessage;
+        }
+        throw ApiException(
+          errorMessage ??
+              'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
+          statusCode: response.statusCode,
+          body: response.body,
+        );
+      }
+    } on httpClient.ClientException catch (e) {
+      throw ApiException('Erro de conexão: ${e.message}',
+          statusCode: 0, body: '');
+    } on FormatException {
+      throw ApiException('Resposta inválida do servidor.',
+          statusCode: 0, body: '');
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ApiException('Erro inesperado: ${e.toString()}',
+          statusCode: 0, body: '');
+    }
+  }
+
+
+    Map<String, String> getHeaders(
+      {bool includeContentType = true, String? token}) {
+    final String? authToken = TokenHelper().token;
+    foundation.debugPrint(
+        'ApiService: Token sendo acessado em getHeaders(: $authToken');
+    final Map<String, String> headers = {
+      'Accept': 'application/json',
+    };
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (authToken != null && authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $authToken';
+    } else {
+      foundation.debugPrint(
+          'Aviso: Token de autenticação não disponível no TokenHelper.');
+    }
+    return headers;
+  }
+
+
+
+    // MÉTODO fetchUserStats CORRIGIDO
+  Future<UserStats> fetchUserStats() async {
+    final user = UserHelper().user;
+    if (user == null || user.id == null) {
+      // CORRIGIDO: Passando a mensagem como argumento posicional
+      throw ApiException('Usuário não autenticado.', statusCode: 401);
+    }
+
+    final url =
+        Uri.parse('${ApiEndpoints.baseUrl}/usuarios/${user.id}/estatisticas');
+
+    // A função de requisição é criada e passada para o seu método sendRequest
+    final response =
+        await sendRequest(() => httpClient.get(url, headers: getHeaders()));
+
+    if (response is Map<String, dynamic> &&
+        response['data'] != null &&
+        response['data'] is Map<String, dynamic>) {
+      return UserStats.fromJson(response['data']);
+    } else {
+      // CORRIGIDO: Passando a mensagem como argumento posicional
+      throw ApiException('Resposta de estatísticas inválida da API.');
     }
   }
 

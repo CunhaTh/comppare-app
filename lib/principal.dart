@@ -5,6 +5,7 @@ import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/chat_button.dart';
 import 'package:application_progress/dialog_ranking.dart';
 import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/infra/repositories/ranking_repository.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
@@ -49,7 +50,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
     super.initState();
     _checkLoginStatus(); // Verifica o status de login ao iniciar
     _fetchPlansAsync();
-    
+   _buildRankingButton(context); 
     
   }
 
@@ -965,6 +966,150 @@ class _PrincipalPageState extends State<PrincipalPage> {
   );
 }*/
 
+/// Constrói o botão de acesso ao Ranking, que se adapta ao plano do usuário.
+Widget _buildRankingButton(BuildContext context) {
+  // 1. Verifica o plano do usuário ANTES de construir o botão.
+  // Ajuste esta linha se o seu ID de plano gratuito for diferente.
+  final userPlanId = UserHelper().user?.idPlano ?? 1;
+  
+  final bool isFreePlan = (userPlanId == 1);
+
+  // Define a cor do texto com base no plano.
+  final Color textColor = isFreePlan ? Colors.grey.shade600 : Colors.black;
+
+  return InkWell(
+    // 2. Ação de clique condicional.
+    onTap: () {
+      if (isFreePlan) {
+        // Se for gratuito, mostra uma mensagem rápida em vez de abrir o diálogo.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Este é um recurso para assinantes. Faça um upgrade!'),
+            backgroundColor: Colors.amber,
+          ),
+        );
+      } else {
+        // Se for premium, chama a função que busca os dados e abre o diálogo.
+        _showRankingDialog(context, currentPlan, plans);
+      }
+    },
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: isFreePlan ? Colors.grey.shade200 : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 3. Ícone e Texto
+          Column(
+            children: [
+              Icon(Icons.leaderboard, color: textColor, size: 30),
+              const SizedBox(height: 8),
+              Text(
+                'Ranking',
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+
+          // 4. Cadeado (só aparece se for plano gratuito)
+          if (isFreePlan)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12)
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.lock,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ESTA É A NOVA FUNÇÃO INTELIGENTE QUE VOCÊ DEVE ADICIONAR NA SUA TELA
+Future<void> _showRankingDialog(
+  BuildContext context,
+  // 1. A função agora recebe o plano atual e a lista de todos os planos.
+  PlanModel currentPlan,
+  List<PlanModel> allPlans,
+) async {
+  // Opcional, mas recomendado: mostrar um loading na tela principal
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => const Center(child: CircularProgressIndicator()),
+  );
+
+  try {
+    final user = UserHelper().user;
+    final userPlanId = user?.idPlano ?? 1;
+
+    // IDs dos planos que NÃO podem ver o ranking
+    final bool isBlocked = (userPlanId == 1 || userPlanId == 2);
+
+    RankingModel rankingData;
+
+    if (isBlocked) {
+      // 2. A lógica para "isBlocked" agora usa os dados que recebeu como parâmetro.
+      //    Não precisamos mais buscar na API aqui.
+      rankingData = RankingModel(
+        userPlanId: userPlanId,
+        items: [],
+        currentPlan: currentPlan,
+        allPlans: allPlans,
+      );
+    } else {
+      // Se for premium, a lógica de buscar o ranking continua a mesma.
+      final fetchedItems = await RankingRepository.getDataRanking();
+
+      for (int i = 0; i < fetchedItems.length; i++) {
+        fetchedItems[i] = RankingItemModel(
+          position: i + 1,
+          nome: fetchedItems[i].nome,
+          pontos: fetchedItems[i].pontos,
+        );
+      }
+      
+      rankingData = RankingModel(
+        userPlanId: userPlanId,
+        items: fetchedItems,
+        currentPlan: PlanModel.empty(),
+        allPlans: [],
+      );
+    }
+
+    // Fecha o dialog de loading
+    if (context.mounted) Navigator.of(context).pop();
+
+    // Abre o DialogRanking final, entregando os dados já prontos
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => DialogRanking(data: rankingData),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) Navigator.of(context).pop();
+    print("Erro ao preparar ranking: $e");
+  }
+}
+
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1177,10 +1322,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       title: 'Ranking',
                       onTap: () {
                         Navigator.pop(context);
-                        showDialog(
-                          context: context,
-                          builder: (context) => const DialogRanking(),
-                        );
+                        _showRankingDialog(context, currentPlan, plans);
                       },
                     ),
                     _buildDrawerItem(
