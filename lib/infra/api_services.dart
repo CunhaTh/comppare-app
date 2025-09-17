@@ -712,7 +712,7 @@ class ApiService {
         body: jsonEncode(body),
       ),
       successMessage: 'Subálbum criado com sucesso.',
-      errorMessage: 'Falha ao criar subálbum.',
+      errorMessage: 'Falha ao criar subálbum, Você atingiu o limite de subálbuns criados.',
     );
     return response as Map<String, dynamic>;
   }

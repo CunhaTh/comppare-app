@@ -270,7 +270,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog('Erro ao carregar subálbuns: ${e.toString()}');
+        _showErrorDialog('Erro ao carregar subálbuns:  ');
       }
     } finally {
       if (mounted) {
@@ -319,7 +319,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog('Falha ao criar o subálbum: ${e.toString()}');
+        _showErrorDialog('Falha ao criar o subálbum: Você atingiu o limite de subálbuns criados.');
       }
     }
   }

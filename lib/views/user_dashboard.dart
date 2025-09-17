@@ -42,17 +42,16 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   int? _photoCount;
   double? _spaceUsedMb;
 
-  @override
-  void initState() {
-    super.initState();
-    user = UserHelper().user ?? User.empty();
-    plansController = PlansController(apiService: ApiService());
-    plansController.getPlanById(user.idPlano ?? 1);
+ @override
+void initState() {
+  super.initState();
+  user = UserHelper().user ?? User.empty();
+  plansController = PlansController(apiService: ApiService());
+  plansController.getPlanById(user.idPlano ?? 1);
 
-    _loadStatsAndSendPoints(); 
-    _updateStats();
-  }
-
+  // CORREÇÃO: Chamamos APENAS a nossa nova função que usa os dados locais
+  _updateStatsAndSendPoints();
+}
     @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -61,48 +60,6 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     }
   }
 
-        /// Calcula a pontuação total com base nas estatísticas do usuário.
-    int calculateTotalPoints(UserStats stats) {
-      // REGRA ATUALIZADA: 1 ponto por álbum
-      final int albumPoints = stats.folderCount;
-
-      // REGRA ATUALIZADA: 1 ponto por subálbum
-      final int subAlbumPoints = stats.subfolderCount;
-
-      // REGRA ATUALIZADA: 1 ponto por foto
-      final int photoPoints = stats.totalFotos;
-
-      return albumPoints + subAlbumPoints + photoPoints;
-    }
-
-    /// Carrega as estatísticas, atualiza a tela e envia a pontuação para o ranking.
-    Future<void> _loadStatsAndSendPoints() async {
-      try {
-        // PASSO A: BUSCAR as estatísticas da sua API
-        final UserStats stats = await fetchUserStats(); // Sua função que já existe
-
-        // PASSO B: ATUALIZAR A TELA para mostrar os números
-        // (O setState redesenha o widget com os novos valores)
-        setState(() {
-          _folderCount = stats.folderCount;
-          _subfolderCount = stats.subfolderCount;
-          _photoCount = stats.totalFotos;
-        });
-
-        // PASSO C: CALCULAR os pontos usando a função que criamos (Peça 1)
-        final int totalPoints = calculateTotalPoints(stats);
-
-        // PASSO D: ENVIAR a pontuação final para o backend do ranking
-        await RankingRepository.sendDataRanking(points: totalPoints);
-
-        print('Sucesso! Pontuação atualizada para: $totalPoints pontos.');
-
-      } catch (e) {
-        // Tratar qualquer erro que possa ocorrer durante o processo
-        print('Ocorreu um erro: $e');
-        // Aqui você pode mostrar um SnackBar ou uma mensagem de erro para o usuário
-      }
-    }
 
 
     Future<dynamic> sendRequest(
@@ -229,67 +186,58 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
 
 
-    // MÉTODO fetchUserStats CORRIGIDO
-  Future<UserStats> fetchUserStats() async {
-    final user = UserHelper().user;
-    if (user == null || user.id == null) {
-      // CORRIGIDO: Passando a mensagem como argumento posicional
-      throw ApiException('Usuário não autenticado.', statusCode: 401);
-    }
 
-    final url =
-        Uri.parse('${ApiEndpoints.baseUrl}/usuarios/${user.id}/estatisticas');
 
-    // A função de requisição é criada e passada para o seu método sendRequest
-    final response =
-        await sendRequest(() => httpClient.get(url, headers: getHeaders()));
+// FUNÇÃO DE CÁLCULO LOCAL DE ESTATÍSTICAS E PONTOS
+Future<void> _updateStatsAndSendPoints() async {
+  // Usa a lista de pastas que já foi carregada na tela
+  final folders = widget.folders;
 
-    if (response is Map<String, dynamic> &&
-        response['data'] != null &&
-        response['data'] is Map<String, dynamic>) {
-      return UserStats.fromJson(response['data']);
-    } else {
-      // CORRIGIDO: Passando a mensagem como argumento posicional
-      throw ApiException('Resposta de estatísticas inválida da API.');
+  if (folders.isEmpty) {
+    setState(() {
+      _folderCount = 0;
+      _subfolderCount = 0;
+      _photoCount = 0;
+    });
+    // Se não há pastas, garante que a pontuação seja zero
+    await RankingRepository.sendDataRanking(points: 0);
+    return;
+  }
+
+  int subfolderCount = 0;
+  int photoCount = 0;
+
+  for (final folder in folders) {
+    final subs = folder.subpastas ?? [];
+    subfolderCount += subs.length;
+    for (final subfolder in subs) {
+      photoCount += subfolder.imagens?.length ?? 0;
     }
   }
 
-  // FUNÇÃO DE CÁLCULO LOCAL DE ESTATÍSTICAS
-  void _updateStats() {
-    // Usa a lista de pastas recebida pelo widget
-    final folders = widget.folders;
+  // --- LÓGICA DE PONTUAÇÃO ADICIONADA AQUI ---
+  
+  // 1. Calcula os pontos com base nos dados locais que acabamos de contar
+  final int totalPoints = folders.length + subfolderCount + photoCount;
 
-    if (folders.isEmpty) {
-      setState(() {
-        _folderCount = 0;
-        _subfolderCount = 0;
-        _photoCount = 0;
-        _spaceUsedMb = 0.0;
-      });
-      return;
-    }
+  // 2. Envia a pontuação total e correta para o ranking
+  try {
+    await RankingRepository.sendDataRanking(points: totalPoints);
+    print('Sucesso! Pontuação (baseada em stats locais) atualizada para: $totalPoints pontos.');
+  } catch (e) {
+    print('Erro ao enviar pontuação para o ranking: $e');
+  }
+  // --- FIM DA LÓGICA DE PONTUAÇÃO ---
 
-    int subfolderCount = 0;
-    int photoCount = 0;
-
-    // Itera sobre a lista que já contém a estrutura aninhada
-    for (final folder in folders) {
-      final subs = folder.subpastas ?? [];
-      subfolderCount += subs.length;
-      for (final subfolder in subs) {
-        photoCount += subfolder.imagens?.length ?? 0;
-      }
-    }
-
-    // Atualiza o estado com os valores finais calculados
+  // Finalmente, atualiza o estado da tela com os valores finais
+  if (mounted) {
     setState(() {
       _folderCount = folders.length;
       _subfolderCount = subfolderCount;
       _photoCount = photoCount;
-      // Estimativa: cada foto ocupa em média 2.5 MB.
-      _spaceUsedMb = photoCount * 2.5;
     });
   }
+}
 
 
   
@@ -328,7 +276,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           }
         });
         // Após buscar os álbuns, calcula as estatísticas
-        _updateStats();
+        _updateStatsAndSendPoints();
       }
     } catch (e) {
       //... seu tratamento de erro
@@ -706,7 +654,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     children: [
                       _buildPlanFeature(
                         icon: Icons.folder,
-                        value: '${plan.quantidadePastas} álbum',
+                        value: '${plan.quantidadePastas} ' + '${plan.nome.toLowerCase().contains('gratuito') ? 'Álbum' : 'Álbuns'}' ,
                       ),
                       const SizedBox(width: 16),
                       _buildPlanFeature(

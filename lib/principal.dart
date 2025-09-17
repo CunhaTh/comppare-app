@@ -198,7 +198,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
     } catch (e) {
       foundation.debugPrint('Erro ao criar álbum: $e');
-      _showErrorDialog('Erro ao criar álbum: ${e.toString()}');
+      _showErrorDialog('Erro ao criar álbum.');
     }
   }
 
