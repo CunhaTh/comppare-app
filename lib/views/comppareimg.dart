@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/infra/api_exception.dart';
 import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/infra/repositories/ranking_repository.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
@@ -839,98 +840,187 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     );
   }
 
-  Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
-      double screenHeight, List<ImageModel> loadedImageItems) {
-    final selectedCount =
-        loadedImageItems.where((item) => item.isSelected).length;
+  Future<void> recalculateAndUpdateScore() async {
+  print('Iniciando recálculo de pontos...');
+  try {
+    // PARTE A: CÁLCULO DOS PONTOS DE ESTADO (o que já tínhamos)
+    final List<Folder> allFolders = await _apiService.getAllFoldersForUser();
+    int albumPoints = allFolders.length;
+    int subAlbumPoints = 0;
+    int photoWithTagPoints = 0;
 
-    return AnimatedBuilder(
-      animation: _fadeAnimation,
-      builder: (context, child) {
-        return FadeTransition(
-          opacity: _fadeAnimation,
+    for (final folder in allFolders) {
+      final subs = folder.subpastas ?? [];
+      subAlbumPoints += subs.length;
+      for (final subfolder in subs) {
+        if (subfolder.imagens != null) {
+          for (final imagem in subfolder.imagens!) {
+            if (imagem.metadata != null && imagem.metadata!.isNotEmpty) {
+              photoWithTagPoints += 2;
+            }
+          }
+        }
+      }
+    }
+    final int stateScore = albumPoints + subAlbumPoints + photoWithTagPoints;
+
+    // PARTE B: LEITURA DOS PONTOS DE EVENTOS (a nova lógica)
+    final prefs = await SharedPreferences.getInstance();
+    // Lê os pontos de evento salvos no celular. Se não houver, o padrão é 0.
+    final int eventScore = prefs.getInt('event_points') ?? 0;
+
+    // 3. Calcula o total de pontos somando as duas fontes.
+    final int totalPoints = stateScore + eventScore;
+
+    // 4. Envia a pontuação ATUALIZADA para o servidor
+    await RankingRepository.instance.sendDataRanking(points: totalPoints);
+    print('Pontuação total (Estado + Eventos) atualizada para: $totalPoints pontos.');
+
+  } catch (e) {
+    print('Falha ao recalcular e enviar a pontuação: $e');
+  }
+}
+
+/// Adiciona pontos de um evento, salva localmente e atualiza o ranking.
+Future<void> addEventPoints(int pointsToAdd) async {
+  print('Adicionando $pointsToAdd pontos de evento...');
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // 1. Lê o valor atual dos pontos de evento.
+    final int currentEventPoints = prefs.getInt('event_points') ?? 0;
+    
+    // 2. Soma os novos pontos.
+    final int newEventPointsTotal = currentEventPoints + pointsToAdd;
+    
+    // 3. Salva o novo total de volta no armazenamento local.
+    await prefs.setInt('event_points', newEventPointsTotal);
+
+    // 4. IMPORTANTE: Chama a função principal para recalcular TUDO
+    //    e enviar o novo total para o servidor.
+    await recalculateAndUpdateScore();
+
+  } catch (e) {
+    print('Falha ao adicionar pontos de evento: $e');
+  }
+}
+
+
+Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
+    double screenHeight, List<ImageModel> loadedImageItems) {
+  final selectedCount =
+      loadedImageItems.where((item) => item.isSelected).length;
+
+  // Uma verificação para desabilitar o botão se nenhuma foto for selecionada
+  final bool isButtonEnabled = selectedCount > 0;
+
+  return AnimatedBuilder(
+    animation: _fadeAnimation,
+    builder: (context, child) {
+      return FadeTransition(
+        opacity: _fadeAnimation,
+        child: Container(
+          margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
           child: Container(
-            margin: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-            child: Container(
-              decoration: BoxDecoration(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              // Adiciona uma sombra mais sutil se o botão estiver desabilitado
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFaed513).withOpacity(isButtonEnabled ? 0.3 : 0.1),
+                  blurRadius: 12.0,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFaed513).withOpacity(0.3),
-                    blurRadius: 12.0,
-                    offset: const Offset(0, 6),
+                // LÓGICA PRINCIPAL AQUI
+                onTap: () {
+                  // Se o botão não estiver habilitado, não faz nada.
+                  if (!isButtonEnabled) return;
+
+                  // ==========================================================
+                  // PONTO EXATO DA CONTAGEM DE PONTOS
+                  // 1. Adiciona 2 pontos pelo evento de usar o "Comppare".
+                  // ==========================================================
+                  RankingRepository.instance.addEventPoints(2, contextId: '$idPastaPai',);
+
+                  // 2. Continua com a ação original de abrir o diálogo.
+                  _showComparisonDialog(
+                    context,
+                    loadedImageItems,
+                    categorias,
+                    widget.subAlbumName,
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isLargeScreen ? 24.0 : 20.0,
+                    vertical: isLargeScreen ? 16.0 : 14.0,
                   ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _showComparisonDialog(context, loadedImageItems,
-                      categorias, widget.subAlbumName),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isLargeScreen ? 24.0 : 20.0,
-                      vertical: isLargeScreen ? 16.0 : 14.0,
+                  decoration: BoxDecoration(
+                    // Deixa o botão um pouco mais "apagado" se estiver desabilitado
+                    gradient: LinearGradient(
+                      colors: isButtonEnabled
+                          ? [const Color(0xFFaed513), const Color(0xFF9bc412)]
+                          : [Colors.grey.shade400, Colors.grey.shade500],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFaed513), Color(0xFF9bc412)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.compare,
+                        color: Colors.black,
+                        size: isLargeScreen ? 24.0 : 20.0,
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.compare,
+                      SizedBox(width: isLargeScreen ? 12.0 : 8.0),
+                      Text(
+                        'Comppare',
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 18.0 : 16.0,
                           color: Colors.black,
-                          size: isLargeScreen ? 24.0 : 20.0,
+                          fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      if (selectedCount > 0) ...[
                         SizedBox(width: isLargeScreen ? 12.0 : 8.0),
-                        Text(
-                          'Comppare',
-                          style: TextStyle(
-                            fontSize: isLargeScreen ? 18.0 : 16.0,
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isLargeScreen ? 8.0 : 6.0,
+                            vertical: isLargeScreen ? 4.0 : 3.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          child: Text(
+                            '$selectedCount',
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 14.0 : 12.0,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        if (selectedCount > 0) ...[
-                          SizedBox(width: isLargeScreen ? 12.0 : 8.0),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isLargeScreen ? 8.0 : 6.0,
-                              vertical: isLargeScreen ? 4.0 : 3.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            child: Text(
-                              '$selectedCount',
-                              style: TextStyle(
-                                fontSize: isLargeScreen ? 14.0 : 12.0,
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-        );
-      },
-    );
-  }
-
+        ),
+      );
+    },
+  );
+}
   /// Cria o widget da moldura de comparação para ser salvo ou compartilhado.
   Widget _buildShareableFrame({
     required GlobalKey key,
@@ -1990,6 +2080,7 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                                                   itemConfirmado != null) {
                                                 Navigator.of(dialogContext)
                                                     .pop(itemConfirmado);
+                                                    await RankingRepository.instance.addEventPoints(2, contextId: '$itemConfirmado');
                                               }
                                             } catch (e) {
                                               // 4. FALHA: Mostra um erro para o usuário e NÃO fecha o diálogo.

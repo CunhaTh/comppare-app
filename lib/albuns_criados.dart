@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:js_interop';
 
 import 'package:application_progress/infra/api_exception.dart';
+import 'package:application_progress/infra/repositories/ranking_repository.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/infra/api_services.dart';
 import 'package:application_progress/models/folder_model.dart';
@@ -213,35 +214,6 @@ Future<void> _persistUpdatedTagsForGroup(Folder group) async {
   }
 
 
-    // Método para salvar tags no shared_preferences
-  /*Future<void> _saveTags(int folderId, List<String> tags) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('tags_$folderId', jsonEncode(tags));
-    debugPrint(
-        'Tags salvas localmente para folderId $folderId: ${tags.join(",")}');
-  }*/
-
-  
-  /*void _removeTagDaPasta(Folder folder, String tag) {
-    setState(() {
-      final currentTags = folder.tags ?? [];
-      if (currentTags.contains(tag)) {
-        folder.tags = currentTags.where((t) => t != tag).toList();
-        _saveTags(folder.id, folder.tags!);
-      }
-    });
-  }*/
-
-  // Método para remover tags ao deletar Subalbum
-/*  Future<void> _removeTags(int folderId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('tags_$folderId');
-    debugPrint('Tags removidas localmente para folderId $folderId');
-  }*/
-
-
-
-
 // 4. Função que ADICIONA a tag e CHAMA a função de persistência
 void _addTagToFolder(Folder group, TagModel tag) {
   setState(() {
@@ -317,12 +289,16 @@ void _addTagToFolder(Folder group, TagModel tag) {
           SnackBar(content: Text('Subálbum "$subfolderName" criado com sucesso!')),
         );
       }
+      await RankingRepository.instance.addEventPoints(2, contextId: '$newSubfolder');
+       
     } catch (e) {
       if (mounted) {
         _showErrorDialog('Falha ao criar o subálbum: Você atingiu o limite de subálbuns criados.');
       }
     }
   }
+
+
   
 
   void _showErrorDialog(String message) {
@@ -626,7 +602,10 @@ void _addTagToFolder(Folder group, TagModel tag) {
           _subfolders[groupIndex].imagens!.addAll(uploadedImages);
           devtools.debugPrint(
               'Novas imagens adicionadas ao grupo ${group.nome}: ${_subfolders[groupIndex].imagens!.length}');
+               Future.delayed(const Duration(seconds: 2));
+               RankingRepository.instance.addEventPoints(2, contextId: '$_subfolders');
         }
+        
       });
 
       if (mounted) {
@@ -693,6 +672,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
       setState(() => _isLoading = true);
       try {
         await _apiService.deleteFolder(user.id!, subfolder.id);
+        await RankingRepository.instance.addEventPoints(-2);
         
         if (mounted) {
           setState(() {

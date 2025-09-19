@@ -200,7 +200,7 @@ Future<void> _updateStatsAndSendPoints() async {
       _photoCount = 0;
     });
     // Se não há pastas, garante que a pontuação seja zero
-    await RankingRepository.sendDataRanking(points: 0);
+    await RankingRepository.instance.sendDataRanking(points: 0);
     return;
   }
 
@@ -222,7 +222,7 @@ Future<void> _updateStatsAndSendPoints() async {
 
   // 2. Envia a pontuação total e correta para o ranking
   try {
-    await RankingRepository.sendDataRanking(points: totalPoints);
+    await RankingRepository.instance.sendDataRanking(points: totalPoints);
     print('Sucesso! Pontuação (baseada em stats locais) atualizada para: $totalPoints pontos.');
   } catch (e) {
     print('Erro ao enviar pontuação para o ranking: $e');

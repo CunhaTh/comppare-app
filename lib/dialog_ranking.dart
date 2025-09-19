@@ -27,51 +27,53 @@ class DialogRanking extends StatelessWidget {
 
   const DialogRanking({super.key, required this.data});
 
-  @override
-  Widget build(BuildContext context) {
-    // IDs dos planos que não podem ver o ranking.
-    const ID_PLANO_GRATUITO = 1;
-    const ID_PLANO_AFILIADO = 2; // Ajuste se o ID for diferente
+@override
+Widget build(BuildContext context) {
+  // IDs dos planos que não podem ver o ranking.
+  const ID_PLANO_GRATUITO = 1;
+  // A constante do plano de afiliado foi removida, pois não é mais necessária aqui.
 
-    final bool isBlocked = (data.userPlanId == ID_PLANO_GRATUITO || data.userPlanId == ID_PLANO_AFILIADO);
+  // --- LÓGICA DE BLOQUEIO AJUSTADA ---
+  // Agora, a verificação checa APENAS se o plano do usuário é o gratuito.
+  final bool isBlocked = (data.userPlanId == ID_PLANO_GRATUITO || data.userPlanId == null);
 
-    return AlertDialog(
-      title: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          if (!isBlocked)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Image.asset('assets/ranking.png', width: 40)),
-                const Tooltip(
-                    message:
-                        'Você acumula pontos à medida em que usa os serviços do nosso app',
-                    child: Icon(Icons.info_outline, size: 20)),
-              ],
-            ),
-          Text(
-            isBlocked ? 'Recurso Avançado' : 'Ranking',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+  return AlertDialog(
+    title: Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        if (!isBlocked)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Image.asset('assets/ranking.png', width: 40)),
+              const Tooltip(
+                  message:
+                      'Você acumula pontos à medida em que usa os serviços do nosso app',
+                  child: Icon(Icons.info_outline, size: 20)),
+            ],
           ),
-        ],
-      ),
-      content: _buildContent(context, isBlocked),
-      actions: [
-        Center(
-          child: TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar',
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.w500)),
-          ),
+        Text(
+          isBlocked ? 'Recurso Avançado' : 'Ranking',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
       ],
-    );
-  }
+    ),
+    content: _buildContent(context, isBlocked),
+    actions: [
+      Center(
+        child: TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Fechar',
+              style: TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w500)),
+        ),
+      ),
+    ],
+  );
+}
 
   Widget _buildContent(BuildContext context, bool isBlocked) {
     if (isBlocked) {
@@ -87,13 +89,13 @@ class DialogRanking extends StatelessWidget {
 
     final userName = UserHelper().user?.nome ?? '';
     final currentUser = data.items.firstWhereOrNull(
-        (i) => i.nome == userName && (i.position ?? 0) > 5);
+        (i) => i.nome == userName && (i.position ?? 0) > 10);
 
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ...data.items.take(5).map((item) => PositionCard(
+          ...data.items.map((item) => PositionCard(
               position: item.position ?? 0,
               name: item.nome,
               points: item.pontos)),

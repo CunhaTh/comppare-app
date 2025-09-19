@@ -452,7 +452,7 @@ void _sendCadastroData() async {
   }
 
   // 2. Verificação dos outros requisitos (número, caractere especial, maiúscula, minúscula)
-  final passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).*$');
+  final passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).*$');
   if (!passwordRegex.hasMatch(senha)) {
     appSnackBaErro(
       context: context,

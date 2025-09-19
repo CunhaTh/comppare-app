@@ -29,16 +29,24 @@ class PrincipalPage extends StatefulWidget {
 }
 
 class _PrincipalPageState extends State<PrincipalPage> {
-  List<Folder> _folders = [];
   String _searchQuery = '';
+  
   final TextEditingController folderNameController = TextEditingController();
+  
   bool _isLoading = true;
+
+  bool isLoadingPlans = false;
+  
   int? selectedQuestionIndex;
-  bool isLoading = false;
+
   List<PlanModel> plans = [];
+  
   bool showMonthlyPlans = true;
+  
   Map<int, bool> selectedPlans = {};
+  
   bool isPlansLoading = true;
+  
   int? _selectedFolderId;
 
   final ApiService _apiService = ApiService(httpClient: http.Client());
@@ -47,10 +55,58 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   @override
   void initState() {
-    super.initState();
-    _checkLoginStatus(); // Verifica o status de login ao iniciar
-    _fetchPlansAsync();
-   _buildRankingButton(context); 
+  super.initState();
+  
+  _checkLoginStatus(); // Verifica o status de login ao iniciar
+  
+  _fetchPlansAsync();
+  
+  _buildRankingButton(context);
+        
+  _fetchFoldersFromApiAndRefreshState();
+
+  List<RankingModel> _cachedRankingItems = [];
+  bool _isFetchingRanking = false; 
+
+    // DENTRO DO STATE DA SUA TELA PRINCIPAL
+  Future<void> _fetchAndCacheRanking() async {
+    if (_isFetchingRanking) return;
+
+    // Não precisamos de setState aqui, pois a função _showRankingDialog já lida com o loading visual.
+    _isFetchingRanking = true;
+
+    try {
+      // 1. Busca os dados mais recentes do repositório.
+      List<RankingItemModel> fetchedItems = await RankingRepository.instance.getDataRanking();
+      
+      // Adicione um print para debug, para ter certeza que a API está retornando dados.
+      print('DEBUG: Ranking recebido da API: ${fetchedItems.length} usuários.');
+
+      // 2. CORREÇÃO: Loop para atribuir as posições corretas a cada item.
+      List<RankingItemModel> positionedItems = [];
+      for (int i = 0; i < fetchedItems.length; i++) {
+        positionedItems.add(RankingItemModel(
+          position: i + 1,
+          nome: fetchedItems[i].nome,
+          pontos: fetchedItems[i].pontos,
+          // Garanta que todos os outros campos do seu RankingItemModel sejam copiados aqui
+        ));
+      }
+      
+      // 3. Atualiza o cache com a lista correta e processada.
+      if (mounted) {
+        setState(() {
+          _cachedRankingItems = positionedItems.cast<RankingModel>();
+        });
+      }
+    } catch (e) {
+      print("Erro ao buscar ranking para o cache: $e");
+    } finally {
+      if (mounted) {
+        _isFetchingRanking = false;
+      }
+    }
+  }
     
   }
 
@@ -79,7 +135,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
         await _apiService.refreshTokenIfNeeded(); // Renova token se necessário
         if (user.pastas?.isNotEmpty ?? false) {
           setState(() {
-            _folders = user.pastas ?? [];
+            UserHelper().user!.pastas = user.pastas ?? [];
             _selectedFolderId = user.pastas!.first.id;
           });
         }
@@ -99,6 +155,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       }
     }
   }
+
 
   void _selectFolder(int folderId) {
     setState(() {
@@ -121,7 +178,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   Future<void> fetchPlans() async {
     setState(() {
-      isLoading = true;
+      isLoadingPlans = true;
     });
     try {
       final response =
@@ -146,7 +203,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       foundation.debugPrint("Erro ao buscar planos: $e");
     } finally {
       setState(() {
-        isLoading = false;
+        isLoadingPlans = false;
       });
     }
   }
@@ -165,6 +222,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
               initialPlan: currentPlan, availablePlans: plans)),
     );
   }
+
+
 
   // --- FUNÇÃO DE ATUALIZAÇÃO DE ESTADO ---
   // Esta é a nova função que você deve ter. Ela substitui a sua '_addFolder' antiga.
@@ -188,11 +247,11 @@ class _PrincipalPageState extends State<PrincipalPage> {
         caminho: response['pasta_caminho'] as String,
         principalPageDisplayName: response['estrutura_completa'] as String,
       );
-
-      setState(() {
-        _folders.add(newFolder);
-        // _updateStats(); // Se você tiver a função de estatísticas, chame-a aqui
-      });
+      UserHelper().user?.pastas!.add(newFolder);
+        Future.delayed(const Duration(seconds: 2));
+        RankingRepository.instance.addEventPoints(2, contextId: '$newFolder');
+      
+      setState(() {});
       
       // showSuccessSnackBar(context, 'Álbum "$folderName" criado com sucesso!');
 
@@ -202,36 +261,45 @@ class _PrincipalPageState extends State<PrincipalPage> {
     }
   }
 
-  Future<void> _fetchFoldersFromApiAndRefreshState() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-    });
 
-    try {
-      await _apiService.refreshUserData();
 
-      if (mounted) {
+Future<void> _fetchFoldersFromApiAndRefreshState() async {
+  if (!mounted) return;
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    // 1. Esta linha é a mais importante: ela busca os dados mais recentes
+    //    e já atualiza o nosso UserHelper.
+    await _apiService.refreshUserData();
+
+    // 2. Após a atualização, a lista de pastas mais recente já está no UserHelper.
+    //    Basta chamar setState para que a UI se redesenhe com esses novos dados.
+    if (mounted) {
+      setState(() {
+        // A linha `_folders = updatedFolders;` foi REMOVIDA, pois `_folders` não existe mais.
+        
+        // A lógica para selecionar o primeiro item da lista foi mantida,
+        // mas agora ela lê a lista direto do UserHelper.
         final user = UserHelper().user;
         final List<Folder> updatedFolders = user?.pastas ?? [];
 
-        setState(() {
-          _folders = updatedFolders;
-          if (_folders.isNotEmpty && _selectedFolderId == null) {
-            _selectedFolderId = _folders.first.id;
-          }
-        });
-      }
-    } catch (e) {
-      //... seu tratamento de erro
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+        if (updatedFolders.isNotEmpty && _selectedFolderId == null) {
+          _selectedFolderId = updatedFolders.first.id;
+        }
+      });
+    }
+  } catch (e) {
+    //... seu tratamento de erro
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+}
 
 
   Future<void> _confirmAndDeleteFolder(Folder folder) async {
@@ -244,6 +312,19 @@ class _PrincipalPageState extends State<PrincipalPage> {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
+                // 1. Verificação principal do estado de carregamento
+          if (_isLoading) {
+            // Se estiver carregando, mostra uma tela de loading simples e centralizada.
+            // O Scaffold é importante para dar um fundo branco padrão.
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFaed513), // Usando a cor primária do seu app
+                ),
+              ),
+            );
+          }
+
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
           content: Text(
@@ -269,18 +350,24 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
       try {
         await _apiService.deleteFolder(user.id!, folder.id);
+        await Future.delayed(const Duration(seconds: 2));
+        print('Álbum ${folder.id} deletado no app. Iniciando recálculo...');
+        await RankingRepository.instance.recalculateAndUpdateScore(); // Atualiza a pontuação
 
         if (mounted) {
-          setState(() {
-            _folders.removeWhere((f) => f.id == folder.id);
-          });
+          // 1. Remove o álbum DIRETAMENTE da fonte da verdade.
+          UserHelper().user?.pastas!.removeWhere((f) => f.id == folder.id);
+          
+          setState(() {});
          // showSuccessSnackBar(context, 'Album "${folder.principalPageDisplayName}" excluída com sucesso!');
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
                     'Album "${folder.principalPageDisplayName}" excluído com sucesso!')),
           );
-          await _fetchFoldersFromApiAndRefreshState();
+          
+          
         }
       } on ApiException catch (e) {
         foundation.debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
@@ -555,43 +642,43 @@ class _PrincipalPageState extends State<PrincipalPage> {
   // --- FUNÇÃO ATUALIZADA ---
   // Agora ela chama a nova função _addFolderAndUpdateState.
   Future<void> _handleCreateAlbum(Function setDialogState,
-      BuildContext dialogContext, bool isDialogLoading) async {
-    String folderName = folderNameController.text.trim();
-    if (folderName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, insira um nome para o álbum.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setDialogState(() {
-      isDialogLoading = true;
-    });
-
-    try {
-      // Chama a nova função que já cuida da API e do setState
-      await _addFolderAndUpdateState(folderName);
-
-      if (context.mounted) {
-        Navigator.of(dialogContext).pop();
-        folderNameController.clear();
-      }
-    } catch (e) {
-      foundation.debugPrint('Erro no modal de criar álbum: $e');
-      if (context.mounted) {
-         Navigator.of(dialogContext).pop();
+        BuildContext dialogContext, bool isDialogLoading) async {
+      String folderName = folderNameController.text.trim();
+      if (folderName.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao criar álbum: $e'),
+          const SnackBar(
+            content: Text('Por favor, insira um nome para o álbum.'),
             backgroundColor: Colors.red,
           ),
         );
+        return;
+      }
+
+      setDialogState(() {
+        isDialogLoading = true;
+      });
+
+      try {
+        // Chama a nova função que já cuida da API e do setState
+        await _addFolderAndUpdateState(folderName);
+
+        if (context.mounted) {
+          Navigator.of(dialogContext).pop();
+          folderNameController.clear();
+        }
+      } catch (e) {
+        foundation.debugPrint('Erro no modal de criar álbum: $e');
+        if (context.mounted) {
+          Navigator.of(dialogContext).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao criar álbum: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
-  }
 
   Widget _buildHeaderSection() {
     return GestureDetector(
@@ -732,7 +819,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   Widget _buildAlbumsSection() {
     return Expanded(
-      child: _folders.isEmpty && !_isLoading
+      child: UserHelper().user!.pastas!.isEmpty && !_isLoading
           ? _buildEmptyState()
           : _buildAlbumsList(),
     );
@@ -779,7 +866,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
   }
 
   Widget _buildAlbumsList() {
-    final filteredFolders = _folders.where((folder) {
+    final filteredFolders = UserHelper().user!.pastas!.where((folder) {
       if (_searchQuery.isEmpty) return true;
       return folder.pageDisplayName
           .toLowerCase()
@@ -1044,11 +1131,10 @@ Widget _buildRankingButton(BuildContext context) {
 // ESTA É A NOVA FUNÇÃO INTELIGENTE QUE VOCÊ DEVE ADICIONAR NA SUA TELA
 Future<void> _showRankingDialog(
   BuildContext context,
-  // 1. A função agora recebe o plano atual e a lista de todos os planos.
   PlanModel currentPlan,
   List<PlanModel> allPlans,
 ) async {
-  // Opcional, mas recomendado: mostrar um loading na tela principal
+  // Mostra um loading na tela principal
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -1057,26 +1143,30 @@ Future<void> _showRankingDialog(
 
   try {
     final user = UserHelper().user;
-    final userPlanId = user?.idPlano ?? 1;
+    // 1. Pega o id do plano, que pode ser nulo. Não atribuímos um valor padrão aqui.
+    final int? userPlanId = user?.idPlano;
 
-    // IDs dos planos que NÃO podem ver o ranking
-    final bool isBlocked = (userPlanId == 1 || userPlanId == 2);
+    // --- CORREÇÃO PRINCIPAL ---
+    // 2. A verificação agora bloqueia se o plano for NULO ou se for o plano gratuito (ID 1).
+    const ID_PLANO_GRATUITO = 1;
+    final bool isBlocked = (userPlanId == null || userPlanId == ID_PLANO_GRATUITO);
 
     RankingModel rankingData;
 
     if (isBlocked) {
-      // 2. A lógica para "isBlocked" agora usa os dados que recebeu como parâmetro.
-      //    Não precisamos mais buscar na API aqui.
+      // Se for bloqueado, prepara os dados para a mensagem de upgrade
       rankingData = RankingModel(
+        // Passamos o userPlanId (que pode ser 1 ou null)
         userPlanId: userPlanId,
         items: [],
         currentPlan: currentPlan,
         allPlans: allPlans,
       );
     } else {
-      // Se for premium, a lógica de buscar o ranking continua a mesma.
-      final fetchedItems = await RankingRepository.getDataRanking();
+      // Se não for bloqueado, busca os dados do ranking
+      final fetchedItems = await RankingRepository.instance.getDataRanking();
 
+      // Atribui as posições
       for (int i = 0; i < fetchedItems.length; i++) {
         fetchedItems[i] = RankingItemModel(
           position: i + 1,
@@ -1096,7 +1186,7 @@ Future<void> _showRankingDialog(
     // Fecha o dialog de loading
     if (context.mounted) Navigator.of(context).pop();
 
-    // Abre o DialogRanking final, entregando os dados já prontos
+    // Abre o DialogRanking final com os dados corretos
     if (context.mounted) {
       showDialog(
         context: context,
@@ -1106,6 +1196,7 @@ Future<void> _showRankingDialog(
   } catch (e) {
     if (context.mounted) Navigator.of(context).pop();
     print("Erro ao preparar ranking: $e");
+    // Opcional: Mostrar um SnackBar de erro para o usuário
   }
 }
 
@@ -1115,6 +1206,22 @@ Future<void> _showRankingDialog(
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
+
+        // 1. Verificação principal do estado de carregamento
+    if (_isLoading) {
+      // Se estiver carregando, mostra uma tela de loading simples e centralizada.
+      // O Scaffold é importante para dar um fundo branco padrão.
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFaed513), // Usando a cor primária do seu app
+          ),
+        ),
+      );
+    }
+    
+    // A lista de álbuns para exibição vem DIRETAMENTE da fonte da verdade.
+    final List<Folder> foldersToDisplay = UserHelper().user?.pastas ?? [];
 
     return Scaffold(
       floatingActionButton: const ChatButton(),
@@ -1313,7 +1420,7 @@ Future<void> _showRankingDialog(
                         showDialog(
                           context: context,
                           builder: (context) =>
-                              UserDashboardScreen(folders: _folders), // <-- CORRIGIDO: Passando a lista de Albuns
+                              UserDashboardScreen(folders: foldersToDisplay,), // <-- CORRIGIDO: Passando a lista de Albuns
                         );
                       },
                     ),
