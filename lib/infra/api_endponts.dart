@@ -12,10 +12,13 @@ class ApiEndpoints {
         : 'https://api.comppare.com.br/api';
   }
   // recupera os valores dos albuns
-  static const String recoverFolder = '/pasta/recuperar'; // Remover '/api' daqui
+  static String get recoverFolder => '$baseUrl/pasta/recuperar';
 
   // atualiza os albuns
   static String get updateFolders => '$baseUrl/pasta/atualizar'; 
+
+  //Recupera os todos os albuns
+  static String get listAllUserFolders => '$baseUrl/usuarios/pastas/2';
 
   /// Endpoint para criar uma assinatura de vendas (admin).
   static String get createSignature => '$baseUrl/admin/vendas/criar-assinatura';
@@ -90,10 +93,4 @@ class ApiEndpoints {
 
   // O endpoint listAllUserFolders foi removido, pois as pastas agora vêm da autenticação.
 
-  /// ENDPOINT EXISTENTE: Para recuperar os detalhes de UMA pasta específica pelo ID.
-  /// Este endpoint é o que você usou no Insomnia e retorna uma pasta com suas imagens.
-  /// Será usado na `AlbunsCriadosPage` para obter o conteúdo de uma pasta específica.
-  static String getFolderDetails(int idFolder) {
-    return '$baseUrl/pasta/recuperar?idPasta=$idFolder';
-  }
 }

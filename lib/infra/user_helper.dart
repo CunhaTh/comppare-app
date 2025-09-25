@@ -16,6 +16,7 @@ class User {
   final String? token;
   final String? refreshToken;
   List<Folder>? pastas;
+  int? score; // <-- ADICIONADO: Nova propriedade para a pontuação
 
   User({
     required this.id,
@@ -28,6 +29,7 @@ class User {
     this.token,
     this.refreshToken,
     this.pastas,
+    this.score, // <-- ADICIONADO: Ao construtor
   });
 
   Map<String, dynamic> toMap() {
@@ -41,6 +43,7 @@ class User {
       'token': token,
       'refreshToken': refreshToken,
       'pastas': pastas?.map((pasta) => pasta.toMap()).toList(),
+      'score': score, // <-- ADICIONADO: Ao método toMap
     };
   }
 
@@ -64,21 +67,23 @@ class User {
       token: map['token'] as String?,
       refreshToken: map['refreshToken'] as String?,
       pastas: parsedPastas,
+      score: map['score'] as int?, // <-- ADICIONADO: Ao método fromMap
     );
   }
 
   factory User.empty() => User(
-        id: 0,
-        nome: "",
-        cpf: "",
-        senha: "",
-        telefone: "",
-        idPlano: 0,
-        email: "",
-        token: "",
-        refreshToken: "",
-        pastas: [],
-      );
+      id: 0,
+      nome: "",
+      cpf: "",
+      senha: "",
+      telefone: "",
+      idPlano: 0,
+      email: "",
+      token: "",
+      refreshToken: "",
+      pastas: [],
+      score: 0, // <-- ADICIONADO: Pontuação inicial
+    );
 }
 
 class UserHelper {
@@ -137,6 +142,20 @@ class UserHelper {
     } else {
       foundation.debugPrint(
           'UserHelper: Não foi possível atualizar pastas, usuário não está no cache.');
+    }
+  }
+
+    Future<void> updateUserScore(int newScore) async {
+    if (_user != null) {
+      // Cria uma nova instância de User para atualizar o score
+      // Você pode criar um método de cópia (copyWith) na classe User para isso
+      _user!.score = newScore;
+      await _box.write(_userKey, json.encode(_user!.toMap()));
+      foundation.debugPrint(
+          'UserHelper: Pontuação do usuário atualizada para: $newScore');
+    } else {
+      foundation.debugPrint(
+          'UserHelper: Não foi possível atualizar a pontuação, usuário não está no cache.');
     }
   }
 

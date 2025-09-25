@@ -242,7 +242,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog('Erro ao carregar subálbuns:  ');
+        _showErrorDialog('Erro ao carregar subálbuns: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -289,7 +289,8 @@ void _addTagToFolder(Folder group, TagModel tag) {
           SnackBar(content: Text('Subálbum "$subfolderName" criado com sucesso!')),
         );
       }
-      await RankingRepository.instance.addEventPoints(2, contextId: '$newSubfolder');
+      
+      await RankingRepository.instance.addSubAlbumPoints();
        
     } catch (e) {
       if (mounted) {
@@ -595,18 +596,20 @@ void _addTagToFolder(Folder group, TagModel tag) {
       devtools.debugPrint(
           'uploadedImages retornado: ${uploadedImages.length} itens');
 
-      setState(() {
+     /* setState(() {
         final int groupIndex = _subfolders.indexOf(group);
         if (groupIndex != -1) {
           _subfolders[groupIndex].imagens ??= [];
           _subfolders[groupIndex].imagens!.addAll(uploadedImages);
           devtools.debugPrint(
               'Novas imagens adicionadas ao grupo ${group.nome}: ${_subfolders[groupIndex].imagens!.length}');
+               
                Future.delayed(const Duration(seconds: 2));
-               RankingRepository.instance.addEventPoints(2, contextId: '$_subfolders');
+               
+               RankingRepository.instance.recalculateAndUpdateScore();  
         }
         
-      });
+      });*/
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -615,6 +618,10 @@ void _addTagToFolder(Folder group, TagModel tag) {
                   '${uploadedImages.length} imagem(ns) adicionada(s) com sucesso!')),
         );
       }
+       // 3. Após o sucesso, busca TODOS os dados do servidor novamente.
+      // Isso garante que os IDs das novas imagens estarão corretos no estado do seu app.
+      await _fetchSubfoldersFromApiAndRefreshState();
+
     } on ApiException catch (e) {
       devtools.debugPrint('Erro em _addMultipleImages (upload): ${e.message}');
       if (mounted) {
@@ -672,7 +679,8 @@ void _addTagToFolder(Folder group, TagModel tag) {
       setState(() => _isLoading = true);
       try {
         await _apiService.deleteFolder(user.id!, subfolder.id);
-        await RankingRepository.instance.addEventPoints(-2);
+        
+        await RankingRepository.instance.removeSubAlbumPoints();
         
         if (mounted) {
           setState(() {

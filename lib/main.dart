@@ -4,6 +4,7 @@ import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/principal.dart' hide LoginScreen;
 import 'package:application_progress/views/SplashScreen.dart';
+import 'package:application_progress/views/auth_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -75,7 +76,7 @@ class MyApp extends StatelessWidget {
                   ),
                 );
               default:
-                return MaterialPageRoute(builder: (_) => const SplashScreen()
+                return MaterialPageRoute(builder: (_) => const AuthWrapper()
                     //PrincipalPage()
                     // const AuthWrapper(),
                     //Urlimg()

@@ -1,180 +1,228 @@
 // lib/infra/repositories/ranking_repository.dart
 
-import 'dart:convert';
 import 'dart:developer';
-
-import 'package:application_progress/models/folder_model.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../api_endponts.dart';
-import '../api_services.dart';
-import '../token_helper.dart';
-import '../user_helper.dart';
+import 'package:application_progress/models/folder_model.dart';
+import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/infra/user_helper.dart';
 
-// ==========================================================
-// PASSO 1: Transformando em uma classe Singleton
-// Isso garante que teremos apenas uma instância "inteligente" do repositório no app.
-// ==========================================================
 class RankingRepository {
   RankingRepository._privateConstructor();
   static final RankingRepository instance = RankingRepository._privateConstructor();
 
-  // ==========================================================
-  // PASSO 2: Adicionando as dependências necessárias
-  // ==========================================================
   final ApiService _apiService = ApiService();
 
   // ==========================================================
-  // AJUSTE: Métodos agora são de instância (não são mais 'static')
+  // PONTOS: Defina os valores para cada ação aqui
   // ==========================================================
+  static const int pointsPerAlbum = 2;
+  static const int pointsPerSubAlbum = 1;
+  static const int pointsPerPhotoWithTag = 2;
 
-  /// Busca a lista de usuários já classificada pela API.
+  /// Busca, processa e retorna a lista de usuários classificada.
   Future<List<RankingItemModel>> getDataRanking() async {
+    log('Buscando dados do ranking...');
     try {
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.rankingClassification),
-        headers: {
-          'Authorization': 'Bearer ${TokenHelper().token}',
-        },
-      );
-
-      if (response.statusCode != 200) {
-        debugPrint(
-          '(Erro ao trazer os dados do ranking) CODE: ${response.statusCode}, MESSAGE: ${response.reasonPhrase}',
-        );
-        return [];
-      }
-
-      final data = json.decode(response.body) as List;
+      final List<dynamic> data = await _apiService.getRankingClassification();
+      
       List<RankingItemModel> items = data
           .map<RankingItemModel>((json) => RankingItemModel.fromMap(json))
           .toList();
 
-      // LÓGICA MOVIDA: A atribuição de posições agora acontece aqui dentro.
       for (int i = 0; i < items.length; i++) {
         items[i].position = i + 1;
       }
-
       return items;
     } catch (e) {
-      debugPrint('(Erro ao trazer os dados do ranking) $e');
+      log('Falha em getDataRanking: $e');
       return [];
     }
   }
 
-  /// Envia a pontuação total de um usuário para a API.
-  Future<bool> sendDataRanking({required int points}) async {
-    try {
-      var user = UserHelper().user;
-
-      // Regra de negócio: não envia pontuação para o plano gratuito
-      if (user?.idPlano == 1) return true;
-      if (user?.id == null) return false;
-
-      final response = await http.post(
-        Uri.parse(ApiEndpoints.updateRanking),
-        body: {'usuario': user!.id.toString(), 'pontos': points.toString()},
-        headers: {
-          'Authorization': 'Bearer ${TokenHelper().token}',
-        },
-      );
-
-      if (response.statusCode != 200) {
-        debugPrint(
-          '(Erro ao atualizar os dados do ranking) CODE: ${response.statusCode}, MESSAGE: ${response.reasonPhrase}',
-        );
-        return false;
-      }
-      return true;
-    } catch (e) {
-      debugPrint('(Erro ao atualizar os dados do ranking) $e');
-      return false;
+  /// MÉTODO PRIVADO: Envia a pontuação total para a API.
+  Future<void> _sendDataRanking({required int points}) async {
+    final user = UserHelper().user;
+    if (user?.idPlano == 1 || user?.id == null) {
+      log('Usuário do plano gratuito ou não autenticado. Pontuação não será enviada.');
+      return;
     }
+    await _apiService.updateRankingScore(userId: user!.id!, points: points);
   }
 
   // ==========================================================
-  // NOVOS MÉTODOS INTELIGENTES
+  // NOVAS FUNÇÕES: LÓGICA DE PONTUAÇÃO INCREMENTAL
   // ==========================================================
 
-  /// NOVO MÉTODO INTELIGENTE 1: Adiciona pontos de eventos (compare, salvar, etc.)
-  /// e dispara o recálculo total.
-/// Adiciona pontos de um evento a um contexto específico (álbum/subálbum).
-Future<void> addEventPoints(int pointsToAdd, {String? contextId}) async {
-  // Se não houver contexto, não fazemos nada.
-  // Isso evita que pontos sejam adicionados "no vácuo".
-  if (contextId == null) {
-    log('Contexto nulo para addEventPoints. Nenhum ponto adicionado.');
-    return;
-  }
-  
-  log('Adicionando $pointsToAdd pontos de evento ao contexto $contextId...');
+/// Adiciona pontuação para um álbum.
+Future<void> addAlbumPoints() async {
+  final user = UserHelper().user;
+  if (user == null || user.idPlano == 1) return;
   try {
-    final prefs = await SharedPreferences.getInstance();
+    final int newScore = (user.score ?? 0) + pointsPerAlbum;
     
-    // A chave agora é única para cada álbum/subálbum. Ex: 'event_points_album_123'
-    final String key = 'event_points_$contextId';
-    
-    final int currentEventPoints = prefs.getInt(key) ?? 0;
-    final int newEventPointsTotal = currentEventPoints + pointsToAdd;
-    await prefs.setInt(key, newEventPointsTotal);
+    // 1. Envia a nova pontuação para a API
+    await _sendDataRanking(points: newScore);
 
-    await recalculateAndUpdateScore();
+    // 2. Atualiza o score localmente no UserHelper
+    await UserHelper().updateUserScore(newScore);
+
+    log('[Ranking Increment] Pontos adicionados por álbum. Nova pontuação: $newScore');
   } catch (e) {
-    log('Falha ao adicionar pontos de evento: $e');
+    log('Falha ao adicionar pontos por álbum: $e');
   }
 }
 
-/// Calcula a pontuação TOTAL (Estado + Eventos) e envia para o ranking.
-Future<void> recalculateAndUpdateScore() async {
-  log('Iniciando recálculo de pontos...');
-  try {
-    final List<Folder> allFolders = await _apiService.getAllFoldersForUser();
-    log('DEBUG: A API retornou ${allFolders.length} álbuns para o recálculo.');
+  /// Adiciona pontuação para um subálbum.
+  Future<void> addSubAlbumPoints() async {
+    final user = UserHelper().user;
+    if (user == null || user.idPlano == 1) return;
+    try {
+      final int newScore = (user.score ?? 0) + pointsPerSubAlbum;
+      await _sendDataRanking(points: newScore);
+      log('[Ranking Increment] Pontos adicionados por subálbum. Nova pontuação: $newScore');
+      
+      // 2. Atualiza o score localmente no UserHelper
+      await UserHelper().updateUserScore(newScore);
+    
+    } catch (e) {
+      log('Falha ao adicionar pontos por subálbum: $e');
+    }
+  }
 
-    int albumPoints = allFolders.length * 1;
-    int subAlbumPoints = 0;
-    int photoWithTagPoints = 0;
+  /// Adiciona pontuação para uma foto com tags.
+  Future<void> addPhotoWithTagPoints() async {
+    final user = UserHelper().user;
+    if (user == null || user.idPlano == 1) return;
+    try {
+      final int newScore = (user.score ?? 0) + pointsPerPhotoWithTag;
+      await _sendDataRanking(points: newScore);
+      log('[Ranking Increment] Pontos adicionados por foto com tag. Nova pontuação: $newScore');
 
-    // INÍCIO DA MUDANÇA
-    int totalEventScore = 0;
-    final prefs = await SharedPreferences.getInstance();
+      // 2. Atualiza o score localmente no UserHelper
+      await UserHelper().updateUserScore(newScore);
 
-    for (final folder in allFolders) {
-      // Soma os pontos de evento salvos para este álbum principal
-      totalEventScore += prefs.getInt('event_points_album_${folder.id}') ?? 0;
+    } catch (e) {
+      log('Falha ao adicionar pontos por foto com tag: $e');
+    }
+  }
 
-      final subs = folder.subpastas ?? [];
-      subAlbumPoints += subs.length * 1;
-      for (final subfolder in subs) {
-        // Soma os pontos de evento salvos para este subálbum
-        totalEventScore += prefs.getInt('event_points_subalbum_${subfolder.id}') ?? 0;
+    ///FUNÇÕES PARA SUBTRAIR OS PONTOS
 
-        if (subfolder.imagens != null) {
-          for (final imagem in subfolder.imagens!) {
-            if (imagem.metadata != null && imagem.metadata!.isNotEmpty) {
-              photoWithTagPoints += 2;
+    /// Subtrai pontuação quando um álbum é removido.
+  Future<void> removeAlbumPoints() async {
+    final user = UserHelper().user;
+    if (user == null || user.idPlano == 1) return;
+    try {
+      final int newScore = (user.score ?? 0) - pointsPerAlbum;
+      // Garante que a pontuação não seja negativa.
+      final int finalScore = newScore < 0 ? 0 : newScore; 
+      
+      await _sendDataRanking(points: finalScore);
+      await UserHelper().updateUserScore(finalScore);
+
+      log('[Ranking Decrement] Pontos removidos por álbum. Nova pontuação: $finalScore');
+    } catch (e) {
+      log('Falha ao remover pontos por álbum: $e');
+    }
+  }
+
+  /// Subtrai pontuação quando um subálbum é removido.
+  Future<void> removeSubAlbumPoints() async {
+    final user = UserHelper().user;
+    if (user == null || user.idPlano == 1) return;
+    try {
+      final int newScore = (user.score ?? 0) - pointsPerSubAlbum;
+      final int finalScore = newScore < 0 ? 0 : newScore;
+      
+      await _sendDataRanking(points: finalScore);
+      await UserHelper().updateUserScore(finalScore);
+
+      log('[Ranking Decrement] Pontos removidos por subálbum. Nova pontuação: $finalScore');
+    } catch (e) {
+      log('Falha ao remover pontos por subálbum: $e');
+    }
+  }
+
+  /// Subtrai pontuação quando uma foto com tags é removida.
+  Future<void> removePhotoWithTagPoints() async {
+    final user = UserHelper().user;
+    if (user == null || user.idPlano == 1) return;
+    try {
+      final int newScore = (user.score ?? 0) - pointsPerPhotoWithTag;
+      final int finalScore = newScore < 0 ? 0 : newScore;
+      
+      await _sendDataRanking(points: finalScore);
+      await UserHelper().updateUserScore(finalScore);
+
+      log('[Ranking Decrement] Pontos removidos por foto com tag. Nova pontuação: $finalScore');
+    } catch (e) {
+      log('Falha ao remover pontos por foto com tag: $e');
+    }
+  }
+
+    /// Calcula a pontuação TOTAL baseada no estado atual do usuário e envia para o ranking.
+    Future<void> recalculateAndUpdateScore() async {
+      log('[Ranking Debug] --- INÍCIO DO RECÁLCULO DETALHADO ---');
+      try {
+        // 1. Busca todos os dados mais recentes do usuário
+        final List<Folder> allFolders = await _apiService.getAllFoldersForUser();
+        log('[Ranking Debug] Álbuns principais encontrados: ${allFolders.length}');
+
+        // 2. Zera os contadores
+        int totalSubFolders = 0;
+        int totalPhotosWithTags = 0;
+
+        // Itera para contar os itens internos
+        for (final folder in allFolders) {
+          log('[Ranking Debug] Verificando álbum: "${folder.nome}" (ID: ${folder.id})');
+          final subs = folder.subpastas ?? [];
+          totalSubFolders += subs.length;
+          log('[Ranking Debug] -> Encontrado(s) ${subs.length} subálbun(s) neste álbum.');
+
+          for (final subfolder in subs) {
+            if (subfolder.imagens != null) {
+              int photosInThisSubfolder = 0;
+              for (final imagem in subfolder.imagens!) {
+                if (imagem.metadata != null && imagem.metadata!.isNotEmpty) {
+                  totalPhotosWithTags++;
+                  photosInThisSubfolder++;
+                }
+              }
+              if (photosInThisSubfolder > 0) {
+                log('[Ranking Debug] ---> Encontrada(s) $photosInThisSubfolder foto(s) com tags no subálbum "${subfolder.nome}".');
+              }
             }
           }
         }
+
+        // 3. Calcula os pontos com base na contagem
+        int albumPoints = allFolders.length * pointsPerAlbum;
+        int subAlbumPoints = totalSubFolders * pointsPerSubAlbum;
+        int photoWithTagPoints = totalPhotosWithTags * pointsPerPhotoWithTag;
+
+        log('[Ranking Debug] ---------------------------------------------');
+        log('[Ranking Debug] CÁLCULO FINAL:');
+        log('[Ranking Debug] Pontos de Álbuns: $albumPoints (${allFolders.length} x $pointsPerAlbum)');
+        log('[Ranking Debug] Pontos de Subálbuns: $subAlbumPoints ($totalSubFolders x $pointsPerSubAlbum)');
+        log('[Ranking Debug] Pontos de Fotos com Tags: $photoWithTagPoints ($totalPhotosWithTags x $pointsPerPhotoWithTag)');
+        log('[Ranking Debug] ---------------------------------------------');
+
+        // 4. Soma tudo para obter a pontuação final
+        final int totalPoints = albumPoints + subAlbumPoints + photoWithTagPoints;
+
+        // 5. Envia a pontuação total e final para a API
+        await _sendDataRanking(points: totalPoints);
+        log('[Ranking Debug] PONTUAÇÃO TOTAL ENVIADA: $totalPoints pontos.');
+        log('[Ranking Debug] --- FIM DO RECÁLCULO ---');
+
+      } catch (e) {
+        log('Falha ao recalcular e enviar a pontuação: $e');
       }
     }
-    // FIM DA MUDANÇA
-
-    final int stateScore = albumPoints + subAlbumPoints + photoWithTagPoints;
-    final int totalPoints = stateScore + totalEventScore;
-
-    await sendDataRanking(points: totalPoints);
-    log('Pontuação total (Estado + Eventos) atualizada para: $totalPoints pontos.');
-
-  } catch (e) {
-    log('Falha ao recalcular e enviar a pontuação: $e');
-  }
-}
 }
 
-// O modelo de dados continua o mesmo
+// O modelo de dados (coloque em um arquivo separado se desejar)
 class RankingItemModel {
   final String nome;
   final String pontos;
@@ -188,11 +236,8 @@ class RankingItemModel {
 
   factory RankingItemModel.fromMap(Map<String, dynamic> map) {
     return RankingItemModel(
-      nome: map['nome'],
+      nome: map['nome'] ?? 'Usuário anônimo',
       pontos: map['pontos']?.toString() ?? '0',
     );
   }
 }
-
-// A função global getPositions não é mais necessária, pois sua lógica
-// foi movida para dentro do método getDataRanking.

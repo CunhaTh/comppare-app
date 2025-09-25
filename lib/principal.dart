@@ -57,11 +57,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
   void initState() {
   super.initState();
   
-  _checkLoginStatus(); // Verifica o status de login ao iniciar
-  
   _fetchPlansAsync();
-  
-  _buildRankingButton(context);
         
   _fetchFoldersFromApiAndRefreshState();
 
@@ -115,44 +111,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     super.didChangeDependencies();
     if (!_isLoading) {
       _fetchFoldersFromApiAndRefreshState();
-    }
-  }
-
-  Future<void> _checkLoginStatus() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      await TokenHelper().init(); // Inicializa o TokenHelper
-      await UserHelper().init(); // Inicializa o UserHelper
-
-      final token = TokenHelper().token;
-      final user = UserHelper().user;
-
-      if (token != null && token.isNotEmpty && user != null) {
-        // Token e usuário válidos, restaura o estado
-        await _apiService.refreshTokenIfNeeded(); // Renova token se necessário
-        if (user.pastas?.isNotEmpty ?? false) {
-          setState(() {
-            UserHelper().user!.pastas = user.pastas ?? [];
-            _selectedFolderId = user.pastas!.first.id;
-          });
-        }
-        await _fetchFoldersFromApiAndRefreshState(); // Sincroniza com a API
-      } else {
-        // Nenhum token ou usuário, redireciona para login
-        _navigateToLogin();
-      }
-    } catch (e) {
-      foundation.debugPrint('Erro ao verificar status de login: $e');
-      _navigateToLogin();
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -248,8 +206,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
         principalPageDisplayName: response['estrutura_completa'] as String,
       );
       UserHelper().user?.pastas!.add(newFolder);
-        Future.delayed(const Duration(seconds: 2));
-        RankingRepository.instance.addEventPoints(2, contextId: '$newFolder');
       
       setState(() {});
       
@@ -273,7 +229,6 @@ Future<void> _fetchFoldersFromApiAndRefreshState() async {
     // 1. Esta linha é a mais importante: ela busca os dados mais recentes
     //    e já atualiza o nosso UserHelper.
     await _apiService.refreshUserData();
-
     // 2. Após a atualização, a lista de pastas mais recente já está no UserHelper.
     //    Basta chamar setState para que a UI se redesenhe com esses novos dados.
     if (mounted) {
@@ -302,96 +257,97 @@ Future<void> _fetchFoldersFromApiAndRefreshState() async {
 }
 
 
-  Future<void> _confirmAndDeleteFolder(Folder folder) async {
-    final user = UserHelper().user;
-    if (user == null || user.id == null || !TokenHelper().hasToken()) {
-      _navigateToLogin();
-      return;
-    }
+// Função para deletar um álbum (VERSÃO OTIMIZADA)
+Future<void> _confirmAndDeleteFolder(Folder folder) async {
+  final user = UserHelper().user;
+  if (user == null || user.id == null || !TokenHelper().hasToken()) {
 
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-                // 1. Verificação principal do estado de carregamento
-          if (_isLoading) {
-            // Se estiver carregando, mostra uma tela de loading simples e centralizada.
-            // O Scaffold é importante para dar um fundo branco padrão.
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFaed513), // Usando a cor primária do seu app
-                ),
-              ),
-            );
-          }
+    _navigateToLogin();
+    return;
+  }
 
-        return AlertDialog(
-          title: const Text('Confirmar Exclusão'),
-          content: Text(
-              'Tem certeza que deseja excluir o álbum "${folder.principalPageDisplayName}"? Esta ação removerá todas as imagens e informações inseridas e não poderá ser desfeita.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancelar'),
+  // A lógica do diálogo de confirmação está ótima, sem alterações aqui.
+  final bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      if (_isLoading) {
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFFaed513),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-            ),
-          ],
+          ),
         );
-      },
-    );
+      }
+      return AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text('Tem certeza que deseja excluir o álbum "${folder.principalPageDisplayName}"? Esta ação removerá todas as imagens e informações inseridas e não poderá ser desfeita.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      );
+    },
+  );
 
-    if (confirm == true) {
-      setState(() {
-        _isLoading = true;
-      });
+  if (confirm == true) {
+    setState(() {
+      _isLoading = true;
+    });
 
-      try {
-        await _apiService.deleteFolder(user.id!, folder.id);
-        await Future.delayed(const Duration(seconds: 2));
-        print('Álbum ${folder.id} deletado no app. Iniciando recálculo...');
-        await RankingRepository.instance.recalculateAndUpdateScore(); // Atualiza a pontuação
+    try {
+      // 1. Ação principal: Deleta o álbum na API.
+      await _apiService.deleteFolder(user.id!, folder.id);
 
-        if (mounted) {
-          // 1. Remove o álbum DIRETAMENTE da fonte da verdade.
+      // PONTO CHAVE: Imediatamente após a exclusão bem-sucedida,
+      // recalcula a pontuação com base no que sobrou.
+      await RankingRepository.instance.removeAlbumPoints();
+
+      // AJUSTE: O Future.delayed de 2 segundos foi removido.
+      // Ele não é necessário e torna a experiência do usuário mais lenta.
+      // O 'await' na linha anterior já garante a ordem correta.
+
+      if (mounted) {
+        // 3. Agora que todas as operações de dados foram concluídas,
+        // atualiza a interface do usuário.
+        setState(() {
           UserHelper().user?.pastas!.removeWhere((f) => f.id == folder.id);
-          
-          setState(() {});
-         // showSuccessSnackBar(context, 'Album "${folder.principalPageDisplayName}" excluída com sucesso!');
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    'Album "${folder.principalPageDisplayName}" excluído com sucesso!')),
-          );
-          
-          
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Album "${folder.principalPageDisplayName}" excluído com sucesso!')),
+        );
+      }
+    } on ApiException catch (e) {
+      foundation.debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
+      if (mounted) {
+        _showErrorDialog('Não foi possível excluir o Album: ${e.message}');
+        if (e.statusCode == 401) {
+          _navigateToLogin();
         }
-      } on ApiException catch (e) {
-        foundation.debugPrint('Erro em _confirmAndDeleteFolder: ${e.message}');
-        if (mounted) {
-          _showErrorDialog('Não foi possível excluir o Album: ${e.message}');
-          if (e.statusCode == 401) {
-            _navigateToLogin();
-          }
-        }
-      } catch (e) {
-        foundation.debugPrint('Erro inesperado em _confirmAndDeleteFolder: $e');
-        if (mounted) {
-          _showErrorDialog('Ocorreu um erro inesperado ao excluir o Album.');
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+      }
+    } catch (e) {
+      foundation.debugPrint('Erro inesperado em _confirmAndDeleteFolder: $e');
+      if (mounted) {
+        _showErrorDialog('Ocorreu um erro inesperado ao excluir o Album.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
-
+}
   void _showErrorDialog(String message) {
     if (!mounted) return;
 
@@ -606,6 +562,7 @@ Future<void> _fetchFoldersFromApiAndRefreshState() async {
                                   : () async {
                                       await _handleCreateAlbum(setDialogState,
                                           dialogContext, isDialogLoading);
+                                          
                                     },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFaed513),
@@ -639,46 +596,50 @@ Future<void> _fetchFoldersFromApiAndRefreshState() async {
     );
   }
 
-  // --- FUNÇÃO ATUALIZADA ---
-  // Agora ela chama a nova função _addFolderAndUpdateState.
-  Future<void> _handleCreateAlbum(Function setDialogState,
-        BuildContext dialogContext, bool isDialogLoading) async {
-      String folderName = folderNameController.text.trim();
-      if (folderName.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Por favor, insira um nome para o álbum.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+// Função para chamar a função que cria os álbuns (VERSÃO CORRIGIDA)
+Future<void> _handleCreateAlbum(Function setDialogState, BuildContext dialogContext, bool isDialogLoading) async {
+  String folderName = folderNameController.text.trim();
+  if (folderName.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor, insira um nome para o álbum.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
 
-      setDialogState(() {
-        isDialogLoading = true;
-      });
+  setDialogState(() {
+    isDialogLoading = true;
+  });
 
-      try {
-        // Chama a nova função que já cuida da API e do setState
-        await _addFolderAndUpdateState(folderName);
+  try {
+    // 1. Tenta criar o álbum e atualizar a UI
+    await _addFolderAndUpdateState(folderName);
 
-        if (context.mounted) {
-          Navigator.of(dialogContext).pop();
-          folderNameController.clear();
-        }
-      } catch (e) {
-        foundation.debugPrint('Erro no modal de criar álbum: $e');
-        if (context.mounted) {
-          Navigator.of(dialogContext).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao criar álbum: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+    // 2. Se o passo anterior foi bem-sucedido (não gerou erro), recalcula os pontos.
+    // ESTE É O LUGAR CORRETO E ÚNICO PARA A CHAMADA!
+    await RankingRepository.instance.addAlbumPoints();
+
+    // 3. Se tudo deu certo, fecha o diálogo
+    if (context.mounted) {
+      Navigator.of(dialogContext).pop();
+      folderNameController.clear();
     }
+  } catch (e) {
+    // O erro lançado por _addFolderAndUpdateState será capturado aqui
+    foundation.debugPrint('Erro no modal de criar álbum: $e');
+    if (context.mounted) {
+      Navigator.of(dialogContext).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao criar álbum: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
 
   Widget _buildHeaderSection() {
     return GestureDetector(
@@ -817,13 +778,16 @@ Future<void> _fetchFoldersFromApiAndRefreshState() async {
     );
   }
 
-  Widget _buildAlbumsSection() {
-    return Expanded(
-      child: UserHelper().user!.pastas!.isEmpty && !_isLoading
-          ? _buildEmptyState()
-          : _buildAlbumsList(),
-    );
-  }
+Widget _buildAlbumsSection() {
+ 
+  final bool isListEmpty = (UserHelper().user?.pastas?.isEmpty ?? true);
+
+  return Expanded(
+    child: isListEmpty && !_isLoading
+        ? _buildEmptyState()
+        : _buildAlbumsList(),
+  );
+}
 
   Widget _buildEmptyState() {
     return Center(

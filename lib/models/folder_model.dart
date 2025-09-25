@@ -34,46 +34,58 @@ class Folder {
     return parts.last;
   }
 
-  factory Folder.fromMap(Map<String, dynamic> map) {
-    List<String> loadedTags = [];
-    if (map['tags'] != null && map['tags'] is List) {
-      for (var tagJson in map['tags']) {
-        if (tagJson is Map<String, dynamic>) {
-          // =======================================================================
-          // AJUSTE FINAL AQUI: Procura por 'nome' ou 'nomeTag'
-          // =======================================================================
-          final tagName = tagJson['nome'] ?? tagJson['nomeTag'];
-          if (tagName != null) {
-            loadedTags.add(tagName as String);
-          }
-          // =======================================================================
+// DENTRO DO SEU ARQUIVO folder_model.dart
+
+factory Folder.fromMap(Map<String, dynamic> map) {
+  // Lógica para carregar as tags, que já estava correta.
+  List<String> loadedTags = [];
+  if (map['tags'] != null && map['tags'] is List) {
+    for (var tagJson in map['tags']) {
+      if (tagJson is Map<String, dynamic>) {
+        final tagName = tagJson['nome'] ?? tagJson['nomeTag'];
+        if (tagName != null) {
+          loadedTags.add(tagName as String);
         }
       }
     }
-
-    return Folder(
-      id: map['id'] as int? ?? 0,
-      nome: map['nome'] as String? ?? 'Pasta sem nome',
-      caminho: map['path'] as String? ?? '',
-      principalPageDisplayName: map['nome'] as String?,
-      idPastaPai: map['idPastaPai'] as int?,
-      imagens: (map['imagens'] as List<dynamic>?)
-          ?.map((img) {
-            if (img is Map<String, dynamic>) return ImageModel.fromMap(img);
-            return null;
-          })
-          .whereType<ImageModel>()
-          .toList(),
-      tags: loadedTags,
-      subpastas: (map['subpastas'] as List<dynamic>?)
-          ?.map((sub) {
-            if (sub is Map<String, dynamic>) return Folder.fromMap(sub);
-            return null;
-          })
-          .whereType<Folder>()
-          .toList(),
-    );
   }
+
+  // --- INÍCIO DA CORREÇÃO DE ROBUSTEZ ---
+
+  // Processa a lista de subpastas de forma segura
+  List<Folder> parsedSubpastas = [];
+  if (map.containsKey('subpastas') && map['subpastas'] is List) {
+    // Se a chave 'subpastas' existe e é uma lista, nós a processamos.
+    parsedSubpastas = (map['subpastas'] as List)
+        .map((subpastaJson) => Folder.fromMap(subpastaJson as Map<String, dynamic>))
+        .toList();
+  }
+  // Se a chave não existir ou não for uma lista, 'parsedSubpastas' continuará sendo uma lista vazia.
+
+  // Processa a lista de imagens de forma segura
+  List<ImageModel> parsedImagens = [];
+  if (map.containsKey('imagens') && map['imagens'] is List) {
+    // A mesma lógica segura para a lista de imagens.
+    parsedImagens = (map['imagens'] as List)
+        .map((imagemJson) => ImageModel.fromMap(imagemJson as Map<String, dynamic>))
+        .toList();
+  }
+  
+  // --- FIM DA CORREÇÃO DE ROBUSTEZ ---
+
+  return Folder(
+    id: map['id'] as int? ?? 0,
+    nome: map['nome'] as String? ?? 'Pasta sem nome',
+    caminho: map['path'] as String? ?? '',
+    principalPageDisplayName: map['nome'] as String?,
+    idPastaPai: map['idPastaPai'] as int?,
+    
+    // Usa as listas seguras que criamos acima.
+    subpastas: parsedSubpastas,
+    imagens: parsedImagens,
+    tags: loadedTags,
+  );
+}
 
   factory Folder.createNew(String folderName, {String? userName}) {
     final fullName = userName != null ? '$userName/$folderName' : folderName;

@@ -134,8 +134,12 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
         // Chama o método da sua API para deletar a imagem no backend
         await ApiService().deleteImage(user.id!, imageItem.id);
+        
+        RankingRepository.instance.removePhotoWithTagPoints();
 
         Navigator.of(context).pop(); // Fecha o loading
+
+        
 
         // Remove o item da lista local
         setState(() {
@@ -840,70 +844,6 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     );
   }
 
-  Future<void> recalculateAndUpdateScore() async {
-  print('Iniciando recálculo de pontos...');
-  try {
-    // PARTE A: CÁLCULO DOS PONTOS DE ESTADO (o que já tínhamos)
-    final List<Folder> allFolders = await _apiService.getAllFoldersForUser();
-    int albumPoints = allFolders.length;
-    int subAlbumPoints = 0;
-    int photoWithTagPoints = 0;
-
-    for (final folder in allFolders) {
-      final subs = folder.subpastas ?? [];
-      subAlbumPoints += subs.length;
-      for (final subfolder in subs) {
-        if (subfolder.imagens != null) {
-          for (final imagem in subfolder.imagens!) {
-            if (imagem.metadata != null && imagem.metadata!.isNotEmpty) {
-              photoWithTagPoints += 2;
-            }
-          }
-        }
-      }
-    }
-    final int stateScore = albumPoints + subAlbumPoints + photoWithTagPoints;
-
-    // PARTE B: LEITURA DOS PONTOS DE EVENTOS (a nova lógica)
-    final prefs = await SharedPreferences.getInstance();
-    // Lê os pontos de evento salvos no celular. Se não houver, o padrão é 0.
-    final int eventScore = prefs.getInt('event_points') ?? 0;
-
-    // 3. Calcula o total de pontos somando as duas fontes.
-    final int totalPoints = stateScore + eventScore;
-
-    // 4. Envia a pontuação ATUALIZADA para o servidor
-    await RankingRepository.instance.sendDataRanking(points: totalPoints);
-    print('Pontuação total (Estado + Eventos) atualizada para: $totalPoints pontos.');
-
-  } catch (e) {
-    print('Falha ao recalcular e enviar a pontuação: $e');
-  }
-}
-
-/// Adiciona pontos de um evento, salva localmente e atualiza o ranking.
-Future<void> addEventPoints(int pointsToAdd) async {
-  print('Adicionando $pointsToAdd pontos de evento...');
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    
-    // 1. Lê o valor atual dos pontos de evento.
-    final int currentEventPoints = prefs.getInt('event_points') ?? 0;
-    
-    // 2. Soma os novos pontos.
-    final int newEventPointsTotal = currentEventPoints + pointsToAdd;
-    
-    // 3. Salva o novo total de volta no armazenamento local.
-    await prefs.setInt('event_points', newEventPointsTotal);
-
-    // 4. IMPORTANTE: Chama a função principal para recalcular TUDO
-    //    e enviar o novo total para o servidor.
-    await recalculateAndUpdateScore();
-
-  } catch (e) {
-    print('Falha ao adicionar pontos de evento: $e');
-  }
-}
 
 
 Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
@@ -942,11 +882,7 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
                   // Se o botão não estiver habilitado, não faz nada.
                   if (!isButtonEnabled) return;
 
-                  // ==========================================================
-                  // PONTO EXATO DA CONTAGEM DE PONTOS
-                  // 1. Adiciona 2 pontos pelo evento de usar o "Comppare".
-                  // ==========================================================
-                  RankingRepository.instance.addEventPoints(2, contextId: '$idPastaPai',);
+                  RankingRepository.instance.addPhotoWithTagPoints();
 
                   // 2. Continua com a ação original de abrir o diálogo.
                   _showComparisonDialog(
@@ -2080,7 +2016,7 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
                                                   itemConfirmado != null) {
                                                 Navigator.of(dialogContext)
                                                     .pop(itemConfirmado);
-                                                    await RankingRepository.instance.addEventPoints(2, contextId: '$itemConfirmado');
+                                                    await RankingRepository.instance.addPhotoWithTagPoints();
                                               }
                                             } catch (e) {
                                               // 4. FALHA: Mostra um erro para o usuário e NÃO fecha o diálogo.
@@ -2647,6 +2583,7 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
                               ),
                             ),
                             onPressed: () async {
+                              RankingRepository.instance.addPhotoWithTagPoints();
                               // Lógica de captura e compartilhamento
                               final Uint8List? imageBytes =
                                   await captureCard(shareRepaintKey);

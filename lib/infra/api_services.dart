@@ -45,6 +45,52 @@ class ApiService {
     return headers;
   }
 
+
+  // DENTRO DA SUA CLASSE ApiService
+
+/// Busca a lista de classificação do ranking.
+Future<List<dynamic>> getRankingClassification() async {
+  // Usamos o novo endpoint que você forneceu.
+  final url = Uri.parse(ApiEndpoints.rankingClassification);
+  
+  // Reutilizamos sua função sendRequest para padronizar a chamada.
+  final response = await sendRequest(
+    () => httpClient.get(url, headers: getHeaders()),
+    errorMessage: 'Falha ao buscar a classificação do ranking.',
+  );
+  
+  // A API retorna uma lista diretamente.
+  if (response is List) {
+    return response;
+  } else {
+    // Se a resposta não for uma lista, algo está errado.
+    throw ApiException('Resposta inesperada da API de ranking.');
+  }
+}
+
+/// Atualiza a pontuação de um usuário no ranking.
+Future<void> updateRankingScore({required int userId, required int points}) async {
+  // Usamos o novo endpoint que você forneceu.
+  // Nota: O '/admin/' na URL é incomum para uma ação de usuário, 
+  // mas estou seguindo o que foi informado. Verifique se este é o endpoint correto.
+  final url = Uri.parse(ApiEndpoints.updateRanking);
+  
+  final body = {
+    'usuario': userId.toString(),
+    'pontos': points.toString(),
+  };
+
+  await sendRequest(
+    () => httpClient.post(
+      url,
+      headers: getHeaders(includeContentType: false), // O body aqui não é JSON
+      body: body,
+    ),
+    errorMessage: 'Falha ao atualizar a pontuação no ranking.',
+    decodeJson: false, // A resposta pode não ter corpo JSON
+  );
+}
+
 // Esta função é para ATUALIZAR um subálbum existente
   Future<void> updateFolder({
     required int folderId,
@@ -309,87 +355,94 @@ class ApiService {
     );
   }
 
-  /// Função para autenticar o usuário.
-  /// Salva o token e o ID do usuário no TokenHelper e o objeto User completo no UserHelper.
-  Future<Map<String, dynamic>> authenticateUser(
-    String cpf,
-    String senha, {
-    String? token, // Parâmetro opcional para usar token existente
-  }) async {
-    final url = Uri.parse(ApiEndpoints.authenticateUser);
-    foundation.debugPrint('Tentando autenticar usuário: $cpf');
+// DENTRO DO SEU ARQUIVO api_services.dart
 
-    Map<String, String> headers = getHeaders(includeContentType: true);
-    final body = <String, dynamic>{};
+Future<Map<String, dynamic>> authenticateUser(
+  String cpf,
+  String senha, {
+  String? token, // Parâmetro opcional para usar token existente
+}) async {
+  final url = Uri.parse(ApiEndpoints.authenticateUser);
+  foundation.debugPrint('Tentando autenticar usuário: $cpf');
 
-    if (token != null && token.isNotEmpty) {
-      // Modo refresh: usa o token nos cabeçalhos
-      headers['Authorization'] = 'Bearer $token';
-      foundation.debugPrint('Usando token existente para refresh.');
-    } else {
-      // Modo login inicial: envia CPF e senha
-      body['cpf'] = cpf;
-      body['senha'] = senha;
-      foundation.debugPrint('Autenticando com CPF e senha.');
-    }
+  Map<String, String> headers = getHeaders(includeContentType: true);
+  final body = <String, dynamic>{};
+  bool isRefresh = false;
 
-    final responseBody = await sendRequest(
-      () => _httpClient.post(
-        url,
-        headers: headers,
-        body: jsonEncode(
-            body.isNotEmpty ? body : null), // Envia corpo apenas se necessário
-      ),
-      successMessage: 'Autenticação bem-sucedida.',
-      errorMessage: 'Falha na autenticação. Verifique suas credenciais.',
+  if (token != null && token.isNotEmpty) {
+    // Modo refresh: usa o token nos cabeçalhos
+    headers['Authorization'] = 'Bearer $token';
+    foundation.debugPrint('Usando token existente para refresh.');
+    isRefresh = true;
+  } else {
+    // Modo login inicial: envia CPF e senha
+    body['cpf'] = cpf;
+    body['senha'] = senha;
+    foundation.debugPrint('Autenticando com CPF e senha.');
+  }
+
+  // Com a análise final dos logs, sabemos que o backend SÓ aceita POST.
+  // Mantemos o POST para ambos os casos. O erro anterior era no backend.
+  // Se o erro 422 voltar no refresh, a correção DEVE ser no backend.
+  final responseBody = await sendRequest(
+    () => _httpClient.post(
+      url,
+      headers: headers,
+      body: body.isNotEmpty ? jsonEncode(body) : null,
+    ),
+    successMessage: 'Autenticação bem-sucedida.',
+    errorMessage: 'Falha na autenticação. Verifique suas credenciais.',
+  );
+
+  if (responseBody.containsKey('token') &&
+      responseBody['token'] is String &&
+      responseBody.containsKey('dados') &&
+      responseBody['dados'] is Map<String, dynamic>) {
+    final String newToken = responseBody['token'] as String;
+    
+    // Pega o objeto "dados" inteiro
+    final Map<String, dynamic> userData =
+        responseBody['dados'] as Map<String, dynamic>;
+
+    final User loggedInUser = User(
+      id: userData['id'] as int?,
+      nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
+      cpf: userData['cpf'] as String?,
+      telefone: userData['telefone'] as String?,
+      idPlano: userData['idPlano'] as int?,
+      email: userData['email'] as String?,
+      token: newToken,
     );
 
-    if (responseBody.containsKey('token') &&
-        responseBody['token'] is String &&
-        responseBody.containsKey('dados') &&
-        responseBody['dados'] is Map<String, dynamic>) {
-      final String newToken = responseBody['token'] as String;
-      final Map<String, dynamic> userData =
-          responseBody['dados'] as Map<String, dynamic>;
-
-      final User loggedInUser = User(
-        id: userData['id'] as int?,
-        nome: '${userData['primeiroNome']} ${userData['sobrenome']}',
-        cpf: userData['cpf'] as String?,
-        telefone: userData['telefone'] as String?,
-        idPlano: userData['idPlano'] as int?,
-        email: userData['email'] as String?,
-        token: newToken,
-      );
-
-      if (responseBody.containsKey('pastas') &&
-          responseBody['pastas'] is List) {
-        final List<dynamic> pastasJson =
-            responseBody['pastas'] as List<dynamic>;
-        loggedInUser.pastas = pastasJson
-            .map((item) => Folder.fromMap(item as Map<String, dynamic>))
-            .toList();
-        foundation.debugPrint(
-            'ApiService: Pastas encontradas na resposta de autenticação: ${loggedInUser.pastas?.length}');
-      } else {
-        loggedInUser.pastas = [];
-        foundation.debugPrint(
-            'ApiService: Nenhuma pasta encontrada na resposta de autenticação.');
-      }
-
-      await TokenHelper().saveToken(newToken);
-      await TokenHelper().saveUserId(loggedInUser.id!);
-      await UserHelper().setUser(loggedInUser);
-
-      return responseBody;
+    // --- CORREÇÃO PRINCIPAL APLICADA AQUI ---
+    // Agora procuramos a lista de pastas DENTRO do objeto 'userData'
+    if (userData.containsKey('pastas') && userData['pastas'] is List) {
+      final List<dynamic> pastasJson = userData['pastas'] as List<dynamic>;
+      loggedInUser.pastas = pastasJson
+          .map((item) => Folder.fromMap(item as Map<String, dynamic>))
+          .toList();
+      foundation.debugPrint(
+          'ApiService: Pastas encontradas DENTRO DE "DADOS": ${loggedInUser.pastas?.length}');
     } else {
-      throw ApiException(
-        'Resposta de autenticação inválida: Token ou dados do usuário ausentes.',
-        statusCode: responseBody['statusCode'] as int? ?? 0,
-        body: json.encode(responseBody),
-      );
+      loggedInUser.pastas = [];
+      foundation.debugPrint(
+          'ApiService: Nenhuma pasta encontrada no objeto "dados".');
     }
+    // --- FIM DA CORREÇÃO ---
+
+    await TokenHelper().saveToken(newToken);
+    await TokenHelper().saveUserId(loggedInUser.id!);
+    await UserHelper().setUser(loggedInUser);
+
+    return responseBody;
+  } else {
+    throw ApiException(
+      'Resposta de autenticação inválida: Token ou dados do usuário ausentes.',
+      statusCode: responseBody['statusCode'] as int? ?? 0,
+      body: json.encode(responseBody),
+    );
   }
+}
 
   // lib/infra/api_services.dart
   Future<Future> getFolderById(int folderId) async {
@@ -430,7 +483,7 @@ class ApiService {
   }
 
   // NOVA FUNÇÃO - Usa sua lógica de autenticação para atualizar os dados
-  Future<void> refreshUserData() async {
+ /* Future<void> refreshUserData() async {
     final token = TokenHelper().token;
     if (token == null || token.isEmpty) {
       throw ApiException('Nenhum token disponível para atualização.',
@@ -440,14 +493,14 @@ class ApiService {
     // Chama sua função de autenticação em modo "refresh", que busca os dados do usuário
     // e já atualiza o TokenHelper e UserHelper internamente.
     await authenticateUser('', '', token: token);
-  }
+  }*/
 
-  Future<Future> deleteFolder(int idUsuario, int idPasta) async {
+  Future<void> deleteFolder(int idUsuario, int idPasta) async {
     final url = Uri.parse(ApiEndpoints.deleteFolder);
     foundation
         .debugPrint('Requisição para excluir pasta em: $url, ID: $idPasta');
 
-    return sendRequest(
+   await sendRequest(
       () => _httpClient.delete(
         url,
         headers: getHeaders(includeContentType: true),
@@ -459,6 +512,9 @@ class ApiService {
       successMessage: 'Pasta excluída com sucesso.',
       errorMessage: 'Falha ao excluir pasta.',
     );
+     // MUDANÇA 3: Remove o álbum do cache local APÓS o sucesso da API
+  // Isso garante que a próxima leitura de dados estará correta.
+  UserHelper().user?.pastas?.removeWhere((pasta) => pasta.id == idPasta);
   }
 
   /// lib/infra/api_services.dart
@@ -506,42 +562,51 @@ class ApiService {
     );
   }
 
-  /// NOVO: Busca a lista completa e atualizada de pastas do usuário diretamente da API.
-  Future<List<Folder>> fetchAllFolders() async {
-    // Assume que existe um endpoint para listar todas as pastas do usuário logado.
-    // O backend identificará o usuário pelo token de autenticação.
-    final url =
-        Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}');
+  
+Future<void> refreshUserData() async {
+  final token = TokenHelper().token;
+  final userId = TokenHelper().userId;
 
-    final responseBody = await sendRequest(
-      () => _httpClient.get(url, headers: getHeaders()),
-      successMessage: 'Pastas carregadas da API.',
-      errorMessage: 'Falha ao buscar pastas da API.',
-    );
-
-    // A resposta da API para uma lista é diretamente a lista de pastas
-    if (responseBody is List) {
-      final List<Folder> folders = responseBody
-          .map((item) => Folder.fromMap(item as Map<String, dynamic>))
-          .toList();
-
-      // Opcional, mas recomendado: Atualiza o cache do UserHelper com os dados mais recentes
-      final user = UserHelper().user;
-      if (user != null) {
-        user.pastas = folders;
-        await UserHelper().setUser(user);
-      }
-
-      return folders;
-    } else {
-      throw ApiException(
-        'Resposta da API para listar pastas não era uma lista.',
-        statusCode: 0,
-        body: json.encode(responseBody),
-      );
-    }
+  if (token == null || userId == null) {
+    throw ApiException('Usuário não autenticado para refresh.', statusCode: 401);
   }
 
+  // A URL CORRETA que você encontrou!
+  final url = Uri.parse('${ApiEndpoints.baseUrl}/usuarios/pastas/$userId');
+  
+  foundation.debugPrint('refreshUserData: Buscando todas as pastas em $url');
+
+  final responseBody = await sendRequest(
+    () => _httpClient.get(url, headers: getHeaders()),
+    errorMessage: 'Falha ao buscar a lista de pastas do usuário.',
+  );
+
+  // --- INÍCIO DA CORREÇÃO FINAL ---
+
+  // 1. Verificamos se a resposta é um Objeto (Map) e se contém a chave "pastas"
+  if (responseBody is Map<String, dynamic> && responseBody.containsKey('pastas')) {
+    
+    // 2. Pegamos a lista de DENTRO da chave "pastas"
+    final List<dynamic> pastasJson = responseBody['pastas'] as List<dynamic>;
+
+    final List<Folder> folders = pastasJson
+        .map((item) => Folder.fromMap(item as Map<String, dynamic>))
+        .toList();
+
+    // 3. O resto da lógica para atualizar o cache local funciona perfeitamente
+    final user = UserHelper().user;
+    if (user != null) {
+      user.pastas = folders;
+      await UserHelper().setUser(user);
+      foundation.debugPrint('UserHelper atualizado com ${folders.length} pastas da API.');
+    }
+  } else {
+    // Se a resposta não for um objeto com a chave "pastas", algo está errado.
+    foundation.debugPrint('Resposta inesperada da API. Esperava um Objeto com a chave "pastas", mas recebi: $responseBody');
+    throw ApiException('A resposta da API para listar pastas não era o formato esperado.');
+  }
+  // --- FIM DA CORREÇÃO FINAL ---
+}
   /// Função para listar TODAS as pastas principais do usuário logado.
   /// Este método agora obtém as pastas do UserHelper, que foram salvas durante o login.
   Future<List<Folder>> getAllFoldersForUser() async {
@@ -557,8 +622,7 @@ class ApiService {
   }
 
   Future<List<Folder>> fetchSubfolders(int parentFolderId) async {
-    final url = Uri.parse(
-        '${ApiEndpoints.baseUrl}${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
+    final url = Uri.parse('${ApiEndpoints.recoverFolder}?idPasta=$parentFolderId');
 
     final response = await sendRequest(
       () => _httpClient.get(url, headers: getHeaders()),
@@ -717,34 +781,44 @@ class ApiService {
     return response as Map<String, dynamic>;
   }
 
-  Future<String?> refreshTokenIfNeeded() async {
-    final tokenHelper = TokenHelper();
-    final token = tokenHelper.token;
-    if (token != null) {
-      try {
-        final parts = token.split('.');
-        if (parts.length == 3) {
-          final payload = json.decode(
-              base64Url.decode(base64Url.normalize(parts[1])).toString());
-          final expiry = payload['exp'] as int? ?? 0;
-          final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-          if (expiry < now + 300) {
-            // Renova se faltar 5 minutos ou menos
-            // Tenta renovar o token usando o token atual
-            final response = await authenticateUser('', '', token: token);
-            return response['token'] as String?; // Retorna o novo token
-          }
-          return token; // Retorna o token atual se não expirado
-        }
-      } catch (e) {
-        foundation
-            .debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
-      }
-    }
-    return null; // Retorna null se falhar
-  }
+Future<String?> refreshTokenIfNeeded() async {
+  final tokenHelper = TokenHelper();
+  final token = tokenHelper.token;
+  if (token != null) {
+    try {
+      final parts = token.split('.');
+      if (parts.length == 3) {
+        // --- INÍCIO DA CORREÇÃO ---
+        // 1. Decodifica o Base64Url para uma lista de bytes (List<int>)
+        final payloadBytes = base64Url.decode(base64Url.normalize(parts[1]));
+        // 2. Converte os bytes UTF-8 para uma String legível
+        final decodedPayload = utf8.decode(payloadBytes);
+        // 3. Agora sim, decodifica a String JSON para um Map
+        final payload = json.decode(decodedPayload);
+        // --- FIM DA CORREÇÃO ---
 
-  Future<Map<String, dynamic>?> _getParentFolderDetails(
+        final expiry = payload['exp'] as int? ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+        // Renova se faltar 5 minutos ou menos
+        if (expiry < now + 300) { 
+          // Tenta renovar o token usando o token atual
+          final response = await authenticateUser('', '', token: token);
+          return response['token'] as String?; // Retorna o novo token
+        }
+        return token; // Retorna o token atual se não estiver perto de expirar
+      }
+    } catch (e) {
+      foundation
+          .debugPrint('[_refreshTokenIfNeeded] Erro ao verificar token: $e');
+    }
+  }
+  return null; // Retorna null se não houver token ou se ocorrer um erro
+}
+
+
+
+  Future<Map<String, dynamic>?> getParentFolderDetails(
       int parentFolderId) async {
     final url = Uri.parse(
         '${ApiEndpoints.baseUrl}/pasta/recuperar?idPasta=$parentFolderId');
@@ -755,12 +829,12 @@ class ApiService {
         errorMessage: 'Falha ao carregar detalhes da pasta pai.',
       );
       foundation
-          .debugPrint('[_getParentFolderDetails] Resposta da API: $response');
+          .debugPrint('[getParentFolderDetails] Resposta da API: $response');
       return response;
     } catch (e) {
       if (e is ApiException && e.statusCode == 404) {
         foundation.debugPrint(
-            '[_getParentFolderDetails] Pasta pai não encontrada para ID: $parentFolderId');
+            '[getParentFolderDetails] Pasta pai não encontrada para ID: $parentFolderId');
         return null;
       }
       rethrow;

@@ -1,4 +1,5 @@
 // lib/auth_wrapper.dart
+import 'package:application_progress/main.dart';
 import 'package:flutter/material.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/login.dart';
@@ -55,7 +56,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const MyHomePage(title: '',)),
         );
       }
     }
