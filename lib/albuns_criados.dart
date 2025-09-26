@@ -117,6 +117,7 @@ void _removeTag(Folder group, String tagName) {
   setState(() {
     group.tags?.remove(tagName);
   });
+   RankingRepository.instance.removeAlbumPoints();
   _persistUpdatedTagsForGroup(group);
 }
 
@@ -596,20 +597,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
       devtools.debugPrint(
           'uploadedImages retornado: ${uploadedImages.length} itens');
 
-     /* setState(() {
-        final int groupIndex = _subfolders.indexOf(group);
-        if (groupIndex != -1) {
-          _subfolders[groupIndex].imagens ??= [];
-          _subfolders[groupIndex].imagens!.addAll(uploadedImages);
-          devtools.debugPrint(
-              'Novas imagens adicionadas ao grupo ${group.nome}: ${_subfolders[groupIndex].imagens!.length}');
-               
-               Future.delayed(const Duration(seconds: 2));
-               
-               RankingRepository.instance.recalculateAndUpdateScore();  
-        }
-        
-      });*/
+
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -618,6 +606,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
                   '${uploadedImages.length} imagem(ns) adicionada(s) com sucesso!')),
         );
       }
+      await RankingRepository.instance.addPhotoWithTagPoints();
        // 3. Após o sucesso, busca TODOS os dados do servidor novamente.
       // Isso garante que os IDs das novas imagens estarão corretos no estado do seu app.
       await _fetchSubfoldersFromApiAndRefreshState();
@@ -771,12 +760,6 @@ void _addTagToFolder(Folder group, TagModel tag) {
           ),
         ),
       ),
-   /*   floatingActionButton: FloatingActionButton(
-        onPressed: _showAddSubalbumDialog,
-        backgroundColor: const Color(0xFFaed513),
-        elevation: 4,
-        child: const Icon(Icons.add, color: Colors.black, size: 28),
-      ),*/
     );
   }
   
@@ -867,71 +850,6 @@ void _addTagToFolder(Folder group, TagModel tag) {
       ),
     );
   }
-
-
-  // Header Section
- /* Widget _buildHeaderSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey[300]!,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title Row
-          Row(
-            children: [
-              // Page Icon
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFaed513).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.photo_library,
-                  color: Color(0xFFaed513),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Page Title
-              const Text(
-                'Subálbuns',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-
-          Text(
-            'Visualize e gerencie os sub álbuns',
-            style: TextStyle(
-              color: Colors.black.withValues(alpha: 0.6),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }*/
 
   // Empty State
   Widget _buildEmptyState() {
@@ -1158,6 +1076,7 @@ Widget _buildSubalbumsList() {
                                   // Desta forma, a chamada `loadTags()` não é executada imediatamente,
                                   // mas sim passada como um callback.
                                   _showInsertNameTag(context, _apiService, () => _loadTags);
+                                  
                                 },
                               ),
                       Text(
@@ -1173,7 +1092,10 @@ Widget _buildSubalbumsList() {
                         color: Colors.black.withValues(alpha: 0.7),
                         size: 20,
                       ),
-                      onPressed: () => _showAddTagDialog(group),
+                      onPressed: () {
+                        _showAddTagDialog(group);
+                         RankingRepository.instance.addPhotoWithTagPoints();
+                      } 
                     ),
                     ],)
                     

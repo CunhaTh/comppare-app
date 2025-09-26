@@ -2583,19 +2583,23 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
                               ),
                             ),
                             onPressed: () async {
-                              RankingRepository.instance.addPhotoWithTagPoints();
+                              await RankingRepository.instance.addPhotoCompartilhar();
                               // Lógica de captura e compartilhamento
                               final Uint8List? imageBytes =
                                   await captureCard(shareRepaintKey);
                               Navigator.of(context)
                                   .pop(); // Fecha o dialog de preview
-
+                                
                               if (imageBytes == null) {
                                 _showErrorDialog(context,
                                     'Erro ao capturar a imagem para compartilhamento.');
                                 return;
                               }
+                              
+
                               await shareImage(imageBytes);
+                              
+                              
                             },
                             child: const Text('Compartilhar'),
                           ),
@@ -3150,6 +3154,7 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
                                       content:
                                           Text('Imagem baixada com sucesso!')),
                                 );
+                                await RankingRepository.instance.addPhotoPoints();
                               } else {
                                 final result =
                                     await ImageGallerySaver.saveImage(
@@ -4178,7 +4183,8 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
       _showSuccessDialog('Compartilhamento iniciado com sucesso!');
     } catch (e) {
       print('Web Share API falhou: $e');
-
+      
+      await RankingRepository.instance.addPhotoPoints();
       // Fallback: baixar imagem e redirecionar para WhatsApp Web
       _downloadImageWeb(imageBytes);
 

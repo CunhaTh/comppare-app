@@ -68,28 +68,34 @@ Future<List<dynamic>> getRankingClassification() async {
   }
 }
 
-/// Atualiza a pontuação de um usuário no ranking.
-Future<void> updateRankingScore({required int userId, required int points}) async {
-  // Usamos o novo endpoint que você forneceu.
-  // Nota: O '/admin/' na URL é incomum para uma ação de usuário, 
-  // mas estou seguindo o que foi informado. Verifique se este é o endpoint correto.
+Future<void> updateRankingScore({
+  required int userId, 
+  required int points, 
+  String? action, // 'adicionar' ou 'remover'
+}) async {
   final url = Uri.parse(ApiEndpoints.updateRanking);
   
-  final body = {
+  // O corpo agora deve ser muito mais simples e incluir o campo 'acao'.
+  // O backend provavelmente espera que 'pontos' seja o valor a ser adicionado/removido.
+  final Map<String, String> body = {
     'usuario': userId.toString(),
-    'pontos': points.toString(),
+    // Envia o valor do ponto. Ex: 2 pontos
+    'pontos': points.toString(), 
+    // Envia a chave 'acao' com o valor 'adicionar' ou 'remover'
+    'acao': action!, // Usamos 'action!' pois ele é passado como obrigatório pelo _updateScoreOnBackend
   };
 
   await sendRequest(
     () => httpClient.post(
       url,
-      headers: getHeaders(includeContentType: false), // O body aqui não é JSON
-      body: body,
+      headers: getHeaders(includeContentType: false),
+      body: body, // O body agora usa o campo 'acao'
     ),
     errorMessage: 'Falha ao atualizar a pontuação no ranking.',
-    decodeJson: false, // A resposta pode não ter corpo JSON
+    decodeJson: false,
   );
 }
+
 
 // Esta função é para ATUALIZAR um subálbum existente
   Future<void> updateFolder({
