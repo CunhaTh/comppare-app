@@ -2,25 +2,21 @@
 <html>
 
 <head>
-    <!-- Meta Pixel Code -->
     <script>
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '1060181262592352');
-      fbq('track', 'PageView');
-      </script>
-      <noscript><img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1060181262592352&ev=PageView&noscript=1"
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '1060181262592352');
+        fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=1060181262592352&ev=PageView&noscript=1"
     /></noscript>
-  <!-- End Meta Pixel Code -->
-
-  <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-K9E030M46L"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -29,101 +25,87 @@
 
         gtag('config', 'G-K9E030M46L');
     </script>
-  <!-- End Google tag (gtag.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/payment-token-efi/dist/payment-token-efi-umd.min.js"></script>
+    <script>
+        async function generateToken(card) {
+            try {
+                console.log("Verificando script...");
+                const isBlocked = await EfiPay.CreditCard.isScriptBlocked();
+                if (isBlocked) {
+                    alert("Fingerprint bloqueado");
+                    return;
+                }
 
-  <!-- Para pegar EfiPay Token JS -->
-  <script src="https://cdn.jsdelivr.net/npm/payment-token-efi/dist/payment-token-efi-umd.min.js"></script>
-  <script>
-    async function generateToken(card) {
-      try {
-        console.log("Verificando script...");
-        const isBlocked = await EfiPay.CreditCard.isScriptBlocked();
-        if (isBlocked) {
-          alert("Fingerprint bloqueado");
-          return;
+                console.log("Iniciando tokenização...");
+
+                // Identificar bandeira primeiro
+                const brand = await identifyBrand(card.number);
+                console.log("Bandeira identificada:", brand);
+
+
+                const creditCard = EfiPay.CreditCard
+                    .setAccount("dab94c73c24695ee58451c59298b151c")
+                    .setEnvironment("production") // 'production' or 'sandbox'
+                    .setCreditCardData({
+                        brand: brand,
+                        number: card.number,
+                        cvv: card.cvv,
+                        expirationMonth: card.expirationMonth,
+                        expirationYear: card.expirationYear,
+                        holderName: card.holderName,
+                        holderDocument: card.holderDocument,
+                        reuse: card.reuse,
+                    })
+                    .getPaymentToken();
+
+                console.log("Token gerado", creditCard);
+                return creditCard;
+            } catch (error) {
+                console.error("Erro ao gerar token:", error);
+                return `Erro: ${error.message}`;
+            }
         }
 
-        console.log("Iniciando tokenização...");
-        
-        // Identificar bandeira primeiro
-        const brand = await identifyBrand(card.number);
-        console.log("Bandeira identificada:", brand);
-        
-     
-        const creditCard = EfiPay.CreditCard
-          .setAccount("dab94c73c24695ee58451c59298b151c")
-          .setEnvironment("production") // 'production' or 'sandbox'
-          .setCreditCardData({
-            brand: brand,
-            number: card.number,
-            cvv: card.cvv,
-            expirationMonth: card.expirationMonth,
-            expirationYear: card.expirationYear,
-            holderName: card.holderName,
-            holderDocument: card.holderDocument,
-            reuse: card.reuse,
-          })
-          .getPaymentToken();
+        async function identifyBrand(creditCardNumber) {
+            try {
+                const brand = await EfiPay.CreditCard
+                    .setCardNumber(creditCardNumber)
+                    .verifyCardBrand();
 
-        console.log("Token gerado", creditCard);
-        return creditCard;
-      } catch (error) {
-        console.error("Erro ao gerar token:", error);
-        return `Erro: ${error.message}`;
-      }
-    }
+                console.log("Bandeira: ", brand);
+                return brand;
+            } catch (error) {
+                console.log("Código: ", error.code);
+                console.log("Nome: ", error.error);
+                console.log("Mensagem: ", error.error_description);
+            }
+        }
+    </script>
+    <base href="/">
 
-    async function identifyBrand(creditCardNumber) {
-      try {
-        const brand = await EfiPay.CreditCard
-          .setCardNumber(creditCardNumber)
-          .verifyCardBrand();
+    <meta charset="UTF-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="description" content="Comppare.">
 
-        console.log("Bandeira: ", brand);
-        return brand;
-      } catch (error) {
-        console.log("Código: ", error.code);
-        console.log("Nome: ", error.error);
-        console.log("Mensagem: ", error.error_description);
-      }
-    }
-  </script>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Comppare">
+    <link rel="apple-touch-icon" href="icons/logo_escura.png">
 
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
+    <link rel="icon" type="image/png" href="logo_escura.png" />
 
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="/">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Comppare.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Comppare">
-  <link rel="apple-touch-icon" href="icons/logo_escura.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="logo_escura.png" />
-
-  <title>Comppare</title>
-  <link rel="manifest" href="manifest.json">
+    <title>Comppare</title>
+    <link rel="manifest" href="manifest.json">
 
 
 </head>
 
 <body>
-  <script src="main.dart.js" type="application/javascript"></script>
+    <script>
+      window.flutterWebRenderer = "html";
+    </script>
+
+    <script src="main.dart.js" type="application/javascript"></script>
 </body>
 
 </html>

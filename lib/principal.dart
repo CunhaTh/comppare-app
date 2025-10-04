@@ -5,15 +5,19 @@ import 'package:application_progress/albuns_criados.dart';
 import 'package:application_progress/chat_button.dart';
 import 'package:application_progress/dialog_ranking.dart';
 import 'package:application_progress/infra/api_services.dart';
+import 'package:application_progress/infra/invitation_service.dart';
 import 'package:application_progress/infra/repositories/ranking_repository.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
 import 'package:application_progress/main.dart' as main_app;
 import 'package:application_progress/models/folder_model.dart';
+import 'package:application_progress/views/gerencial_page.dart';
+import 'package:application_progress/views/invite_screen.dart';
 import 'package:application_progress/views/plans_page.dart';
 import 'package:application_progress/views/tag_page.dart';
 import 'package:application_progress/views/user_dashboard.dart';
+import 'package:application_progress/views/videotutorial.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as foundation;
 import 'package:http/http.dart' as http;
@@ -52,6 +56,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
   final ApiService _apiService = ApiService(httpClient: http.Client());
 
   late PlanModel currentPlan = PlanModel.empty();
+
+  final String videoUrl = 'assets/assets/video_tutorial.mp4'; 
+  
+
 
   @override
   void initState() {
@@ -845,104 +853,225 @@ Widget _buildAlbumsSection() {
         itemCount: filteredFolders.length,
         itemBuilder: (context, index) {
           final folder = filteredFolders[index];
-          return _buildAlbumCard(folder);
+          return _buildAlbumCard(context, folder);
         },
       ),
     );
   }
 
-  Widget _buildAlbumCard(Folder folder) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey[300]!,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+Widget _buildAlbumCard(BuildContext context, Folder folder,) { // Adicionando context como parâmetro, se não estiver já
+  // 1. Definições de Estado e Cores
+  final bool isShared = folder.pastaCompartilhada;
+  final bool isOwner = folder.proprietarioPasta;
+
+   //final bool canShowActionsInCard = isOwner && !isFreePlan; 
+
+    print('Pasta: ${folder.pageDisplayName} | É Compartilhada: $isShared | É Dono: $isOwner');
+
+    // Método auxiliar para buscar o ID do usuário logado (assumindo que você tem UserHelper)
+// Função atualizada na sua tela de álbuns:
+int _getLoggedInUserId() {
+  // Retorna o ID do usuário logado (ou 0, ou lança erro, dependendo da sua regra)
+  return UserHelper().user?.id ?? 0; 
+}
+  
+  // Cores para sinalização visual
+  // Proprietário (Shared/Green) | Convidado (Shared/Blue) | Normal (aed513)
+  Color mainColor = const Color(0xFFaed513);
+  IconData folderMainIcon = Icons.folder; // Ícone Padrão da Pasta
+  IconData shareStatusIcon = Icons.people_alt; // Ícone para o "Selo de Status"
+  Color iconBackgroundColor = mainColor.withOpacity(0.1);
+
+  if (isShared) {
+    if (isOwner) {
+      // Dono de álbum COMPARTILHADO (pode gerenciar)
+      mainColor = Colors.green.shade700;
+      shareStatusIcon = Icons.vpn_key; // Ex: Uma chave para indicar "Meu Compartilhamento"
+    } else {
+      // Usuário CONVIDADO (só visualiza)
+      mainColor = Colors.black87;
+      shareStatusIcon = Icons.visibility; // Ex: Um olho para indicar "Visualizando/Convidado"
+    }
+    iconBackgroundColor = mainColor.withOpacity(0.1);
+    folderMainIcon = Icons.folder_shared; // Mudando o ícone principal para indicar que está compartilhado
+  }
+
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    
+    // ----------------------------------------------------
+    // INÍCIO DA CORREÇÃO: Usando Stack para o Selo/Badge
+    // ----------------------------------------------------
+    child: Stack( 
+      children: [
+        // O Container principal agora é o primeiro filho do Stack
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isShared ? mainColor.withOpacity(0.7) : Colors.grey[300]!,
+              width: isShared ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AlbunsCriadosPage(
-                  initialFolderName: folder.pageDisplayName,
-                  initialFolderId: folder.id,
-                  folderApiPath: folder.caminho,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                // ... Lógica de navegação ...
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AlbunsCriadosPage(
+                      initialFolderName: folder.pageDisplayName,
+                      initialFolderId: folder.id,
+                      folderApiPath: folder.caminho,
+                      isOwner: isOwner, 
+                    ),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // --- Ícone Principal da Pasta (Container) ---
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: iconBackgroundColor, 
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        folderMainIcon, // Usa o ícone da pasta
+                        color: mainColor,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            folder.pageDisplayName.isNotEmpty
+                                ? folder.pageDisplayName
+                                : 'Album sem nome',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: isShared ? FontWeight.w900 : FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isShared
+                                ? (isOwner ? 'Compartilhado com 1 usuário' : 'Visualizando álbum de terceiros')
+                                : 'Clique para visualizar',
+                            style: TextStyle(
+                              color: Colors.black.withOpacity(0.6),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // --- BOTÕES DE AÇÃO ---
+                    if (isOwner)
+                      IconButton(
+                        // ... Botão Compartilhar ...
+                      onPressed: () {
+                          final int userId = _getLoggedInUserId();
+                          final int folderId = folder.id;
+
+                          // Apenas navega, sem pré-criação de convite
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InviteScreen(
+                                folderId: folderId,
+                                loggedInUserId: userId,
+                              ),
+                            ),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Tela de Convites'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.share, // Ícone de "ação" compartilhar
+                          color: mainColor,
+                          size: 20,
+                        ),
+                        tooltip: isShared ? 'Gerenciar Compartilhamento' : 'Compartilhar Álbum',
+                      ),
+                      
+                    const SizedBox(width: 8),
+
+                    if (isOwner)
+                      IconButton(
+                        // ... Botão Excluir ...
+                        onPressed: () => _confirmAndDeleteFolder(folder),
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: Colors.red.withOpacity(0.8),
+                          size: 20,
+                        ),
+                        tooltip: 'Excluir álbum',
+                      ),
+                      
+                    if (!isOwner) 
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.grey,
+                        size: 16,
+                      ),
+                  ],
                 ),
               ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFaed513).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.folder,
-                    color: Color(0xFFaed513),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        folder.pageDisplayName.isNotEmpty
-                            ? folder.pageDisplayName
-                            : 'Album sem nome',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Clique para visualizar',
-                        style: TextStyle(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => _confirmAndDeleteFolder(folder),
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: Colors.red.withValues(alpha: 0.8),
-                    size: 20,
-                  ),
-                  tooltip: 'Excluir álbum',
-                ),
-              ],
             ),
           ),
         ),
-      ),
-    );
-  }
+        
+        //  WIDGET: O SELO/BADGE DE COMPARTILHAMENTO
+       
+        if (isShared)
+          Positioned(
+            top: 4, // Posição no canto superior direito
+            right: 4,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: mainColor, // Cor de destaque
+                shape: BoxShape.circle,
+               // border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
+                ]
+              ),
+              child: Icon(
+                shareStatusIcon, // Ícone de status (Chave ou Olho)
+                color: Colors.white,
+                size: 15,
+              ),
+            ),
+          ),
+      ],
+    ), 
+  );
+}
 
   Widget _buildDrawerItem({
     required IconData icon,
@@ -1165,6 +1294,30 @@ Future<void> _showRankingDialog(
 }
 
 
+  // Função para exibir o Diálogo
+  Future<void> _showVideoDialog(
+    BuildContext context
+    ) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Center(child: const Text('Tutorial de uso')),
+          content: VideoPlayerDialogContent(videoUrl: videoUrl),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Fechar'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Fecha o diálogo
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1376,6 +1529,28 @@ Future<void> _showRankingDialog(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Column(
                   children: [
+                    //Tela Gerencial, esperando a criação da conda ADM, para subir a versão. 
+
+                    /*  _buildDrawerItem(
+                      icon: Icons.settings,
+                      title: 'Tela Gerencial',
+                      onTap: () {
+                        Navigator.pop(context);
+                        showDialog(
+                          context: context,
+                          builder: (context) =>
+                              const GerenciamentoApp(), 
+                        );
+                      },
+                    ),*/
+                    _buildDrawerItem(
+                      icon: Icons.video_settings,
+                      title: 'Tutorial',
+                      onTap: () {
+                        Navigator.pop(context); // Fecha o Drawer primeiro
+                        _showVideoDialog(context); // Abre o diálogo
+                      },
+                    ),
                     _buildDrawerItem(
                       icon: Icons.person,
                       title: 'Perfil',
@@ -1384,19 +1559,11 @@ Future<void> _showRankingDialog(
                         showDialog(
                           context: context,
                           builder: (context) =>
-                              UserDashboardScreen(folders: foldersToDisplay,), // <-- CORRIGIDO: Passando a lista de Albuns
+                              UserDashboardScreen(folders: foldersToDisplay,), 
                         );
                       },
                     ),
-                    _buildDrawerItem(
-                      icon: Icons.leaderboard,
-                      title: 'Ranking',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showRankingDialog(context, currentPlan, plans);
-                      },
-                    ),
-                    _buildDrawerItem(
+                      _buildDrawerItem(
                       icon: Icons.assignment,
                       title: 'Planos',
                       onTap: () {
@@ -1415,6 +1582,15 @@ Future<void> _showRankingDialog(
                         );
                       },
                     ),
+                    _buildDrawerItem(
+                      icon: Icons.leaderboard,
+                      title: 'Ranking',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showRankingDialog(context, currentPlan, plans);
+                      },
+                    ),
+
                     Divider(color: Colors.grey[400]),
                     _buildDrawerItem(
                       icon: Icons.exit_to_app,

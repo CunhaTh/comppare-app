@@ -41,12 +41,14 @@ class AlbunsCriadosPage extends StatefulWidget {
   final String initialFolderName;
   final int initialFolderId;
   final String folderApiPath;
+  final bool isOwner;
 
   const AlbunsCriadosPage({
     super.key,
     required this.initialFolderName,
     required this.initialFolderId,
     required this.folderApiPath,
+    required this.isOwner,
   });
 
   @override
@@ -117,7 +119,7 @@ void _removeTag(Folder group, String tagName) {
   setState(() {
     group.tags?.remove(tagName);
   });
-   RankingRepository.instance.removeAlbumPoints();
+   
   _persistUpdatedTagsForGroup(group);
 }
 
@@ -698,6 +700,8 @@ void _addTagToFolder(Folder group, TagModel tag) {
     final screenHeight = MediaQuery.of(context).size.height;
     final isLargeScreen = screenWidth > 520 && screenHeight > 889;
 
+    final bool canEdit = widget.isOwner;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -740,7 +744,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
           child: Column(
             children: [
               // Header Section
-              _buildHeaderSection(),
+              _buildHeaderSection(canEdit),
               const SizedBox(height: 24),
 
               // Subalbums Section
@@ -764,9 +768,11 @@ void _addTagToFolder(Folder group, TagModel tag) {
   }
   
 
-    Widget _buildHeaderSection() {
+    Widget _buildHeaderSection(bool canEdit) {
+      final onTapAction = canEdit ? _showAddSubalbumDialog : null;
+
     return GestureDetector(
-      onTap: _showAddSubalbumDialog,
+      onTap: onTapAction,
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -809,7 +815,7 @@ void _addTagToFolder(Folder group, TagModel tag) {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: _showAddSubalbumDialog,
+                  onTap: onTapAction,
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     child: const Icon(
@@ -894,6 +900,8 @@ void _addTagToFolder(Folder group, TagModel tag) {
 
 // 1. Widget que constrói a lista de subálbuns
 Widget _buildSubalbumsList() {
+  final bool canEdit = widget.isOwner;
+
   return RefreshIndicator(
     onRefresh: _fetchSubfoldersFromApiAndRefreshState,
     color: const Color(0xFFaed513),
@@ -902,16 +910,45 @@ Widget _buildSubalbumsList() {
       itemCount: _subfolders.length,
       itemBuilder: (context, index) {
         final group = _subfolders[index];
-        // AJUSTE AQUI: Passamos apenas o objeto 'group' completo.
-        return _buildSubalbumCard(group);
+  
+        return _buildSubalbumCard(group, canEdit);
       },
     ),
   );
 }
 
   // Subalbum Card
-  Widget _buildSubalbumCard(Folder group) {
-    final List<String> tags = group.tags ?? [];
+  Widget _buildSubalbumCard(Folder group, bool canEdit) {
+    
+  final List<String> tags = group.tags ?? [];
+  
+  // A cor do botão de adicionar fotos pode mudar se estiver inativo
+  final Color photoButtonColor = canEdit ? const Color(0xFFaed513) : Colors.grey.shade300;
+  final Color photoIconColor = canEdit ? Colors.black : Colors.grey.shade600;
+
+  // A função de adicionar fotos fica nula (desativada) se não puder editar
+  final VoidCallback? addPhotosOnPressed = canEdit 
+    ? () => _addMultipleImages(group)
+    : null;
+    
+  // A função de exclusão fica nula (desativada) se não puder editar
+  final VoidCallback? deleteOnPressed = canEdit 
+    ? () => _confirmAndDeleteSubfolder(group)
+    : null;
+
+  // Função para adicionar tags de forma livre (ícone '+')
+  final VoidCallback? showInsertNameTagOnPressed = canEdit 
+    ? () {
+        _showInsertNameTag(context, _apiService, () => _loadTags);
+      }
+    : null;
+    
+  // Função para adicionar tags existentes (ícone 'dropdown')
+  final VoidCallback? showAddTagDialogOnPressed = canEdit 
+    ? () {
+        _showAddTagDialog(group);
+      }
+    : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -934,18 +971,19 @@ Widget _buildSubalbumsList() {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ImagemDetalhesPage(
+                Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ImagemDetalhesPage(
                   images: group.imagens ?? [],
-                // AJUSTE AQUI: Passa a lista de tags correta para a próxima tela
-                categorias: tags, 
-                subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
+                  categorias: tags, 
+                  subAlbumName: group.albunsCriadosPageDisplayName ?? 'Sem nome',
+                  // CORREÇÃO AQUI: Use o parâmetro 'canEdit' que está correto!
+                  isOwner: canEdit, 
+                  ),
                 ),
-              ),
-            );
-          },
+                );
+              },
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -995,46 +1033,50 @@ Widget _buildSubalbumsList() {
                     ),
 
                     // Actions
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Add Photos Button
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFaed513),
-                            borderRadius: BorderRadius.circular(8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Add Photos Button
+                          Container(
+                            decoration: BoxDecoration(
+                              // 2. A COR MUDA se estiver inativo
+                              color: photoButtonColor, 
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              // 3. O BOTÃO FICA INATIVO se addPhotosOnPressed for null
+                              onPressed: addPhotosOnPressed, 
+                              icon: Icon(
+                                Icons.add_a_photo,
+                                color: photoIconColor, // A COR DO ÍCONE MUDA
+                                size: 20,
+                              ),
+                              tooltip: canEdit ? 'Adicionar fotos' : 'Apenas proprietário pode adicionar fotos',
+                            ),
                           ),
-                          child: IconButton(
-                            onPressed: () => _addMultipleImages(group),
-                            icon: const Icon(
-                              Icons.add_a_photo,
-                              color: Colors.black,
+                          const SizedBox(width: 8),
+
+                          // Delete Button
+                          IconButton(
+                            // 4. O BOTÃO FICA INATIVO se deleteOnPressed for null
+                            onPressed: deleteOnPressed, 
+                            icon: Icon(
+                              Icons.delete_outline,
+                              // 5. A COR MUDA se estiver inativo
+                              color: canEdit ? Colors.red.withOpacity(0.8) : Colors.grey.shade400,
                               size: 20,
                             ),
-                            tooltip: 'Adicionar fotos',
+                            tooltip: canEdit ? 'Excluir subálbum' : 'Apenas proprietário pode excluir',
                           ),
-                        ),
-                        const SizedBox(width: 8),
 
-                        // Delete Button
-                        IconButton(
-                          onPressed: () => _confirmAndDeleteSubfolder(group),
-                          icon: Icon(
-                            Icons.delete_outline,
-                            color: Colors.red.withValues(alpha: 0.8),
-                            size: 20,
+                          // Arrow Icon (Mantido)
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.black.withOpacity(0.5),
+                            size: 16,
                           ),
-                          tooltip: 'Excluir subálbum',
-                        ),
-
-                        // Arrow Icon
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.black.withValues(alpha: 0.5),
-                          size: 16,
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
 
@@ -1051,56 +1093,46 @@ Widget _buildSubalbumsList() {
 
                 // Add Tags Section
                 const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Row(children: [
-                            
-                             IconButton(
-                                icon: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                // ignore: deprecated_member_use
-                                color: Colors.black.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                                  ),
-                                child: Icon(
-                                        Icons.add,
-                                        // ignore: deprecated_member_use
-                                        color: Colors.black.withOpacity(0.7),
-                                        size: 20,
-                                        ),
-                                        ),
-                                onPressed: () {
-                                  // Aqui a gente cria uma função anônima que não retorna nada
-                                  // e passa ela para o showInsertNameTag.
-                                  // Desta forma, a chamada `loadTags()` não é executada imediatamente,
-                                  // mas sim passada como um callback.
-                                  _showInsertNameTag(context, _apiService, () => _loadTags);
-                                  
-                                },
-                              ),
+ Row(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: canEdit ? Colors.black.withOpacity(0.05) : Colors.grey.shade100, // Cor do background muda
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            color: canEdit ? Colors.black.withOpacity(0.7) : Colors.grey.shade500, // Cor do ícone muda
+                            size: 20,
+                          ),
+                        ),
+                        // 6. ADICIONAR NOVA TAG (ÍCONE '+') FICA INATIVO
+                        onPressed: showInsertNameTagOnPressed, 
+                      ),
                       Text(
-                      'categorias',
-                      style: TextStyle(
-                        color: Colors.black.withValues(alpha: 0.7),
-                        fontSize: 14,
+                        'categorias',
+                        style: TextStyle(
+                          color: Colors.black.withOpacity(0.7),
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_drop_down,
-                        color: Colors.black.withValues(alpha: 0.7),
-                        size: 20,
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_drop_down,
+                          color: canEdit ? Colors.black.withOpacity(0.7) : Colors.grey.shade500, // Cor do ícone muda
+                          size: 20,
+                        ),
+                        // 7. SELECIONAR TAG EXISTENTE (ÍCONE 'DROPDOWN') FICA INATIVO
+                        onPressed: showAddTagDialogOnPressed, 
                       ),
-                      onPressed: () {
-                        _showAddTagDialog(group);
-                         RankingRepository.instance.addPhotoWithTagPoints();
-                      } 
-                    ),
-                    ],)
-                    
-                  ],
-                ),
+                    ],
+                  )
+                ],
+              ),
 
                 // Images Preview
                 if (group.imagens?.isNotEmpty ?? false) ...[

@@ -39,12 +39,14 @@ class ImagemDetalhesPage extends StatefulWidget {
   final List<ImageModel> images;
   final List<String> categorias;
   final String subAlbumName;
+  final bool isOwner;
 
   const ImagemDetalhesPage({
     super.key,
     required this.images,
     required this.categorias,
     required this.subAlbumName,
+    required this.isOwner,
   });
 
   @override
@@ -72,6 +74,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
   late Animation<double> _scaleAnimation;
   final ApiService _apiService = ApiService(httpClient: http.Client());
   Map<int, String> _tagIdToNameMap = {};
+
+  late final bool canEdit = widget.isOwner;
 
   @override
   void initState() {
@@ -626,6 +630,25 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     required double screenWidth,
     required double screenHeight,
   }) {
+    
+// Definição das funções de ação
+// A ação SÓ é executada se 'canEdit' for true.
+final VoidCallback? editOnTap = canEdit
+    ? () => _showEditDialog(context, imageItem, index)
+    : null; // Se for false, a função é null, travando o botão.
+
+final VoidCallback? deleteOnTap = canEdit
+    ? () => _deleteImage(imageItem, index)
+    : null; // Se for false, a função é null, travando o botão.
+
+// Definição das cores para sinalização visual
+// As cores ATIVAS (black, red) SÓ são usadas se 'canEdit' for true.
+final Color editColor = canEdit ? Colors.black : Colors.grey.shade600;
+final Color deleteColor = canEdit ? Colors.red : Colors.grey.shade600;
+final Color containerColor = canEdit ? Colors.black.withOpacity(0.05) : Colors.grey.shade100;
+final Color deleteContainerColor = canEdit ? Colors.red.withOpacity(0.1) : Colors.grey.shade100; // Nova cor para o container de delete
+
+
     final String dataAtualFormatada =
         DateFormat('dd/MM/yyyy').format(DateTime.now());
     final String dateText =
@@ -770,72 +793,79 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
                 // --- FIM DA PARTE DA IMAGEM ---
 
                 // --- INÍCIO DA MUDANÇA: BARRA DE AÇÕES ---
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isLargeScreen ? 8.0 : 4.0,
-                    vertical: isLargeScreen ? 8.0 : 6.0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Botão Editar (envolvido por Expanded)
+
+Container(
+    padding: EdgeInsets.symmetric(
+        horizontal: isLargeScreen ? 8.0 : 4.0,
+        vertical: isLargeScreen ? 8.0 : 6.0,
+    ),
+    child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+            // Botão Editar (envolvido por Expanded)
                       Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              _showEditDialog(context, imageItem, index),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isLargeScreen ? 12.0 : 8.0,
-                              vertical: isLargeScreen ? 8.0 : 6.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.edit,
-                                  color: Colors.black,
-                                  size: isLargeScreen ? 16.0 : 14.0,
-                                ),
-                                SizedBox(width: isLargeScreen ? 6.0 : 4.0),
-                                Text(
-                                  'Editar',
-                                  style: TextStyle(
-                                    fontSize: isLargeScreen ? 14.0 : 12.0,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black,
+                          child: GestureDetector(
+                              // TRAVA: onTap é null se canEdit for false (usuário não dono)
+                              onTap: editOnTap, 
+                              child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: isLargeScreen ? 12.0 : 8.0,
+                                      vertical: isLargeScreen ? 8.0 : 6.0,
                                   ),
-                                ),
-                              ],
-                            ),
+                                  decoration: BoxDecoration(
+                                      // Cor do Container muda se estiver inativo
+                                      color: containerColor, 
+                                      borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                          Icon(
+                                              Icons.edit,
+                                              // Cor do Ícone muda
+                                              color: editColor, 
+                                              size: isLargeScreen ? 16.0 : 14.0,
+                                          ),
+                                          SizedBox(width: isLargeScreen ? 6.0 : 4.0),
+                                          Text(
+                                              'Editar',
+                                              style: TextStyle(
+                                                  fontSize: isLargeScreen ? 14.0 : 12.0,
+                                                  fontWeight: FontWeight.w500,
+                                                  // Cor do Texto muda
+                                                  color: editColor, 
+                                              ),
+                                          ),
+                                      ],
+                                  ),
+                              ),
                           ),
-                        ),
                       ),
 
                       SizedBox(width: isLargeScreen ? 8.0 : 4.0),
 
-                      // NOVO: Botão Deletar (apenas o ícone)
+                      // Botão Deletar (apenas o ícone)
                       GestureDetector(
-                        onTap: () => _deleteImage(imageItem, index),
-                        child: Container(
-                          padding: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8.0),
+                          // TRAVA: onTap é null se canEdit for false (usuário não dono)
+                          onTap: deleteOnTap, 
+                          child: Container(
+                              padding: EdgeInsets.all(isLargeScreen ? 8.0 : 6.0),
+                              decoration: BoxDecoration(
+                                  // Cor do Container de Delete muda se estiver inativo
+                                  color: deleteContainerColor, 
+                                  borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Icon(
+                                  Icons.delete_outline,
+                                  // Cor do Ícone muda
+                                  color: deleteColor, 
+                                  size: isLargeScreen ? 20.0 : 18.0,
+                              ),
                           ),
-                          child: Icon(
-                            Icons.delete_outline,
-                            color: Colors.red,
-                            size: isLargeScreen ? 20.0 : 18.0,
-                          ),
-                        ),
                       ),
-                    ],
-                  ),
-                ),
+                              ],
+                          ),
+                      ),
               ],
             ),
           ),
@@ -958,56 +988,70 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
   );
 }
   /// Cria o widget da moldura de comparação para ser salvo ou compartilhado.
-  Widget _buildShareableFrame({
-    required GlobalKey key,
-    required List<ImageModel> displayedImages,
-    required bool isLargeScreen,
-  }) {
-    return RepaintBoundary(
-      key: key,
-      child: Container(
-        color: Colors.white, // Fundo branco para a imagem final
-        padding: const EdgeInsets.all(8.0), // Pequena margem interna
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Container principal das imagens
-            Container(
-              height: 150, // Altura fixa para a moldura
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: displayedImages.map((imageItem) {
-                  final index = displayedImages.indexOf(imageItem);
-                  return Expanded(
-                    child: Align(
-                      alignment: index == 0
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
+Widget _buildShareableFrame({
+  required GlobalKey key,
+  required List<ImageModel> displayedImages,
+  required bool isLargeScreen,
+}) {
+  // Dimensões: 300x533 (proporção 9:16) para Story do Instagram
+  const double frameWidth = 300.0;
+  const double frameHeight = 533.0;
+  const double logoHeight = 30.0; 
+
+  return RepaintBoundary(
+    key: key,
+    child: Container(
+      width: frameWidth,
+      height: frameHeight,
+      color: Colors.white, // Fundo branco
+      
+      child: Stack(
+        children: [
+          // CONTAINER PRINCIPAL DAS IMAGENS (AGORA COLADO NAS BORDAS VERTICAIS)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: displayedImages.map((imageItem) {
+                    return Expanded(
                       child: Image.memory(
                         imageItem.imageData!,
-                        fit: BoxFit.fitWidth,
+                        fit: BoxFit.cover, // Garante que a imagem preencha o espaço sem margens
                         height: double.infinity,
+                        width: double.infinity,
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-            // Logo sobreposta
-            Positioned(
-              bottom: 10,
+            ],
+          ),
+
+          Positioned(
+            left: 0,
+            right: 0,
+            // Ajustamos o 'bottom' para a posição que você desejava (em torno do meio superior)
+            // Calculado: (533 / 2) - 160 = ~106.5 (Posicionamento mais alto, fora da zona de recorte da imagem do seu print)
+            bottom: frameHeight / 2 - 220, 
+            child: Center(
               child: Image.asset(
-                "assets/logo_all_green.png",
-                width: isLargeScreen ? 50.0 : 50.0,
-                height: isLargeScreen ? 35.0 : 25.0,
-                fit: BoxFit.contain,
-              ),
+                  "assets/logo_all_green.png",
+                  width: 80.0, 
+                  height: logoHeight,
+                  fit: BoxFit.contain,
+                ),
+              
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -2983,6 +3027,7 @@ Widget _buildComppareButton(bool isLargeScreen, double screenWidth,
                                 // await shareToSocialMedia(imageBytes);
                                 // Chamar o novo método de compartilhamento
                                 await shareImage(imageBytes);
+                                await RankingRepository.instance.addPhotoCompartilhar();
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

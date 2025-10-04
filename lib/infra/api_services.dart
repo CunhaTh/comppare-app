@@ -46,7 +46,33 @@ class ApiService {
   }
 
 
-  // DENTRO DA SUA CLASSE ApiService
+  Future<Map<String, dynamic>> sendPost(
+    String endpoint, 
+    Map<String, dynamic> body,
+  ) async {
+    foundation.debugPrint('ApiService POST Body: ${jsonEncode(body)}');
+    // 1. Constrói a URL completa
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/$endpoint'); 
+    
+    // 2. Cria a função de requisição (que envia o body)
+    final request = () => httpClient.post(
+      url, 
+      headers: getHeaders()..addAll({'Content-Type': 'application/json'}), // Adiciona o Content-Type
+      body: jsonEncode(body), // Converte o Map para String JSON
+    );
+
+    // 3. Usa o wrapper sendRequest para lidar com tokens, erros, etc.
+    final response = await sendRequest(request); 
+
+    // 4. Retorna a resposta processada por sendRequest
+    if (response is Map<String, dynamic>) {
+      return response;
+    } else {
+      // Caso sendRequest retorne algo inesperado ou lance um erro
+      throw Exception('Formato de resposta inesperado da API.');
+    }
+  }
+
 
 /// Busca a lista de classificação do ranking.
 Future<List<dynamic>> getRankingClassification() async {
@@ -294,6 +320,7 @@ Future<void> updateRankingScore({
           statusCode: 0, body: '');
     }
   }
+  
 
   // MÉTODO fetchUserStats CORRIGIDO
   Future<UserStats> fetchUserStats() async {
