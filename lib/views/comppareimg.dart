@@ -13,6 +13,7 @@ import 'package:application_progress/models/folder_model.dart';
 import 'package:application_progress/models/image_model.dart';
 import 'package:application_progress/models/tag_model.dart';
 import 'package:application_progress/principal.dart';
+import 'package:application_progress/views/shareableframe_withzoom.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as devtools;
 import 'package:flutter/material.dart' as foundation;
@@ -2532,8 +2533,8 @@ Widget _buildShareableFrame({
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Usando a nova função reutilizável para criar a moldura
-                          _buildShareableFrame(
-                            key: shareRepaintKey,
+                          ShareableFrameWithZoom(
+                            shareRepaintKey: shareRepaintKey,
                             displayedImages: displayedImages,
                             isLargeScreen: isLargeScreen,
                           ),
@@ -3130,17 +3131,18 @@ Widget _buildShareableFrame({
                     ),
                   ),
                   // Conteúdo com a pré-visualização da moldura
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
-                      child: _buildShareableFrame(
-                        key:
-                            savePreviewKey, // Usa a chave local para este dialog
-                        displayedImages: displayedImages,
-                        isLargeScreen: isLargeScreen,
+                    Expanded(
+                      // ⭐️ Remova o SingleChildScrollView!
+                      // Seu frame agora estará diretamente visível e pronto para receber toques.
+                      child: Padding( // Mantenha o padding se for necessário
+                        padding: EdgeInsets.all(isLargeScreen ? 12.0 : 10.0),
+                        child: _buildShareableFrame(
+                          key: savePreviewKey,
+                          displayedImages: displayedImages,
+                          isLargeScreen: isLargeScreen,
+                        ),
                       ),
                     ),
-                  ),
                   // Botões de ação "Cancelar" e "Salvar"
                   Container(
                     padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),

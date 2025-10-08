@@ -12,11 +12,14 @@ class ApiEndpoints {
         : 'https://api.comppare.com.br/api';
   }
 
-// Envia convites por e-mail
- static String get sendInvite => '$baseUrl/convite/vincular';
+  // Envia convites por e-mail
+  static String get sendInvite => '$baseUrl/convite/vincular';
 
- // Cadastrar convites
- static String get cadastraInvite => '$baseUrl/convite/cadastrar';
+  // Cadastrar convites
+  static String get cadastraInvite => '$baseUrl/convite/cadastrar';
+
+  // Excluir convites
+  static String get excluiInvite => '$baseUrl/convite/excluir';
 
   // recupera os valores dos albuns
   static String get recoverFolder => '$baseUrl/pasta/recuperar';

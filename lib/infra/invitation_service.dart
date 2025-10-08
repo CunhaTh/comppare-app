@@ -126,4 +126,48 @@ Future<Map<String, dynamic>> sendInvitation({
   }
 }
 
+  Future<List<Map<String, dynamic>>> getFolderInvites(int folderId) async {
+    // 1. Chamar o endpoint da API para listar quem tem acesso ao folderId
+    // 2. O resultado deve ser uma lista de mapas (ex: [{"id": 1, "email": "a@b.com", "userId": 10}, ...])
+    return []; // Retornar a lista real
+  }
+
+  // FUNÇÃO DE EXCLUSÃO DE ACESSO (DESVINCULAR)
+
+// Esta função é a principal responsável por lidar com a API.
+Future<Map<String, dynamic>> deleteInviteForFolder(int folderId) async {
+  try {
+    // 💡 Chamada Limpa: A função na ApiService agora lida com a requisição, 
+    // headers, body JSON e o tratamento de erros (lançando exceção em caso de falha).
+    await _apiService.deleteInvite(folderId: folderId); 
+    
+    // Se a chamada acima for bem-sucedida (Status 200), o código continua aqui.
+    debugPrint('Convite/Acesso para pasta $folderId excluído com sucesso.');
+    return {
+      "success": true,
+      "message": "Acesso removido com sucesso.",
+    };
+  } catch (e) {
+    // Em caso de falha na API (422, 500), a exceção é capturada.
+    debugPrint('Erro ao remover acesso do usuário: $e');
+    
+    // Tentativa de extrair a mensagem de erro da exceção para exibir ao usuário.
+    final errorMessage = e.toString().contains('Falha na requisição:')
+        ? e.toString().split(': ').last // Pega apenas a mensagem de erro do backend
+        : "Erro de conexão ao remover acesso.";
+        
+    return {
+      "success": false,
+      "message": errorMessage,
+    };
+  }
+}
+
+// Wrapper para manter o código da tela funcionando (o que antes era deleteFolderInvite)
+// Ele agora chama a nova função principal e ignora o invitedUserId.
+Future<Map<String, dynamic>> deleteFolderInvite(int folderId, int invitedUserId) async {
+  // A chamada na tela (InviteScreen) agora estará correta com essa assinatura.
+  return deleteInviteForFolder(folderId);
+}
+
 }

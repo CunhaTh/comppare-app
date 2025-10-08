@@ -898,10 +898,6 @@ int _getLoggedInUserId() {
 
   return Container(
     margin: const EdgeInsets.only(bottom: 12),
-    
-    // ----------------------------------------------------
-    // INÍCIO DA CORREÇÃO: Usando Stack para o Selo/Badge
-    // ----------------------------------------------------
     child: Stack( 
       children: [
         // O Container principal agora é o primeiro filho do Stack

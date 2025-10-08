@@ -152,14 +152,13 @@ class CadastroScreenState extends State<CadastroScreen> {
                 builder: (_) => PagamentoPage(plano: widget.plan)),
           );
         }
-      } else {
+      } else if (response.statusCode == 409) {
         appSnackBar(
-          context: context,
-          message: 'Erro ao cadastrar usuário, tente novamente mais tarde',
-          backgroundColor: Colors.red
+            context: context,
+            message: 'Erro: O CPF informado, já está cadastrado.',
+            backgroundColor: Colors.red
         );
-      }
-
+    } 
     } catch (e) {
       _showErrorDialog('Erro ao conectar com a API. Tente novamente.');
     } finally {

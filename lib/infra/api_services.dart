@@ -73,6 +73,32 @@ class ApiService {
     }
   }
 
+  // Excluir convite
+Future<void> deleteInvite({
+  required int folderId,
+}) async {
+  // 1. Constrói a URL completa para o endpoint de exclusão
+  final url = Uri.parse(ApiEndpoints.excluiInvite);
+
+  // 2. Define o corpo da requisição (apenas idPasta)
+  final body = {
+    // Garantimos que o ID seja enviado como número inteiro, conforme confirmado
+    'idPasta': folderId, 
+  };
+
+  // 3. Usa o wrapper sendRequest para lidar com tokens e erros
+  await sendRequest(
+    () => _httpClient.post(
+      url,
+      // Passa o Content-Type: application/json e o Token Bearer
+      headers: getHeaders(includeContentType: true), 
+      body: jsonEncode(body), // Converte o Map para String JSON
+    ),
+    successMessage: 'Convite ou acesso geral removido com sucesso.',
+    errorMessage: 'Falha ao remover o convite. Verifique se o ID está ativo no sistema.',
+  );
+}
+
 
 /// Busca a lista de classificação do ranking.
 Future<List<dynamic>> getRankingClassification() async {
