@@ -487,66 +487,78 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
     _imageItems = finalItems;
     return finalItems;
   }
+  
 
-// NOVO: Função auxiliar para manter o código limpo.
-// Esta função processa UMA ÚNICA imagem de forma assíncrona.
-// Função auxiliar ajustada para lidar com imagens novas (que retornam 404)
-  Future<ImageModel?> _loadAndEnrichImage(ImageModel myImage) async {
-    try {
-      // Passo 1: Carrega os bytes da imagem. Se isso falhar, a imagem inteira falha.
-      final Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
+Future<ImageModel?> _loadAndEnrichImage(ImageModel myImage) async {
+  try {
+    // Passo 1: Carrega os bytes da imagem. (Nenhuma alteração aqui, está OK)
+    final Uint8List? imageData = await _loadImageBytesFromUrl(myImage.url);
 
-      if (imageData == null || imageData.isEmpty) {
-        devtools.debugPrint(
-            'ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
-        return null; // Descarta a imagem se não for possível carregar o arquivo.
-      }
+    if (imageData == null || imageData.isEmpty) {
+      devtools.debugPrint(
+          'ATENÇÃO: Não foi possível obter dados para a imagem ID: ${myImage.id}.');
+      return null; // Descarta a imagem se não for possível carregar o arquivo.
+    }
 
-      final finalItem = ImageModel.fromMyImage(myImage, imageData: imageData);
+    final finalItem = ImageModel.fromMyImage(myImage, imageData: imageData);
 
-      // Passo 2: Tenta carregar a comparação, mas não trata o 404 como um erro fatal.
-      ComparacaoModel? comparacao;
-      if (myImage.id != null && myImage.id != 0) {
-        // Só tenta buscar se o ID for válido
-        try {
-          comparacao = await ApiService().getComparacaoSave(myImage.id!);
-        } on ApiException catch (e) {
-          // Ignora o erro APENAS se for um 404 (Not Found), o que é normal para imagens novas.
-          if (e.statusCode != 404) {
-            devtools.debugPrint(
-                'Erro inesperado ao buscar comparação para imagem ID ${myImage.id}: $e');
-          } else {
-            devtools.debugPrint(
-                'Nenhuma comparação encontrada para a imagem ID ${myImage.id} (esperado).');
-          }
+    // Passo 2: Tenta carregar a comparação. (Nenhuma alteração aqui, está OK)
+    ComparacaoModel? comparacao;
+    if (myImage.id != null && myImage.id != 0) {
+      try {
+        comparacao = await ApiService().getComparacaoSave(myImage.id!);
+      } on ApiException catch (e) {
+        // Ignora o erro APENAS se for um 404 (Not Found).
+        if (e.statusCode != 404) {
+          devtools.debugPrint(
+              'Erro inesperado ao buscar comparação para imagem ID ${myImage.id}: $e');
+        } else {
+          devtools.debugPrint(
+              'Nenhuma comparação encontrada para a imagem ID ${myImage.id} (esperado).');
         }
       }
+    }
 
-      // Passo 3: Preenche os dados se a comparação foi encontrada.
-      if (comparacao != null) {
-        if (comparacao.dataComparacao != null &&
-            comparacao.dataComparacao!.isNotEmpty) {
-          finalItem.date = comparacao.dataComparacao;
-        }
-        for (var tagData in comparacao.tags) {
-          final tagId = tagData['id_tag'] as int?;
+    // Passo 3: Preenche os dados se a comparação foi encontrada. (Correção aplicada aqui)
+    if (comparacao != null) {
+      if (comparacao.dataComparacao != null &&
+          comparacao.dataComparacao!.isNotEmpty) {
+        finalItem.date = comparacao.dataComparacao;
+      }
+
+      // CORREÇÃO: Itera sobre as tags e usa o 'nome' e 'valor' diretamente do JSON.
+      // Isso elimina a dependência de '_tagIdToNameMap', que estava falhando.
+      for (var tagData in comparacao.tags) {
+        // Garantindo que 'tagData' é um mapa, para acesso seguro.
+        if (tagData is Map<String, dynamic>) {
+          final categoryName = tagData['nome']?.toString(); // O nome da tag já vem no JSON
           final valor = tagData['valor']?.toString() ?? '';
-          if (tagId != null) {
-            final categoryName = _tagIdToNameMap[tagId];
-            if (categoryName != null) {
-              finalItem.metadata[categoryName] = valor;
+
+          if (categoryName?.isNotEmpty == true) {
+            // A chave do metadado é o nome da categoria.
+            finalItem.metadata[categoryName!] = valor; 
+          } else {
+            // Fallback (Mantido para segurança): Tenta usar o mapa de IDs se o nome falhar
+            final tagId = tagData['id_tag'] as int?;
+            if (tagId != null) {
+              final categoryNameFromMap = _tagIdToNameMap[tagId];
+              if (categoryNameFromMap != null) {
+                finalItem.metadata[categoryNameFromMap] = valor;
+              }
             }
           }
         }
       }
-
-      return finalItem;
-    } catch (e) {
-      devtools
-          .debugPrint('Erro GERAL ao processar a imagem ID ${myImage.id}: $e');
-      return null;
     }
+
+    devtools.debugPrint('RESULTADO FINAL: Date=${finalItem.date}, Metadata Keys=${finalItem.metadata.keys.toList()}');
+    return finalItem;
+  } catch (e) {
+    devtools
+        .debugPrint('Erro GERAL ao processar a imagem ID ${myImage.id}: $e');
+    return null;
   }
+}
 
   Uint8List? _placeholderBytes;
 
@@ -3091,13 +3103,13 @@ Widget _buildShareableFrame({
                   // Header (similar ao de compartilhar, mas com texto diferente)
                   Container(
                     padding: EdgeInsets.all(isLargeScreen ? 24.0 : 20.0),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
                         colors: [Color(0xFFaed513), Color(0xFF9bc412)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(24.0),
                         topRight: Radius.circular(24.0),
                       ),

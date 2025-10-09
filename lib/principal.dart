@@ -1001,8 +1001,8 @@ int _getLoggedInUserId() {
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Tela de Convites'),
-                              backgroundColor: Colors.orange,
+                              content: Text('Tela de Convites', style: TextStyle(color: Colors.black),),
+                              backgroundColor: Color(0xFFaed513),
                             ),
                           );
                         },

@@ -133,12 +133,10 @@ Future<Map<String, dynamic>> sendInvitation({
   }
 
   // FUNÇÃO DE EXCLUSÃO DE ACESSO (DESVINCULAR)
-
-// Esta função é a principal responsável por lidar com a API.
+// Esta função é a principal responsável por lidar com a exclusão de convites.
 Future<Map<String, dynamic>> deleteInviteForFolder(int folderId) async {
   try {
-    // 💡 Chamada Limpa: A função na ApiService agora lida com a requisição, 
-    // headers, body JSON e o tratamento de erros (lançando exceção em caso de falha).
+    
     await _apiService.deleteInvite(folderId: folderId); 
     
     // Se a chamada acima for bem-sucedida (Status 200), o código continua aqui.
@@ -163,10 +161,9 @@ Future<Map<String, dynamic>> deleteInviteForFolder(int folderId) async {
   }
 }
 
-// Wrapper para manter o código da tela funcionando (o que antes era deleteFolderInvite)
-// Ele agora chama a nova função principal e ignora o invitedUserId.
+
 Future<Map<String, dynamic>> deleteFolderInvite(int folderId, int invitedUserId) async {
-  // A chamada na tela (InviteScreen) agora estará correta com essa assinatura.
+  
   return deleteInviteForFolder(folderId);
 }
 

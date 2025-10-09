@@ -51,7 +51,7 @@ class _InviteScreenState extends State<InviteScreen> {
     final bool confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Excluir Convite Geral?'),
+        title: const Text('Excluir Convite ?'),
         content: const Text(
           'Esta ação removerá todos os convites pendentes e/ou o acesso geral ao álbum. Deseja continuar?',
           style: TextStyle(color: Colors.red),
@@ -178,12 +178,7 @@ class _InviteScreenState extends State<InviteScreen> {
       appBar: AppBar(
         title: const Text('Convidar e Gerenciar Acesso'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep, color: Colors.red), // Ícone de exclusão geral
-            tooltip: 'Excluir convite geral',
-            // Chama a nova função _handleGeneralDelete
-            onPressed: _isLoading ? null : _handleGeneralDelete, 
-          ),
+            // Lugar onde podemos adicionar botões na positão top da tela.
         ],
       ),
       body: Padding(
@@ -199,7 +194,7 @@ class _InviteScreenState extends State<InviteScreen> {
             const SizedBox(height: 8),
             const Text(
               'Atenção: Apenas um usuário cadastrado pode ser convidado para este álbum.',
-              style: TextStyle(color: Colors.orange, fontSize: 14),
+              style: TextStyle(color: Color(0xFFaed513), fontSize: 14),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -216,14 +211,28 @@ class _InviteScreenState extends State<InviteScreen> {
                 : ElevatedButton.icon(
                     onPressed: _sendInvite,
                     icon: const Icon(Icons.send),
-                    label: const Text('Enviar Convite'),
+                    label: const Text('Enviar Convite',style: TextStyle(color: Colors.black87),),
                     style: ElevatedButton.styleFrom(
+                      // Adiciona a cor de fundo personalizada
+                      backgroundColor: const Color(0xFFaed513), 
                       minimumSize: const Size.fromHeight(50),
                     ),
                   ),
             
             // --- Seção de Gerenciamento de Convites ---
             const SizedBox(height: 32),
+
+                ElevatedButton.icon(
+                onPressed: _isLoading ? null : _handleGeneralDelete,
+                icon: const Icon(Icons.delete_sweep),
+                label: const Text('Excluir Convite',style: TextStyle(color: Colors.white),),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  // Define a cor de fundo quando o botão está desabilitado (onPressed: null)
+                  disabledBackgroundColor: Colors.red.shade200, // Um tom de vermelho mais claro
+                  minimumSize: const Size.fromHeight(50),
+                ),
+              )
        
         // implementação da lista de usuário permitidos a ver esse album
         /*    const Text(
