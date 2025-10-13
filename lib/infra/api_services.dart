@@ -26,8 +26,7 @@ class ApiService {
   Map<String, String> getHeaders(
       {bool includeContentType = true, String? token}) {
     final String? authToken = TokenHelper().token;
-    foundation.debugPrint(
-        'ApiService: Token sendo acessado em getHeaders(: $authToken');
+
     final Map<String, String> headers = {
       'Accept': 'application/json',
     };
@@ -38,9 +37,6 @@ class ApiService {
 
     if (authToken != null && authToken.isNotEmpty) {
       headers['Authorization'] = 'Bearer $authToken';
-    } else {
-      foundation.debugPrint(
-          'Aviso: Token de autenticação não disponível no TokenHelper.');
     }
     return headers;
   }
@@ -50,7 +46,6 @@ class ApiService {
     String endpoint, 
     Map<String, dynamic> body,
   ) async {
-    foundation.debugPrint('ApiService POST Body: ${jsonEncode(body)}');
     // 1. Constrói a URL completa
     final url = Uri.parse('${ApiEndpoints.baseUrl}/$endpoint'); 
     
@@ -119,6 +114,89 @@ Future<List<dynamic>> getRankingClassification() async {
     throw ApiException('Resposta inesperada da API de ranking.');
   }
 }
+
+  /// Lista de usuários disponível apenas para rotas administrativas.
+  /// Retorna a lista bruta de usuários (List ou campo 'data' quando for Map).
+  Future<List<dynamic>> getAdminUsers() async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/listar');
+
+    final response = await sendRequest(
+      () => httpClient.get(url, headers: getHeaders()),
+      errorMessage: 'Falha ao listar usuários (admin).',
+    );
+
+    if (response is List) {
+      return response;
+    }
+
+    if (response is Map && response['data'] != null) {
+      return response['data'];
+    }
+
+    throw ApiException('Resposta inesperada ao listar usuários.');
+  }
+
+  /// Exclui um usuário (admin)
+  Future<void> deleteAdminUser(int id) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/excluir');
+
+    final body = {'id': id};
+
+    await sendRequest(
+      () => httpClient.post(
+        url,
+        headers: getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Usuário excluído com sucesso.',
+      errorMessage: 'Falha ao excluir o usuário.',
+    );
+  }
+
+  /// Atualiza um usuário (admin). O mapa `updates` deve conter os campos a serem atualizados.
+  Future<Map<String, dynamic>> updateAdminUser(int id, Map<String, dynamic> updates) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/atualizar');
+
+  final body = <String, dynamic>{'id': id}..addAll(updates);
+
+    final response = await sendRequest(
+      () => httpClient.post(
+        url,
+        headers: getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Usuário atualizado com sucesso.',
+      errorMessage: 'Falha ao atualizar o usuário.',
+    );
+
+    if (response is Map<String, dynamic>) return response;
+    return {'message': 'Atualizado'};
+  }
+
+  /// Atualiza apenas o status do usuário.
+  Future<dynamic> updateUserStatus(int idUsuario) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/atualizar-status');
+
+    final body = {'idUsuario': idUsuario};
+
+    // Log request details for debugging
+    foundation.debugPrint('[updateUserStatus] POST $url');
+    foundation.debugPrint('[updateUserStatus] Request body: ${jsonEncode(body)}');
+
+    final response = await sendRequest(
+      () => httpClient.post(
+        url,
+        headers: getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Status atualizado com sucesso.',
+      errorMessage: 'Falha ao atualizar o status do usuário.',
+    );
+
+    // Log decoded response (sendRequest already logs raw response)
+    foundation.debugPrint('[updateUserStatus] Decoded response: $response');
+    return response;
+  }
 
 Future<void> updateRankingScore({
   required int userId, 
@@ -257,8 +335,6 @@ Future<void> updateRankingScore({
     try {
       final response =
           await requestFunction().timeout(const Duration(seconds: 20));
-      foundation.debugPrint(
-          '[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Adicionada verificação para corpo vazio antes de tentar decodificar
@@ -315,7 +391,7 @@ Future<void> updateRankingScore({
         }
       } else {
         // O resto da sua lógica de tratamento de erro continua aqui
-        String serverMessage = 'Falha na requisição.';
+        String serverMessage = '';
         try {
           final errorBody = json.decode(response.body) as Map<String, dynamic>;
           serverMessage = errorBody['message'] ??
@@ -327,7 +403,7 @@ Future<void> updateRankingScore({
         }
         throw ApiException(
           errorMessage ??
-              'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
+              '$serverMessage.',
           statusCode: response.statusCode,
           body: response.body,
         );
@@ -422,7 +498,6 @@ Future<Map<String, dynamic>> authenticateUser(
   String? token, // Parâmetro opcional para usar token existente
 }) async {
   final url = Uri.parse(ApiEndpoints.authenticateUser);
-  foundation.debugPrint('Tentando autenticar usuário: $cpf');
 
   Map<String, String> headers = getHeaders(includeContentType: true);
   final body = <String, dynamic>{};
@@ -501,6 +576,79 @@ Future<Map<String, dynamic>> authenticateUser(
       body: json.encode(responseBody),
     );
   }
+}
+
+// Nova função para autenticar administradores usando o endpoint /usuarios/login-admin
+Future<Map<String, dynamic>> authenticateAdmin(
+  String cpf,
+  String senha, {
+  String? token,
+}) async {
+  final url = Uri.parse(ApiEndpoints.authenticateAdmin);
+
+  Map<String, String> headers = getHeaders(includeContentType: true);
+  final body = <String, dynamic>{};
+
+  if (token != null && token.isNotEmpty) {
+    headers['Authorization'] = 'Bearer $token';
+    foundation.debugPrint('authenticateAdmin: usando token existente para refresh.');
+  } else {
+    body['cpf'] = cpf;
+    body['senha'] = senha;
+    foundation.debugPrint('authenticateAdmin: autenticando com CPF e senha.');
+  }
+
+  final responseBody = await sendRequest(
+    () => _httpClient.post(
+      url,
+      headers: headers,
+      body: body.isNotEmpty ? jsonEncode(body) : null,
+    ),
+    successMessage: 'Autenticação admin bem-sucedida.',
+  );
+
+  // A API de admin pode retornar apenas id/nome (dentro de 'dados' ou no topo) e
+  // opcionalmente um token. Não altere o comportamento de authenticateUser.
+  Map<String, dynamic>? userData;
+  if (responseBody is Map<String, dynamic>) {
+    if (responseBody.containsKey('dados') && responseBody['dados'] is Map<String, dynamic>) {
+      userData = responseBody['dados'] as Map<String, dynamic>;
+    } else if (responseBody.containsKey('id')) {
+      userData = responseBody;
+    }
+  }
+
+  if (userData == null) {
+    throw ApiException(
+      'Resposta de autenticação inválida (admin): dados do usuário ausentes.',
+      statusCode: responseBody is Map<String, dynamic> ? responseBody['statusCode'] as int? ?? 0 : 0,
+      body: json.encode(responseBody),
+    );
+  }
+
+  final int? id = userData['id'] is String ? int.tryParse(userData['id']) : userData['id'] as int?;
+  final String? nome = (userData['nome'] as String?) ?? (userData['primeiroNome'] != null ? '${userData['primeiroNome']} ${userData['sobrenome'] ?? ''}'.trim() : null);
+
+
+  final User loggedInUser = User(
+    id: id,
+    nome: nome,
+    cpf: null,
+    senha: null,
+    telefone: null,
+    idPlano: null,
+    email: null,
+    token: null,
+  );
+
+  // Save token/user id only if present. UserHelper.setUser requires an id to persist.
+ 
+  if (id != null) {
+    await TokenHelper().saveUserId(id);
+    await UserHelper().setUser(loggedInUser);
+  }
+
+  return responseBody as Map<String, dynamic>;
 }
 
   // lib/infra/api_services.dart
@@ -1159,5 +1307,39 @@ Future<String?> refreshTokenIfNeeded() async {
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Lista todos os planos disponíveis (admin)
+  Future<List<dynamic>> getPlans() async {
+    final url = Uri.parse(ApiEndpoints.getPlans);
+
+    final response = await sendRequest(
+      () => _httpClient.get(url, headers: getHeaders()),
+      errorMessage: 'Falha ao listar planos.',
+    );
+
+    if (response is List) return response;
+    if (response is Map && response['data'] != null) return response['data'];
+    throw ApiException('Resposta inesperada ao listar planos.');
+  }
+
+  /// Atualiza dados do usuário (endpoint público): /usuarios/atualizar-dados
+  Future<dynamic> updateUserData(Map<String, dynamic> body) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/atualizar-dados');
+    foundation.debugPrint('[ApiService] updateUserData POST $url');
+    foundation.debugPrint('[ApiService] updateUserData body: ${jsonEncode(body)}');
+
+    final response = await sendRequest(
+      () => _httpClient.post(
+        url,
+        headers: getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Dados do usuário atualizados.',
+      errorMessage: 'Falha ao atualizar dados do usuário.',
+    );
+
+    foundation.debugPrint('[ApiService] updateUserData response: $response');
+    return response;
   }
 }
