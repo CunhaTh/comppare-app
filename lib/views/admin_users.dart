@@ -198,9 +198,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
       // After response, try fetching until the server reflects the change
       // expectedStatus is the status we toggled optimistically above
-      final expectedStatusRaw = (user['status'] ?? user['ativo']);
+      final expectedStatusRaw = (user['status'] ?? '');
       final expectedInt = _statusToInt(expectedStatusRaw);
-
+      final msgToUser = expectedInt == 0 ? 'Usuário ativado com sucesso.' : 'Usuário desativado com sucesso.';
       bool matched = false;
       const attempts = 3;
       final delays = [Duration(milliseconds: 300), Duration(milliseconds: 700), Duration(milliseconds: 1200)];
@@ -227,7 +227,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         await _fetch();
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Status atualizado')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msgToUser)));
     } catch (e) {
       // On error, reload to restore previous state
       await _fetch();
