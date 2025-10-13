@@ -81,27 +81,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     return _allUsers.sublist(start, end.clamp(0, _allUsers.length));
   }
 
-  Future<void> _confirmDelete(dynamic user) async {
-    final id = user['id'] ?? user['usuario'];
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Confirmar exclusão'),
-          content: Text('Deseja excluir o usuário ${user['nome'] ?? user['email'] ?? id}?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Excluir')),
-          ],
-        );
-      },
-    );
-
-    if (confirmed == true) {
-      await _deleteUser(id);
-    }
-  }
-
   Future<void> _deleteUser(dynamic id) async {
     setState(() => _loading = true);
     try {
@@ -255,12 +234,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                         label: const Text('Editar'),
                       ),
                       const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: () => _confirmDelete(u),
-                        icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-                        label: const Text('Excluir', style: TextStyle(color: Colors.red)),
-                      ),
-                      const SizedBox(width: 8),
                         _loadingRows.contains(id.toString())
                             ? const SizedBox(
                                 width: 20,
@@ -319,11 +292,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                   icon: const Icon(Icons.edit, size: 18),
                   onPressed: () => _openEditDialog(u),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-                  onPressed: () => _confirmDelete(u),
-                ),
-                _loadingRows.contains((u['id'] ?? u['usuario']).toString())
+                              _loadingRows.contains((u['id'] ?? u['usuario']).toString())
                     ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
                     : IconButton(
                         icon: Icon(
