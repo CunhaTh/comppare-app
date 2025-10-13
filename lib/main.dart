@@ -2,6 +2,9 @@ import 'package:application_progress/cadastro.dart';
 import 'package:application_progress/infra/token_helper.dart';
 import 'package:application_progress/infra/user_helper.dart';
 import 'package:application_progress/login.dart';
+import 'package:application_progress/admin_login.dart';
+import 'package:application_progress/views/admpage.dart';
+import 'package:application_progress/views/admin_users.dart';
 import 'package:application_progress/principal.dart' hide LoginScreen;
 import 'package:application_progress/views/SplashScreen.dart';
 import 'package:application_progress/views/auth_wrapper.dart';
@@ -66,6 +69,12 @@ class MyApp extends StatelessWidget {
           initialRoute: Uri.base.path,
           onGenerateRoute: (settings) {
             switch (settings.name) {
+              case '/admin':
+                return MaterialPageRoute(builder: (_) => const AdminLoginScreen());
+              case '/admin/dashboard':
+                return MaterialPageRoute(builder: (_) => const AdmPage());
+              case '/admin/users':
+                return MaterialPageRoute(builder: (_) => const AdminUsersPage());
               case AwaitingPayment.route:
                 return MaterialPageRoute(
                     builder: (_) => const AwaitingPayment());

@@ -26,8 +26,7 @@ class ApiService {
   Map<String, String> getHeaders(
       {bool includeContentType = true, String? token}) {
     final String? authToken = TokenHelper().token;
-    foundation.debugPrint(
-        'ApiService: Token sendo acessado em getHeaders(: $authToken');
+
     final Map<String, String> headers = {
       'Accept': 'application/json',
     };
@@ -38,9 +37,6 @@ class ApiService {
 
     if (authToken != null && authToken.isNotEmpty) {
       headers['Authorization'] = 'Bearer $authToken';
-    } else {
-      foundation.debugPrint(
-          'Aviso: Token de autenticação não disponível no TokenHelper.');
     }
     return headers;
   }
@@ -50,7 +46,6 @@ class ApiService {
     String endpoint, 
     Map<String, dynamic> body,
   ) async {
-    foundation.debugPrint('ApiService POST Body: ${jsonEncode(body)}');
     // 1. Constrói a URL completa
     final url = Uri.parse('${ApiEndpoints.baseUrl}/$endpoint'); 
     
@@ -119,6 +114,89 @@ Future<List<dynamic>> getRankingClassification() async {
     throw ApiException('Resposta inesperada da API de ranking.');
   }
 }
+
+  /// Lista de usuários disponível apenas para rotas administrativas.
+  /// Retorna a lista bruta de usuários (List ou campo 'data' quando for Map).
+  Future<List<dynamic>> getAdminUsers() async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/listar');
+
+    final response = await sendRequest(
+      () => httpClient.get(url, headers: getHeaders()),
+      errorMessage: 'Falha ao listar usuários (admin).',
+    );
+
+    if (response is List) {
+      return response;
+    }
+
+    if (response is Map && response['data'] != null) {
+      return response['data'];
+    }
+
+    throw ApiException('Resposta inesperada ao listar usuários.');
+  }
+
+  /// Exclui um usuário (admin)
+  Future<void> deleteAdminUser(int id) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/excluir');
+
+    final body = {'id': id};
+
+    await sendRequest(
+      () => httpClient.post(
+        url,
+        headers: getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Usuário excluído com sucesso.',
+      errorMessage: 'Falha ao excluir o usuário.',
+    );
+  }
+
+  /// Atualiza um usuário (admin). O mapa `updates` deve conter os campos a serem atualizados.
+  Future<Map<String, dynamic>> updateAdminUser(int id, Map<String, dynamic> updates) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/atualizar');
+
+  final body = <String, dynamic>{'id': id}..addAll(updates);
+
+    final response = await sendRequest(
+      () => httpClient.post(
+        url,
+        headers: getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Usuário atualizado com sucesso.',
+      errorMessage: 'Falha ao atualizar o usuário.',
+    );
+
+    if (response is Map<String, dynamic>) return response;
+    return {'message': 'Atualizado'};
+  }
+
+  /// Atualiza apenas o status do usuário.
+  Future<dynamic> updateUserStatus(int idUsuario) async {
+    final url = Uri.parse('${ApiEndpoints.baseUrl}/admin/usuarios/atualizar-status');
+
+    final body = {'idUsuario': idUsuario};
+
+    // Log request details for debugging
+    foundation.debugPrint('[updateUserStatus] POST $url');
+    foundation.debugPrint('[updateUserStatus] Request body: ${jsonEncode(body)}');
+
+    final response = await sendRequest(
+      () => httpClient.post(
+        url,
+        headers: getHeaders(includeContentType: true),
+        body: jsonEncode(body),
+      ),
+      successMessage: 'Status atualizado com sucesso.',
+      errorMessage: 'Falha ao atualizar o status do usuário.',
+    );
+
+    // Log decoded response (sendRequest already logs raw response)
+    foundation.debugPrint('[updateUserStatus] Decoded response: $response');
+    return response;
+  }
 
 Future<void> updateRankingScore({
   required int userId, 
@@ -257,8 +335,6 @@ Future<void> updateRankingScore({
     try {
       final response =
           await requestFunction().timeout(const Duration(seconds: 20));
-      foundation.debugPrint(
-          '[sendRequest] Response Status: ${response.statusCode}, Body: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Adicionada verificação para corpo vazio antes de tentar decodificar
@@ -422,7 +498,6 @@ Future<Map<String, dynamic>> authenticateUser(
   String? token, // Parâmetro opcional para usar token existente
 }) async {
   final url = Uri.parse(ApiEndpoints.authenticateUser);
-  foundation.debugPrint('Tentando autenticar usuário: $cpf');
 
   Map<String, String> headers = getHeaders(includeContentType: true);
   final body = <String, dynamic>{};
