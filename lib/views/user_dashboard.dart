@@ -129,7 +129,7 @@ void initState() {
         }
       } else {
         // O resto da sua lógica de tratamento de erro continua aqui
-        String serverMessage = 'Falha na requisição.';
+        String serverMessage = '';
         try {
           final errorBody = json.decode(response.body) as Map<String, dynamic>;
           serverMessage = errorBody['message'] ??
@@ -141,7 +141,7 @@ void initState() {
         }
         throw ApiException(
           errorMessage ??
-              'Falha na requisição: $serverMessage (Status ${response.statusCode}).',
+              '$serverMessage',
           statusCode: response.statusCode,
           body: response.body,
         );

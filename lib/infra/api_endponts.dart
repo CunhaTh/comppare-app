@@ -55,6 +55,9 @@ class ApiEndpoints {
   // --- Endpoints de Autenticação e Criação de Pastas ---
   /// Endpoint para autenticar o usuário.
   static String get authenticateUser => '$baseUrl/usuarios/autenticar';
+  
+  /// Endpoint para autenticar administradores (novo)
+  static String get authenticateAdmin => '$baseUrl/admin/usuarios/login-admin';
 
   /// Endpoint para criar uma nova pasta.
   // POST: { "idUsuario": ..., "nomePasta": ..., "parentFolderId": ..., "tags": [...] }
