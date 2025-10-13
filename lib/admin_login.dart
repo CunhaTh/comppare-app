@@ -22,8 +22,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     final String cpf = _userController.text.trim();
     final String senha = _passwordController.text;
     try {
-      final api = ApiService();
-      final response = await api.authenticateUser(cpf, senha);
+  final api = ApiService();
+  final response = await api.authenticateAdmin(cpf, senha);
       // On success authenticateUser saves token and user via TokenHelper/UserHelper
       if (mounted) {
         // Use named route so browser URL becomes /admin/dashboard on web
@@ -87,7 +87,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Acesse /admin no navegador para esta tela.'),
               ],
             ),
           ),

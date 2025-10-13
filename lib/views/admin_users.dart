@@ -1,5 +1,6 @@
 import 'package:application_progress/infra/api_services.dart';
 import 'package:flutter/material.dart';
+import 'admin_user_edit.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
 class AdminUsersPage extends StatefulWidget {
@@ -121,37 +122,15 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   }
 
   Future<void> _openEditDialog(dynamic user) async {
-    final id = user['id'] ?? user['usuario'];
-    final nomeController = TextEditingController(text: (user['nome'] ?? user['nome_completo'] ?? '').toString());
-    final emailController = TextEditingController(text: (user['email'] ?? '').toString());
-
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar usuário'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome')),
-                TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Salvar')),
-          ],
-        );
-      },
+    // open full-page editor for better UX
+    final res = await Navigator.push<bool?>(
+      context,
+      MaterialPageRoute(builder: (_) => AdminUserEditPage(user: user)),
     );
 
-    if (updated == true) {
-      await _updateUser(id, {
-        'nome': nomeController.text,
-        'email': emailController.text,
-      });
+    if (res == true) {
+      // reload list after successful save
+      await _fetch();
     }
   }
 
