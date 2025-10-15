@@ -1,5 +1,7 @@
 import 'package:application_progress/principal.dart';
 import 'package:application_progress/views/pagemconstrucao.dart';
+import 'package:application_progress/infra/user_helper.dart';
+import 'package:application_progress/infra/token_helper.dart';
 import 'package:flutter/material.dart';
 
 class MyApp extends StatefulWidget {
@@ -64,48 +66,66 @@ class _AdmPageState extends State<AdmPage> {
   
 
   @override
+  void initState() {
+    super.initState();
+    _initHelpers();
+  }
+
+  Future<void> _initHelpers() async {
+    try {
+      await UserHelper().init();
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Padding(
-          padding: const EdgeInsets.only(left: 100),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-                child: Image.asset(
-                  "assets/logo_cortada.png",
-                  width: 150,
-                  height: 50,
-                ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+              child: Image.asset(
+                "assets/logo_cortada.png",
+                width: 150,
+                height: 50,
               ),
-              Row(
-                children: [
-                  Builder(
-                    builder: (BuildContext context) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 20),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const Pagemconstrucao() //const MyHomePage(title: '',),
-                              ),
-                            );
-                          },
-                          child: const Icon(Icons.logout)
-                        ),
-                      );
-                    },
+            ),
+            // User name area (loaded from UserHelper)
+            Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12.0),
+                  child: Text(
+                    UserHelper().user?.nome ?? UserHelper().user?.email ?? 'Admin',
+                    style: const TextStyle(fontSize: 16),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+                Builder(
+                  builder: (BuildContext context) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 20),
+                      child: GestureDetector(
+                        onTap: () async {
+                          // Clear tokens and user on logout
+                          await TokenHelper().clear();
+                          await UserHelper().removeUser();
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const Pagemconstrucao()),
+                          );
+                        },
+                        child: const Icon(Icons.logout),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ),
       body: Padding(
@@ -145,18 +165,18 @@ class _AdmPageState extends State<AdmPage> {
               child: ListView(
                 children: [
                   ListTile(
-                    title: const Text('Permissões'),
+                    title: const Text('Usuarios'),
                     trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
-                      // Lógica para abrir a tela de permissões
+                      Navigator.pushNamed(context, '/admin/users');
                     },
                   ),
                   const Divider(),
                   ListTile(
-                    title: const Text('Tags'),
+                    title: const Text('Planos'),
                     trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
-                      // Lógica para abrir a tela de tags
+                      // Lógica para abrir a tela de planos
                     },
                   ),
                   const Divider(),
