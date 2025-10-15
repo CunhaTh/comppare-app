@@ -5,6 +5,11 @@ import 'package:application_progress/login.dart';
 import 'package:application_progress/principal.dart' hide LoginScreen;
 import 'package:application_progress/views/SplashScreen.dart';
 import 'package:application_progress/views/auth_wrapper.dart';
+import 'package:application_progress/views/politica_cookes_html.dart';
+import 'package:application_progress/views/politica_html.dart';
+import 'package:application_progress/views/privacy_policy_screen.dart';
+import 'package:application_progress/views/termos_de_uso_html.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -13,15 +18,21 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import 'chat_button.dart';
 import 'infra/api_endponts.dart';
 import 'models/plan_model.dart';
 import 'views/awaiting_payment.dart';
+        // Contém a string 'termosHtmlContent'
+import 'package:webview_flutter/webview_flutter.dart'; // Importa o pacote principal para inicialização
+import 'package:webview_flutter_android/webview_flutter_android.dart'; // Adicionado para importação explícita
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart'; 
 
 
 // Placeholder Plano class (replace with your actual Plano class)
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 
 void main() async {
   await GetStorage.init();
@@ -31,6 +42,16 @@ void main() async {
       'Token na inicialização do app: ${TokenHelper().token}'); // <--- E este
   debugPrint('User ID na inicialização do app: ${TokenHelper().userId}');
   await TokenHelper().init();
+
+
+   WidgetsFlutterBinding.ensureInitialized(); 
+  if (!kIsWeb) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      AndroidWebViewPlatform.registerWith();
+    } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+      WebKitWebViewPlatform.registerWith();
+    }
+  }
   runApp(const MyApp());
 }
 
@@ -1262,20 +1283,33 @@ Widget _buildTextFooter( bool isMobile ) {
     );
   }
 
-  Widget _buildPrivacyLink(String title, String fileName) {
+Widget _buildPrivacyLink(BuildContext context, String text, String htmlContent) {
   return TextButton(
-    onPressed: () => _launchPDF(fileName),
+    onPressed: () {
+      // Usa o Navigator para abrir a tela DocumentWebViewScreen, passando o título 
+      // e a string HTML do documento como argumentos.
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DocumentWebViewScreen(
+            title: text,
+            htmlContent: htmlContent,
+          ),
+        ),
+      );
+    },
     child: Text(
-      title,
-      style: const TextStyle(
-        color: Colors.black87,
-        decoration: TextDecoration.underline,
+      text,
+      style: TextStyle(
+        color: Theme.of(context).primaryColor, // Usa a cor primária do tema para o link
+        fontWeight: FontWeight.w500,
       ),
     ),
   );
 }
 
 
+// --- 2. Sua Função de Rodapé  ---
 Widget _buildCopyrightsPrivacy(BuildContext context) {
   return Container(
     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
@@ -1294,23 +1328,23 @@ Widget _buildCopyrightsPrivacy(BuildContext context) {
           ),
 
           // Link para Políticas de Privacidade
-          // ATENÇÃO: Confirme se 'politica_de_privacidade.pdf' é o nome correto do seu arquivo.
           _buildPrivacyLink(
-            'Políticas de Privacidade',
-            'politica_privacidade.pdf',
+            context,
+            'Política de Privacidade',
+            politicaHtmlContent, // <-- Passa a string HTML importada
           ),
 
           // Link para Termos de Uso
-          // ATENÇÃO: Confirme se 'termos_de_uso.pdf' é o nome correto do seu arquivo.
           _buildPrivacyLink(
+            context,
             'Termos de Uso',
-            'termos_de_uso.pdf',
+            termosHtmlContent, // <-- Passa a string HTML importada
           ),
 
-          // Link para Politica de Cookies (usando o nome do arquivo que você forneceu)
-          _buildPrivacyLink(
-            'Política de Cookies',
-            'politica_cookies_comppare.pdf',
+         _buildPrivacyLink(
+            context,
+            'política de cookies',
+            politicaCookiesHtmlContent, // <-- Passa a string HTML importada
           ),
         ],
       ),

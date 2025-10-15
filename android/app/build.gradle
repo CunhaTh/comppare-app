@@ -6,8 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "Comppare"
+    
     compileSdk = flutter.compileSdkVersion
+    
+    // CORREÇÃO: O namespace deve ter o formato de domínio reverso (ex: com.app.nome).
+    // Usamos o valor do applicationId, que é 'Comppare', e colocamos em formato de domínio.
+    namespace 'com.thiagogomes.comppare' 
+    
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -16,12 +21,18 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        // CORREÇÃO: Usar a propriedade correta. O valor já é o default para 1.8.
+        jvmTarget = '1.8'
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "Comppare"
+        // O valor do applicationId é 'Comppare'
+        applicationId = "com.thiagogomes.comppare" // << CORREÇÃO: Deve ser o mesmo do namespace
+        
+        // Você pode ter que ajustar este valor se o nome original for exatamente "Comppare"
+        // Se o nome original for "Comppare", use: applicationId = "Comppare" e mude o namespace.
+        // Vou assumir que você deseja o formato completo.
+        
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

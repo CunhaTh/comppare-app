@@ -53,6 +53,12 @@ dependencies:
   http_parser: any
   firebase_auth: ^6.0.1
   jwt_decoder: ^2.0.1
+  #telas em HTML
+
+  webview_flutter: ^4.8.0         
+  webview_flutter_android: ^4.8.2  
+  webview_flutter_wkwebview: ^3.22.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -81,3 +87,4 @@ flutter:
     - assets/logo_vertical.png
     - assets/logo_all_green.png
     - assets/video_tutorial.mp4
+    - assets/html/
