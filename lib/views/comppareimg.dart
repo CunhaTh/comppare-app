@@ -78,6 +78,8 @@ class _ImagemDetalhesPageState extends State<ImagemDetalhesPage>
 
   late final bool canEdit = widget.isOwner;
 
+  bool _showInstruction = true;
+
   @override
   void initState() {
     super.initState();
@@ -1008,7 +1010,7 @@ Widget _buildShareableFrame({
 }) {
   // Dimensões: 300x533 (proporção 9:16) para Story do Instagram
   const double frameWidth = 300.0;
-  const double frameHeight = 533.0;
+  const double frameHeight = 400.0;
   const double logoHeight = 30.0; 
 
   return RepaintBoundary(
@@ -1016,10 +1018,24 @@ Widget _buildShareableFrame({
     child: Container(
       width: frameWidth,
       height: frameHeight,
-      color: Colors.white, // Fundo branco
+      color: Colors.transparent, // Fundo branco
       
       child: Stack(
         children: [
+
+                    Padding(
+                      padding: const EdgeInsets.only(top: 15, left: 60, right: 30),
+                      child: Column(children: [
+                          Icon(
+                                  Icons.pinch_rounded,
+                                  size: 24, // Ajuste o tamanho conforme necessário
+                                  color: Colors.black,
+                                ),
+                                Text('Arraste, para redimencionar as imagens', style: TextStyle(color: Colors.black, fontSize: 10))
+                      ],)
+                      
+                       
+                    ) ,
           // CONTAINER PRINCIPAL DAS IMAGENS (AGORA COLADO NAS BORDAS VERTICAIS)
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1031,11 +1047,20 @@ Widget _buildShareableFrame({
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: displayedImages.map((imageItem) {
                     return Expanded(
-                      child: Image.memory(
-                        imageItem.imageData!,
-                        fit: BoxFit.cover, // Garante que a imagem preencha o espaço sem margens
-                        height: double.infinity,
-                        width: double.infinity,
+                      child: InteractiveViewer( // <--- NOVO WIDGET AQUI!
+                        clipBehavior: Clip.antiAlias, // Permite que a imagem se arraste para fora dos limites se desejar
+                        boundaryMargin: EdgeInsets.all(double.minPositive), //const EdgeInsets.all(double.infinity), // Permite arrastar sem limites
+                        minScale: 1.0, // Escala mínima (sem diminuir abaixo do tamanho original)
+                        maxScale: 4.0, // Escala máxima (4x de zoom)
+                        child: Image.memory(
+                          imageItem.imageData!,
+                          // MUDANÇA: Voltamos para BoxFit.cover (ou BoxFit.fill), pois o zoom manual
+                          // agora controla o enquadramento, permitindo que o usuário ajuste o corte.
+                          // Usar 'contain' com zoom manual geralmente não é a melhor UX.
+                          fit: BoxFit.contain, 
+                          height: double.infinity,
+                          width: double.infinity,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -1049,7 +1074,7 @@ Widget _buildShareableFrame({
             right: 0,
             // Ajustamos o 'bottom' para a posição que você desejava (em torno do meio superior)
             // Calculado: (533 / 2) - 160 = ~106.5 (Posicionamento mais alto, fora da zona de recorte da imagem do seu print)
-            bottom: frameHeight / 2 - 220, 
+            bottom: frameHeight / 2 - 100, 
             child: Center(
               child: Image.asset(
                   "assets/logo_all_green.png",
@@ -1060,6 +1085,8 @@ Widget _buildShareableFrame({
               
             ),
           ),
+
+
         ],
       ),
     ),
@@ -2774,31 +2801,37 @@ Widget _buildShareableFrame({
                               child: Stack(
                                 children: [
                                   // Container principal das imagens
-                                  Container(
-                                    //padding: const EdgeInsets.all(20),
-                                    height: 150,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children:
-                                          displayedImages.map((imageItem) {
-                                        final index =
-                                            displayedImages.indexOf(imageItem);
-                                        return Expanded(
-                                          child: Align(
-                                            alignment: index == 0
-                                                ? Alignment.centerRight
-                                                : Alignment.centerLeft,
-                                            child: Image.memory(
-                                              imageItem.imageData!,
-                                              fit: BoxFit.fitWidth,
-                                              height: double.infinity,
+                                    Container(
+                                      // Mantemos a altura fixa para o Row de miniaturas
+                                      height: 150, 
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: displayedImages.map((imageItem) {
+                                          return Expanded(
+                                            child: Padding( // Adicione um padding opcional para separar as miniaturas
+                                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                              child: InteractiveViewer( // <--- NOVO WIDGET AQUI!
+                                                // Configurações de Recorte (Clipping) e Margem Interativa
+                                                clipBehavior: Clip.antiAlias, 
+                                                boundaryMargin: EdgeInsets.all(double.minPositive),
+                                                minScale: 1.0, 
+                                                maxScale: 4.0, 
+                                                
+                                                // O Image agora é o filho do InteractiveViewer
+                                                child: Image.memory(
+                                                  imageItem.imageData!,
+                                                  // Usamos BoxFit.cover/fill para garantir que a área inicial seja preenchida
+                                                  // (ou BoxFit.contain se você quiser ver a imagem inteira na miniatura)
+                                                  fit: BoxFit.cover, 
+                                                  height: double.infinity,
+                                                  width: double.infinity,
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      }).toList(),
+                                          );
+                                        }).toList(),
+                                      ),
                                     ),
-                                  ),
 
                                   Positioned(
                                     left: 0,

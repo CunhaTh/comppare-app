@@ -1352,7 +1352,7 @@ Widget _buildCopyrightsPrivacy(BuildContext context) {
 
          _buildPrivacyLink(
             context,
-            'política de cookies',
+            'Política de Cookies',
             politicaCookiesHtmlContent, // <-- Passa a string HTML importada
           ),
         ],
