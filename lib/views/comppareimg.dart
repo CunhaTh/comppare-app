@@ -1023,19 +1023,7 @@ Widget _buildShareableFrame({
       child: Stack(
         children: [
 
-                    Padding(
-                      padding: const EdgeInsets.only(top: 15, left: 60, right: 30),
-                      child: Column(children: [
-                          Icon(
-                                  Icons.pinch_rounded,
-                                  size: 24, // Ajuste o tamanho conforme necessário
-                                  color: Colors.black,
-                                ),
-                                Text('Arraste, para redimencionar as imagens', style: TextStyle(color: Colors.black, fontSize: 10))
-                      ],)
-                      
-                       
-                    ) ,
+
           // CONTAINER PRINCIPAL DAS IMAGENS (AGORA COLADO NAS BORDAS VERTICAIS)
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1066,6 +1054,16 @@ Widget _buildShareableFrame({
                   }).toList(),
                 ),
               ),
+                                        Padding(
+                            padding: const EdgeInsets.only(top: 15, left: 60, right: 30),
+                            child: Column(children: [
+                                Icon(
+                                        Icons.pinch_rounded,
+                                        size: 24, // Ajuste o tamanho conforme necessário
+                                        color: Colors.black,
+                                      ),
+                                      Text('Arraste, para redimencionar as imagens', style: TextStyle(color: Colors.black, fontSize: 10))
+                            ],)),
             ],
           ),
 
@@ -1074,7 +1072,7 @@ Widget _buildShareableFrame({
             right: 0,
             // Ajustamos o 'bottom' para a posição que você desejava (em torno do meio superior)
             // Calculado: (533 / 2) - 160 = ~106.5 (Posicionamento mais alto, fora da zona de recorte da imagem do seu print)
-            bottom: frameHeight / 2 - 100, 
+            bottom: frameHeight / 2 - 90, 
             child: Center(
               child: Image.asset(
                   "assets/logo_all_green.png",
@@ -1086,7 +1084,7 @@ Widget _buildShareableFrame({
             ),
           ),
 
-
+                     
         ],
       ),
     ),
