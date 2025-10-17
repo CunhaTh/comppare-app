@@ -1055,7 +1055,7 @@ Widget _buildShareableFrame({
                 ),
               ),
                                         Padding(
-                            padding: const EdgeInsets.only(top: 15, left: 60, right: 30),
+                            padding: const EdgeInsets.only(top: 15, left: 40, right: 30),
                             child: Column(children: [
                                 Icon(
                                         Icons.pinch_rounded,
@@ -1072,7 +1072,7 @@ Widget _buildShareableFrame({
             right: 0,
             // Ajustamos o 'bottom' para a posição que você desejava (em torno do meio superior)
             // Calculado: (533 / 2) - 160 = ~106.5 (Posicionamento mais alto, fora da zona de recorte da imagem do seu print)
-            bottom: frameHeight / 2 - 90, 
+            bottom: frameHeight / 2 - 75, 
             child: Center(
               child: Image.asset(
                   "assets/logo_all_green.png",
