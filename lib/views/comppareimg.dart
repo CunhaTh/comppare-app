@@ -33,6 +33,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:application_progress/helpers/date_picker_widget.dart';
 
+import 'package:flutter/material.dart' as material;
+import 'dart:typed_data';
+
 import '../controllers/controller.dart';
 import '../infra/api_endponts.dart';
 
@@ -1016,6 +1019,7 @@ Widget _buildShareableFrame({
   return RepaintBoundary(
     key: key,
     child: Container(
+      
       width: frameWidth,
       height: frameHeight,
       color: Colors.transparent, // Fundo branco
@@ -1054,16 +1058,20 @@ Widget _buildShareableFrame({
                   }).toList(),
                 ),
               ),
-                                        Padding(
-                            padding: const EdgeInsets.only(top: 15, left: 40, right: 30),
-                            child: Column(children: [
-                                Icon(
-                                        Icons.pinch_rounded,
-                                        size: 24, // Ajuste o tamanho conforme necessário
-                                        color: Colors.black,
-                                      ),
-                                      Text('Arraste, para redimencionar as imagens', style: TextStyle(color: Colors.black, fontSize: 10))
-                            ],)),
+              Padding(
+                  padding: const EdgeInsets.only(top: 15, left: 40, right: 30),
+                  child: Column(
+                    children: 
+                    [
+                      Icon(
+                      Icons.pinch_rounded,
+                        size: 24, // Ajuste o tamanho conforme necessário
+                        color: Colors.black,
+                          ),
+                      Text('Arraste, para redimencionar as imagens', style: TextStyle(color: Colors.black, fontSize: 12))
+                    ],
+                )
+              ),
             ],
           ),
 
@@ -2320,6 +2328,8 @@ Widget _buildShareableFrame({
     return {'newItem': newItem, 'response': responseBody};
   }
 
+  
+
   // Substitua o método _showComparisonDialog em lib/views/comppareimg.dart
   void _showComparisonDialog(
       BuildContext context,
@@ -2654,7 +2664,7 @@ Widget _buildShareableFrame({
       );
     }
 
-Future<void> shareImages() async {
+    Future<void> shareImages() async {
   // O GlobalKey shareRepaintKey DEVE ser declarado ANTES do showDialog
   // e provavelmente é uma variável de instância na sua classe (StatefulWidget)
   // final GlobalKey shareRepaintKey = GlobalKey(); // Remova esta linha se já estiver declarada na classe
@@ -2896,6 +2906,103 @@ Future<void> shareImages() async {
       );
     },
   );
+}
+
+Future<Uint8List?> showImagePreviewAndEdit(
+  material.BuildContext context,
+  List<ImageModel> displayedImages,
+  bool isLargeScreen,
+) async {
+  final material.GlobalKey previewKey = material.GlobalKey();
+
+  final material.Size screenSize = material.MediaQuery.of(context).size;
+  final double screenWidth = screenSize.width;
+  final double screenHeight = screenSize.height;
+
+  await material.showDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (material.BuildContext dialogContext) {
+      return material.Dialog(
+        insetPadding: material.EdgeInsets.zero, 
+        backgroundColor: material.Colors.transparent,
+        
+        child: material.Container(
+          width: screenWidth * 0.95,
+          constraints: material.BoxConstraints(maxHeight: screenHeight * 0.70),
+          
+          decoration: material.BoxDecoration(
+            borderRadius: material.BorderRadius.circular(24),
+            color: material.Colors.white, 
+          ),
+          
+          child: material.Column( // Reintroduzindo Column para o header e conteúdo
+            mainAxisSize: material.MainAxisSize.min,
+            children: [
+              // HEADER COM TÍTULO E BOTÃO DE FECHAR
+              material.Container(
+                padding: material.EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                decoration: const material.BoxDecoration(
+                  color: material.Color(0xFFaed513), // Sua cor verde
+                  borderRadius: material.BorderRadius.only(
+                    topLeft: material.Radius.circular(20.0),
+                    topRight: material.Radius.circular(20.0),
+                  ),
+                ),
+                child: material.Row(
+                  mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Título "SubAlbum"
+                    material.Expanded(
+                      child: material.Center(
+                        child: material.Text(
+                          'Pre-visualização', // Texto do título
+                          style: material.TextStyle(
+                            fontSize: isLargeScreen ? 20.0 : 18.0,
+                            fontWeight: material.FontWeight.bold,
+                            color: material.Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Botão de fechar
+                    material.GestureDetector(
+                      onTap: () => material.Navigator.of(dialogContext).pop(),
+                      child: material.Container(
+                        padding: const material.EdgeInsets.all(8),
+                        decoration: material.BoxDecoration(
+                          color: material.Colors.black.withOpacity(0.1), // Sutil para combinar com o verde
+                          shape: material.BoxShape.circle,
+                        ),
+                        child: const material.Icon(material.Icons.close_rounded,
+                            color: material.Colors.black, size: 24), // Cor do ícone para contrastar com o verde
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // CONTEÚDO: FRAME DE EDIÇÃO (InteractiveViewer)
+              material.Expanded(
+                child: material.Padding(
+                  padding: material.EdgeInsets.all(isLargeScreen ? 20.0 : 15.0),
+                  child: material.Center(
+                    child: _buildShareableFrame( 
+                      key: previewKey,
+                      displayedImages: displayedImages,
+                      isLargeScreen: isLargeScreen,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+  
+  return null;
 }
 
     Future<void> saveCard() async {
@@ -3284,10 +3391,31 @@ Future<void> shareImages() async {
                                 ),
                               ),
                             ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 30),
+                              child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                    children: 
+                                      [
+                                        GestureDetector(
+                                          onTap: () => showImagePreviewAndEdit(
+                                            context, 
+                                            displayedImages, 
+                                            isLargeScreen,),
+                                          child: Icon(
+                                            Icons.pinch_rounded,
+                                              size: 30, // Ajuste o tamanho conforme necessário
+                                              color: Color(0xFFaed513),
+                                          ),
+                                        ),
+                                      ]
+                                      ),
+                            ),
                             SizedBox(
                                 height: isLargeScreen
                                     ? screenWidth * 0.02
                                     : screenWidth * 0.01),
+                                    
                             // Conteúdo rolável: categorias + ações + miniaturas
                             Expanded(
                               child: SingleChildScrollView(
@@ -3296,6 +3424,7 @@ Future<void> shareImages() async {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                    
                                     Padding(
                                       padding: EdgeInsets.fromLTRB(
                                         isLargeScreen ? 16.0 : 12.0,
@@ -3305,6 +3434,7 @@ Future<void> shareImages() async {
                                       ),
                                       child: Column(
                                         children: [
+                                            
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 12.0,
