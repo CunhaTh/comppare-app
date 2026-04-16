@@ -12,10 +12,12 @@ class AdminUsersPage extends StatefulWidget {
 
 class _AdminUsersPageState extends State<AdminUsersPage> {
   final ApiService _api = ApiService();
+  final TextEditingController _searchController = TextEditingController();
 
   bool _loading = false;
   String? _error;
   List<dynamic> _allUsers = [];
+  String _searchQuery = '';
   // Track rows currently updating (by id string)
   final Set<String> _loadingRows = {};
   // Controller for vertical scrolling of the data table
@@ -47,6 +49,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _tableScrollController.dispose();
     super.dispose();
   }
@@ -74,11 +77,24 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     }
   }
 
+  List<dynamic> get _filteredUsers {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _allUsers;
+
+    return _allUsers.where((u) {
+      final nome = '${u['primeiroNome'] ?? ''} ${u['sobrenome'] ?? ''}'.toLowerCase();
+      final email = (u['email'] ?? '').toString().toLowerCase();
+      final plano = (u['plano'] ?? '').toString().toLowerCase();
+      return nome.contains(query) || email.contains(query) || plano.contains(query);
+    }).toList();
+  }
+
   List<dynamic> get _pageItems {
+    final users = _filteredUsers;
     final start = _page * _pageSize;
-    if (start >= _allUsers.length) return [];
+    if (start >= users.length) return [];
     final end = (_page + 1) * _pageSize;
-    return _allUsers.sublist(start, end.clamp(0, _allUsers.length));
+    return users.sublist(start, end.clamp(0, users.length));
   }
 
   Future<void> _deleteUser(dynamic id) async {
@@ -270,6 +286,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         columns: const [
           DataColumn(label: Text('Nome')),
           DataColumn(label: Text('Email')),
+          DataColumn(label: Text('CPF')),
           DataColumn(label: Text('Plano')),
           DataColumn(label: Text('Status')),
           DataColumn(label: Text('Ações')),
@@ -277,6 +294,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         rows: _pageItems.map((u) {
           final nome = u['primeiroNome'] + ' ' + (u['sobrenome'] ?? '');
           final email = u['email'] ?? '';
+          final cpf = u['cpf'] ?? '';
           final plano = u['plano'] ??  '';
           final statusRaw = u['status'] ?? u['ativo'];
           final status = _statusToInt(statusRaw);
@@ -284,6 +302,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           return DataRow(cells: [
             DataCell(Text(nome.toString())),
             DataCell(Text(email.toString())),
+            DataCell(Text(cpf.toString())),
             DataCell(Text(plano.toString())),
             DataCell(Text(_statusLabel(status))),
             DataCell(Row(
@@ -314,7 +333,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final totalPages = (_allUsers.length / _pageSize).ceil();
+    final totalPages = (_filteredUsers.length / _pageSize).ceil();
 
     return Scaffold(
       appBar: AppBar(
@@ -325,35 +344,72 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             onPressed: _fetch,
           )
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(68),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                  _page = 0;
+                });
+              },
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                labelText: 'Pesquisar usuários',
+                hintText: 'Pesquisar...',
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                            _page = 0;
+                          });
+                        },
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(child: Text('Erro: $_error'))
-                : Column(
-                    children: [
-                      Expanded(child: _buildTable(context)),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: _page > 0 ? () => setState(() => _page--) : null,
-                            child: const Text('Anterior'),
-                          ),
-                          const SizedBox(width: 12),
-                          Text('Página ${_page + 1} de ${totalPages == 0 ? 1 : totalPages}'),
-                          const SizedBox(width: 12),
-                          TextButton(
-                            onPressed: (_page + 1) < totalPages ? () => setState(() => _page++) : null,
-                            child: const Text('Próxima'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+        child: Column(
+          children: [
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(child: Text('Erro: $_error'))
+                      : _buildTable(context),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: _page > 0 ? () => setState(() => _page--) : null,
+                  child: const Text('Anterior'),
+                ),
+                const SizedBox(width: 12),
+                Text('Página ${_page + 1} de ${totalPages == 0 ? 1 : totalPages}'),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: (_page + 1) < totalPages ? () => setState(() => _page++) : null,
+                  child: const Text('Próxima'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

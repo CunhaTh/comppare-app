@@ -16,7 +16,7 @@
             "request": "launch",
             "program": "lib/main.dart",
             "flutterMode": "debug",
-            "args": [
+            "toolArgs": [
               "-d",
               "chrome",
               "--web-experimental-hot-reload",
@@ -29,11 +29,11 @@
             "request": "launch",
             "program": "lib/main.dart",
             "flutterMode": "debug",
-            "args": [
+            "toolArgs": [
               "-d",
               "chrome",
               "--web-experimental-hot-reload",
-              "--dart-define=API_ENDPOINT=https://apidev.comppare.com.br"
+              "--dart-define=API_ENDPOINT=https://api.comppare.com.br"
             ]
           },
         
